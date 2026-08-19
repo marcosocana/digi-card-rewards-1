@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPlataformaRouteImport } from './routes/_authenticated/plataforma'
+import { Route as MiTarjetaPublicIdRouteImport } from './routes/mi-tarjeta.$publicId'
 import { Route as AuthenticatedPanelIndexRouteImport } from './routes/_authenticated/panel.index'
 import { Route as AuthenticatedPanelActividadRouteImport } from './routes/_authenticated/panel.actividad'
 import { Route as AuthenticatedPanelCajaRouteImport } from './routes/_authenticated/panel.caja'
@@ -51,6 +52,11 @@ const AuthenticatedPlataformaRoute = AuthenticatedPlataformaRouteImport.update({
   id: '/plataforma',
   path: '/plataforma',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const MiTarjetaPublicIdRoute = MiTarjetaPublicIdRouteImport.update({
+  id: '/mi-tarjeta/$publicId',
+  path: '/mi-tarjeta/$publicId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPanelIndexRoute = AuthenticatedPanelIndexRouteImport.update({
   id: '/',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/panel': typeof AuthenticatedPanelRouteWithChildren
   '/plataforma': typeof AuthenticatedPlataformaRoute
+  '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/plataforma': typeof AuthenticatedPlataformaRoute
+  '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRouteWithChildren
   '/_authenticated/plataforma': typeof AuthenticatedPlataformaRoute
+  '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/_authenticated/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/_authenticated/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/_authenticated/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/plataforma'
+    | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
     | '/panel/caja'
     | '/panel/captacion'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/plataforma'
+    | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
     | '/panel/caja'
     | '/panel/captacion'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/panel'
     | '/_authenticated/plataforma'
+    | '/mi-tarjeta/$publicId'
     | '/_authenticated/panel/actividad'
     | '/_authenticated/panel/caja'
     | '/_authenticated/panel/captacion'
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  MiTarjetaPublicIdRoute: typeof MiTarjetaPublicIdRoute
   UnirmeOrganizationSlugLocationSlugRoute: typeof UnirmeOrganizationSlugLocationSlugRoute
   UnirmeOrganizationSlugIndexRoute: typeof UnirmeOrganizationSlugIndexRoute
 }
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/plataforma'
       preLoaderRoute: typeof AuthenticatedPlataformaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/mi-tarjeta/$publicId': {
+      id: '/mi-tarjeta/$publicId'
+      path: '/mi-tarjeta/$publicId'
+      fullPath: '/mi-tarjeta/$publicId'
+      preLoaderRoute: typeof MiTarjetaPublicIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/panel/': {
       id: '/_authenticated/panel/'
@@ -436,6 +456,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  MiTarjetaPublicIdRoute: MiTarjetaPublicIdRoute,
   UnirmeOrganizationSlugLocationSlugRoute:
     UnirmeOrganizationSlugLocationSlugRoute,
   UnirmeOrganizationSlugIndexRoute: UnirmeOrganizationSlugIndexRoute,
