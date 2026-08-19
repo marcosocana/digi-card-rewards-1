@@ -49,7 +49,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   const role = session?.org?.role ?? "staff";
-  const items = nav.filter((i) => i.roles.includes(role));
+  const items = session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
+  const roleName = session?.isSuperadmin ? "Superadmin" : role;
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -106,7 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
       <div className="border-t border-sidebar-border px-4 py-4">
         <p className="truncate text-sm font-medium">{session?.fullName ?? session?.email}</p>
-        <p className="text-xs capitalize text-sidebar-foreground/70">{role}</p>
+        <p className="text-xs capitalize text-sidebar-foreground/70">{roleName}</p>
         <Button variant="ghost" size="sm" className="mt-2 w-full justify-start px-2 text-sidebar-foreground/80 hover:bg-sidebar-accent" onClick={signOut}>
           <LogOut aria-hidden className="size-4" /> Cerrar sesión
         </Button>
