@@ -2,7 +2,6 @@ import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +21,26 @@ export const Route = createFileRoute("/auth")({
 });
 
 const demoUsers = [
-  { email: "super@cafenorte.es", role: "Superadministrador" },
-  { email: "admin@cafenorte.es", role: "Administrador de Café Norte" },
-  { email: "malasana@cafenorte.es", role: "Responsable de Malasaña" },
-  { email: "empleado@cafenorte.es", role: "Empleado de Malasaña" },
+  {
+    email: "super@cafenorte.es",
+    password: "super@cafenorte.es",
+    role: "Superadministrador",
+  },
+  {
+    email: "admin@cafenorte.es",
+    password: "admin@cafenorte.es",
+    role: "Administrador de Café Norte",
+  },
+  {
+    email: "malasana@cafenorte.es",
+    password: "malasana@cafenorte.es",
+    role: "Responsable de Malasaña",
+  },
+  {
+    email: "empleado@cafenorte.es",
+    password: "empleado@cafenorte.es",
+    role: "Empleado de Malasaña",
+  },
 ];
 
 function AuthPage() {
@@ -64,16 +79,6 @@ function AuthPage() {
       toast.success("Revisa tu correo para confirmar la cuenta");
       return;
     }
-    void navigate({ to: "/panel" });
-  };
-
-  const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) {
-      toast.error("No hemos podido continuar con Google");
-      return;
-    }
-    if (result.redirected) return;
     void navigate({ to: "/panel" });
   };
 
@@ -130,18 +135,12 @@ function AuthPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> o <span className="h-px flex-1 bg-border" />
-          </div>
-          <Button variant="outline" className="w-full" onClick={google}>
-            Continuar con Google
-          </Button>
         </div>
 
         <div className="surface mt-4 p-5">
           <h2 className="text-sm font-semibold">Cuentas demo preparadas</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Crea la cuenta con uno de estos emails y el rol se asigna solo.
+            Pulsa una cuenta para rellenar el acceso. La contraseña es el mismo email.
           </p>
           <ul className="mt-3 space-y-1.5 text-xs">
             {demoUsers.map((u) => (
@@ -149,7 +148,10 @@ function AuthPage() {
                 <button
                   type="button"
                   className="font-medium underline-offset-2 hover:underline"
-                  onClick={() => setEmail(u.email)}
+                  onClick={() => {
+                    setEmail(u.email);
+                    setPassword(u.password);
+                  }}
                 >
                   {u.email}
                 </button>
