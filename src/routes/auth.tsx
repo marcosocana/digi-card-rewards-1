@@ -50,16 +50,23 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const signIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const signInWithCredentials = async (loginEmail: string, loginPassword: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail.trim(),
+      password: loginPassword,
+    });
     setLoading(false);
     if (error) {
       toast.error("No hemos podido iniciar sesión", { description: error.message });
       return;
     }
-    void navigate({ to: "/panel" });
+    window.location.assign("/panel");
+  };
+
+  const signIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signInWithCredentials(email, password);
   };
 
   const signUp = async (e: React.FormEvent) => {
@@ -140,17 +147,19 @@ function AuthPage() {
         <div className="surface mt-4 p-5">
           <h2 className="text-sm font-semibold">Cuentas demo preparadas</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Pulsa una cuenta para rellenar el acceso. La contraseña es el mismo email.
+            Pulsa una cuenta para entrar directamente. La contraseña es el mismo email.
           </p>
           <ul className="mt-3 space-y-1.5 text-xs">
             {demoUsers.map((u) => (
               <li key={u.email} className="flex justify-between gap-3">
                 <button
                   type="button"
+                  disabled={loading}
                   className="font-medium underline-offset-2 hover:underline"
                   onClick={() => {
                     setEmail(u.email);
                     setPassword(u.password);
+                    void signInWithCredentials(u.email, u.password);
                   }}
                 >
                   {u.email}
