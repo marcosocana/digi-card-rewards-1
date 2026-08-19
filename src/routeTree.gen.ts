@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPanelIndexRouteImport } from './routes/_authenticated/panel.index'
 import { Route as AuthenticatedPanelCajaRouteImport } from './routes/_authenticated/panel.caja'
+import { Route as AuthenticatedPanelProgramaRouteImport } from './routes/_authenticated/panel.programa'
 import { Route as AuthenticatedPanelClientesIndexRouteImport } from './routes/_authenticated/panel.clientes.index'
 import { Route as AuthenticatedPanelClientesMembershipIdRouteImport } from './routes/_authenticated/panel.clientes.$membershipId'
 
@@ -47,6 +48,12 @@ const AuthenticatedPanelCajaRoute = AuthenticatedPanelCajaRouteImport.update({
   path: '/caja',
   getParentRoute: () => AuthenticatedPanelRoute,
 } as any)
+const AuthenticatedPanelProgramaRoute =
+  AuthenticatedPanelProgramaRouteImport.update({
+    id: '/programa',
+    path: '/programa',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 const AuthenticatedPanelClientesIndexRoute =
   AuthenticatedPanelClientesIndexRouteImport.update({
     id: '/clientes/',
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/panel': typeof AuthenticatedPanelRouteWithChildren
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
+  '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/': typeof AuthenticatedPanelIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
@@ -73,6 +81,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
+  '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel': typeof AuthenticatedPanelIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/panel/clientes': typeof AuthenticatedPanelClientesIndexRoute
@@ -84,6 +93,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRouteWithChildren
   '/_authenticated/panel/caja': typeof AuthenticatedPanelCajaRoute
+  '/_authenticated/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/_authenticated/panel/': typeof AuthenticatedPanelIndexRoute
   '/_authenticated/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/_authenticated/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/panel/caja'
+    | '/panel/programa'
     | '/panel/'
     | '/panel/clientes/$membershipId'
     | '/panel/clientes/'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/panel/caja'
+    | '/panel/programa'
     | '/panel'
     | '/panel/clientes/$membershipId'
     | '/panel/clientes'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/panel'
     | '/_authenticated/panel/caja'
+    | '/_authenticated/panel/programa'
     | '/_authenticated/panel/'
     | '/_authenticated/panel/clientes/$membershipId'
     | '/_authenticated/panel/clientes/'
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelCajaRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/_authenticated/panel/programa': {
+      id: '/_authenticated/panel/programa'
+      path: '/programa'
+      fullPath: '/panel/programa'
+      preLoaderRoute: typeof AuthenticatedPanelProgramaRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
     '/_authenticated/panel/clientes/': {
       id: '/_authenticated/panel/clientes/'
       path: '/clientes'
@@ -187,6 +207,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedPanelRouteChildren {
   AuthenticatedPanelCajaRoute: typeof AuthenticatedPanelCajaRoute
+  AuthenticatedPanelProgramaRoute: typeof AuthenticatedPanelProgramaRoute
   AuthenticatedPanelIndexRoute: typeof AuthenticatedPanelIndexRoute
   AuthenticatedPanelClientesMembershipIdRoute: typeof AuthenticatedPanelClientesMembershipIdRoute
   AuthenticatedPanelClientesIndexRoute: typeof AuthenticatedPanelClientesIndexRoute
@@ -194,6 +215,7 @@ interface AuthenticatedPanelRouteChildren {
 
 const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelCajaRoute: AuthenticatedPanelCajaRoute,
+  AuthenticatedPanelProgramaRoute: AuthenticatedPanelProgramaRoute,
   AuthenticatedPanelIndexRoute: AuthenticatedPanelIndexRoute,
   AuthenticatedPanelClientesMembershipIdRoute:
     AuthenticatedPanelClientesMembershipIdRoute,
