@@ -1,11 +1,14 @@
 export const eur = (cents: number | null | undefined) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format((cents ?? 0) / 100);
 
-export const num = (n: number | null | undefined) =>
-  new Intl.NumberFormat("es-ES").format(n ?? 0);
+export const num = (n: number | null | undefined) => new Intl.NumberFormat("es-ES").format(n ?? 0);
 
 export const dateTime = (iso: string | null | undefined) =>
-  iso ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "—";
+  iso
+    ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short" }).format(
+        new Date(iso),
+      )
+    : "—";
 
 export const dateOnly = (iso: string | null | undefined) =>
   iso ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(iso)) : "—";
@@ -42,6 +45,10 @@ export const errorLabel = (message: string) => {
     REASON_REQUIRED: "Debes indicar un motivo.",
     MEMBERSHIP_NOT_FOUND: "No se encontró la membresía.",
     PROGRAM_NOT_AVAILABLE: "El programa no está disponible.",
+    TERMS_REQUIRED: "Debes aceptar las condiciones y la política de privacidad.",
+    INVALID_EMAIL: "Introduce un email válido.",
+    INVALID_PHONE: "Introduce un teléfono válido.",
+    NAME_REQUIRED: "Introduce tu nombre.",
   };
   for (const key of Object.keys(map)) if (message.includes(key)) return map[key]!;
   return message;
@@ -60,7 +67,9 @@ export const computePoints = (
   rounding: string,
 ): number => {
   const raw =
-    mode === "points_per_currency_unit" ? (amountCents / 100) * value : amountCents / 100 / (value || 1);
+    mode === "points_per_currency_unit"
+      ? (amountCents / 100) * value
+      : amountCents / 100 / (value || 1);
   return rounding === "nearest" ? Math.round(raw) : Math.floor(raw);
 };
 

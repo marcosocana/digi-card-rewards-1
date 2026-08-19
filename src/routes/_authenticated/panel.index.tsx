@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Coins, Gift, TrendingUp, Users } from "lucide-react";
+import { Coins, Gift, Receipt, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/app/metric-card";
@@ -33,7 +33,10 @@ function ResumenPage() {
     queryFn: async () => {
       const from = since(30);
       const [members, newMembers, txns, locations] = await Promise.all([
-        supabase.from("memberships").select("id", { count: "exact", head: true }).eq("organization_id", orgId!),
+        supabase
+          .from("memberships")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId!),
         supabase
           .from("memberships")
           .select("id", { count: "exact", head: true })
@@ -49,15 +52,26 @@ function ResumenPage() {
         supabase.from("locations").select("id, name").eq("organization_id", orgId!),
       ]);
       const rows = txns.data ?? [];
+      const purchases = rows.filter((r) => r.type === "purchase");
       const locName = new Map((locations.data ?? []).map((l) => [l.id, l.name]));
       return {
         members: members.count ?? 0,
         newMembers: newMembers.count ?? 0,
-        pointsIssued: rows.filter((r) => r.points_delta > 0).reduce((s, r) => s + r.points_delta, 0),
-        pointsRedeemed: rows.filter((r) => r.type === "redemption").reduce((s, r) => s + Math.abs(r.points_delta), 0),
+        pointsIssued: rows
+          .filter((r) => r.points_delta > 0)
+          .reduce((s, r) => s + r.points_delta, 0),
+        pointsRedeemed: rows
+          .filter((r) => r.type === "redemption")
+          .reduce((s, r) => s + Math.abs(r.points_delta), 0),
         redemptions: rows.filter((r) => r.type === "redemption").length,
         sales: rows.reduce((s, r) => s + (r.amount_cents ?? 0), 0),
-        recent: rows.slice(0, 12).map((r) => ({ ...r, locationName: locName.get(r.location_id ?? "") ?? "—" })),
+        purchases: purchases.length,
+        averageTicket: purchases.length
+          ? Math.round(purchases.reduce((s, r) => s + (r.amount_cents ?? 0), 0) / purchases.length)
+          : 0,
+        recent: rows
+          .slice(0, 12)
+          .map((r) => ({ ...r, locationName: locName.get(r.location_id ?? "") ?? "—" })),
       };
     },
   });
@@ -83,17 +97,48 @@ function ResumenPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label="Miembros" value={num(data?.members)} hint={`+${num(data?.newMembers)} nuevos`} icon={<Users className="size-4" />} />
-            <MetricCard label="Puntos emitidos" value={num(data?.pointsIssued)} icon={<Coins className="size-4" />} />
-            <MetricCard label="Puntos canjeados" value={num(data?.pointsRedeemed)} hint={`${num(data?.redemptions)} canjes`} icon={<Gift className="size-4" />} />
-            <MetricCard label="Ventas asociadas" value={eur(data?.sales)} icon={<TrendingUp className="size-4" />} />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <MetricCard
+              label="Miembros"
+              value={num(data?.members)}
+              hint={`+${num(data?.newMembers)} nuevos`}
+              icon={<Users className="size-4" />}
+            />
+            <MetricCard
+              label="Puntos emitidos"
+              value={num(data?.pointsIssued)}
+              icon={<Coins className="size-4" />}
+            />
+            <MetricCard
+              label="Puntos canjeados"
+              value={num(data?.pointsRedeemed)}
+              hint={`${num(data?.redemptions)} canjes`}
+              icon={<Gift className="size-4" />}
+            />
+            <MetricCard
+              label="Ventas asociadas"
+              value={eur(data?.sales)}
+              icon={<TrendingUp className="size-4" />}
+            />
+            <MetricCard
+              label="Compras registradas"
+              value={num(data?.purchases)}
+              icon={<Receipt className="size-4" />}
+            />
+            <MetricCard
+              label="Ticket medio"
+              value={eur(data?.averageTicket)}
+              icon={<Receipt className="size-4" />}
+            />
           </div>
 
           <div className="surface overflow-hidden">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="font-display text-lg font-semibold">Actividad reciente</h2>
-              <Link to="/panel/clientes" className="text-sm text-primary underline-offset-2 hover:underline">
+              <Link
+                to="/panel/clientes"
+                className="text-sm text-primary underline-offset-2 hover:underline"
+              >
                 Ver clientes
               </Link>
             </div>
@@ -108,7 +153,10 @@ function ResumenPage() {
                         {t.amount_cents ? ` · ${eur(t.amount_cents)}` : ""}
                       </p>
                     </div>
-                    <Badge variant={t.points_delta >= 0 ? "secondary" : "outline"} className="shrink-0 font-mono">
+                    <Badge
+                      variant={t.points_delta >= 0 ? "secondary" : "outline"}
+                      className="shrink-0 font-mono"
+                    >
                       {t.points_delta >= 0 ? "+" : ""}
                       {num(t.points_delta)}
                     </Badge>
@@ -116,7 +164,9 @@ function ResumenPage() {
                 ))}
               </ul>
             ) : (
-              <p className="px-5 py-10 text-center text-sm text-muted-foreground">Todavía no hay movimientos.</p>
+              <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+                Todavía no hay movimientos.
+              </p>
             )}
           </div>
         </>

@@ -14,6 +14,7 @@ export interface ScanResult {
   balance: number;
   customer_name: string;
   customer_email: string;
+  customer_phone?: string | null;
   short_code: string;
   program: {
     id: string;
@@ -27,6 +28,9 @@ export interface ScanResult {
   rewards: { id: string; name: string; points_cost: number; available: boolean }[];
   last_transaction: { type: string; points_delta: number; created_at: string } | null;
 }
+
+export const searchMemberships = (query: string, locationId: string) =>
+  rpc<ScanResult[]>("search_memberships", { _query: query, _location_id: locationId });
 
 export const resolveMembershipQr = (token: string, locationId: string) =>
   rpc<ScanResult>("resolve_membership_qr", { _token: token, _location_id: locationId });
@@ -45,6 +49,7 @@ export const recordPurchase = (args: {
     points_awarded: number;
     previous_balance: number;
     resulting_balance: number;
+    earned_rewards?: { id: string; name: string }[];
   }>("record_purchase", {
     _membership_id: args.membershipId,
     _location_id: args.locationId,
@@ -73,7 +78,12 @@ export const redeemReward = (args: {
     _idempotency_key: args.idempotencyKey,
   });
 
-export const adjustPoints = (args: { membershipId: string; delta: number; reason: string; note?: string }) =>
+export const adjustPoints = (args: {
+  membershipId: string;
+  delta: number;
+  reason: string;
+  note?: string;
+}) =>
   rpc<{ previous_balance: number; resulting_balance: number }>("adjust_points", {
     _membership_id: args.membershipId,
     _delta: args.delta,
@@ -98,10 +108,34 @@ export interface PortalData {
   customer: { first_name: string; last_name: string | null; email: string };
   organization: { display_name: string; slug: string };
   branding: Record<string, string> | null;
-  program: { public_name: string; description: string | null; earning_mode: string; earning_value: number; terms: string | null };
+  program: {
+    public_name: string;
+    description: string | null;
+    earning_mode: string;
+    earning_value: number;
+    terms: string | null;
+  };
   short_code: string | null;
-  rewards: { id: string; name: string; description: string | null; points_cost: number; available: boolean }[];
+  rewards: {
+    id: string;
+    name: string;
+    description: string | null;
+    points_cost: number;
+    available: boolean;
+  }[];
   locations: { name: string; address_line: string | null; city: string | null }[];
-  history: { id: string; type: string; points_delta: number; amount_cents: number | null; note: string | null; created_at: string }[];
-  passes: { provider: string; status: string; is_sandbox: boolean; last_updated_at: string | null }[];
+  history: {
+    id: string;
+    type: string;
+    points_delta: number;
+    amount_cents: number | null;
+    note: string | null;
+    created_at: string;
+  }[];
+  passes: {
+    provider: string;
+    status: string;
+    is_sandbox: boolean;
+    last_updated_at: string | null;
+  }[];
 }

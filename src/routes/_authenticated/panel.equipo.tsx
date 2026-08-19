@@ -10,8 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useSession } from "@/lib/session";
 import { roleLabel } from "@/lib/format";
 
@@ -23,7 +37,7 @@ function EquipoPage() {
   const { data: session } = useSession();
   const orgId = session?.org?.organization_id;
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ email: "", full_name: "", role: "staff" });
+  const [form, setForm] = useState({ email: "", full_name: "", role: "staff", location_id: "" });
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["team", orgId],
@@ -39,26 +53,62 @@ function EquipoPage() {
     },
   });
 
+  const { data: locations } = useQuery({
+    queryKey: ["team-locations", orgId],
+    enabled: Boolean(orgId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("locations")
+        .select("id, name")
+        .eq("organization_id", orgId!)
+        .eq("status", "active")
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const invite = async () => {
     if (!orgId || !form.email.includes("@")) {
       toast.error("Introduce un email válido");
       return;
     }
-    const { error } = await supabase.from("organization_users").insert({
-      organization_id: orgId,
-      invited_email: form.email.trim().toLowerCase(),
-      full_name: form.full_name.trim() || null,
-      role: form.role as "staff",
-      can_adjust_points: form.role !== "staff",
-      status: "active",
-    });
+    if (form.role !== "admin" && !form.location_id) {
+      toast.error("Asigna un establecimiento");
+      return;
+    }
+    const { data: invited, error } = await supabase
+      .from("organization_users")
+      .insert({
+        organization_id: orgId,
+        invited_email: form.email.trim().toLowerCase(),
+        full_name: form.full_name.trim() || null,
+        role: form.role as "staff",
+        can_adjust_points: form.role === "manager",
+        status: "active",
+      })
+      .select("id")
+      .single();
     if (error) {
       toast.error("No se pudo invitar", { description: error.message });
       return;
     }
-    toast.success("Invitación creada", { description: "Al registrarse con ese email heredará el rol." });
+    if (form.role !== "admin" && form.location_id && invited) {
+      const { error: assignmentError } = await supabase
+        .from("user_location_assignments")
+        .insert({ organization_user_id: invited.id, location_id: form.location_id });
+      if (assignmentError) {
+        toast.error("Usuario creado, pero no se pudo asignar el establecimiento", {
+          description: assignmentError.message,
+        });
+        return;
+      }
+    }
+    toast.success("Invitación creada", {
+      description: "Al registrarse con ese email heredará el rol.",
+    });
     setOpen(false);
-    setForm({ email: "", full_name: "", role: "staff" });
+    setForm({ email: "", full_name: "", role: "staff", location_id: "" });
     void refetch();
   };
 
@@ -77,16 +127,47 @@ function EquipoPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Invitar a una persona</DialogTitle>
-                <DialogDescription>Recibirá el rol al crear su cuenta con este email.</DialogDescription>
+                <DialogDescription>
+                  Recibirá el rol al crear su cuenta con este email.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="iemail">Email</Label>
-                  <Input id="iemail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                  <Input
+                    id="iemail"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
                 </div>
+                {form.role !== "admin" ? (
+                  <div className="space-y-1.5">
+                    <Label>Establecimiento asignado</Label>
+                    <Select
+                      value={form.location_id}
+                      onValueChange={(v) => setForm({ ...form, location_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un establecimiento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(locations ?? []).map((location) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
                 <div className="space-y-1.5">
                   <Label htmlFor="iname">Nombre</Label>
-                  <Input id="iname" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+                  <Input
+                    id="iname"
+                    value={form.full_name}
+                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Rol</Label>

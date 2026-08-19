@@ -2,17 +2,29 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Check, Gift, Keyboard, Loader2, Receipt } from "lucide-react";
+import { ArrowLeft, Camera, Check, Gift, Keyboard, Loader2, Receipt, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/app/page-header";
 import { QrScanner } from "@/components/app/qr-scanner";
 import { useSession, getActiveLocation, setActiveLocation } from "@/lib/session";
 import { computePoints, eur, num, parseAmountToCents, ruleText } from "@/lib/format";
-import { recordPurchase, redeemReward, resolveMembershipQr, type ScanResult } from "@/lib/operations";
+import {
+  recordPurchase,
+  redeemReward,
+  resolveMembershipQr,
+  searchMemberships,
+  type ScanResult,
+} from "@/lib/operations";
 
 export const Route = createFileRoute("/_authenticated/panel/caja")({
   component: CajaPage,
@@ -27,6 +39,7 @@ function CajaPage() {
   const [locationId, setLocationId] = useState<string>("");
   const [mode, setMode] = useState<Mode>("scan");
   const [manualCode, setManualCode] = useState("");
+  const [matches, setMatches] = useState<ScanResult[]>([]);
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [amount, setAmount] = useState("");
@@ -62,10 +75,30 @@ function CajaPage() {
     }
   };
 
+  const search = async () => {
+    if (!locationId || busy || manualCode.trim().length < 2) return;
+    setBusy(true);
+    try {
+      const results = await searchMemberships(manualCode.trim(), locationId);
+      setMatches(results.filter(Boolean));
+      if (results.length === 1 && results[0]) setScan(results[0]);
+      if (results.length === 0) toast.error("No se encontró ningún cliente");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const cents = parseAmountToCents(amount);
   const preview =
     scan && cents !== null
-      ? computePoints(cents, scan.program.earning_mode, scan.program.earning_value, scan.program.rounding_mode)
+      ? computePoints(
+          cents,
+          scan.program.earning_mode,
+          scan.program.earning_value,
+          scan.program.rounding_mode,
+        )
       : null;
 
   const confirmPurchase = async () => {
@@ -82,10 +115,23 @@ function CajaPage() {
         ticketReference: ticket || null,
         idempotencyKey: idemRef.current,
       });
-      toast.success(res.duplicate ? "Operación ya registrada" : `+${num(res.points_awarded)} puntos`, {
-        description: `Saldo: ${num(res.resulting_balance)} puntos`,
+      const earned = res.earned_rewards?.map((reward) => reward.name).join(", ");
+      toast.success(
+        res.duplicate ? "Operación ya registrada" : `+${num(res.points_awarded)} puntos`,
+        {
+          description: earned
+            ? `Recompensa obtenida: ${earned} · Saldo: ${num(res.resulting_balance)} puntos`
+            : `Saldo: ${num(res.resulting_balance)} puntos`,
+        },
+      );
+      setScan({
+        ...scan,
+        balance: res.resulting_balance,
+        rewards: scan.rewards.map((r) => ({
+          ...r,
+          available: res.resulting_balance >= r.points_cost,
+        })),
       });
-      setScan({ ...scan, balance: res.resulting_balance, rewards: scan.rewards.map((r) => ({ ...r, available: res.resulting_balance >= r.points_cost })) });
       idemRef.current = crypto.randomUUID();
       setAmount("");
       setTicket("");
@@ -107,8 +153,17 @@ function CajaPage() {
         locationId,
         idempotencyKey: crypto.randomUUID(),
       });
-      toast.success(`Canje: ${res.reward_name}`, { description: `Saldo: ${num(res.resulting_balance)} puntos` });
-      setScan({ ...scan, balance: res.resulting_balance, rewards: scan.rewards.map((r) => ({ ...r, available: res.resulting_balance >= r.points_cost })) });
+      toast.success(`Canje: ${res.reward_name}`, {
+        description: `Saldo: ${num(res.resulting_balance)} puntos`,
+      });
+      setScan({
+        ...scan,
+        balance: res.resulting_balance,
+        rewards: scan.rewards.map((r) => ({
+          ...r,
+          available: res.resulting_balance >= r.points_cost,
+        })),
+      });
       void queryClient.invalidateQueries();
     } catch (e) {
       toast.error((e as Error).message);
@@ -132,7 +187,7 @@ function CajaPage() {
     <>
       <PageHeader
         title="Caja"
-        description="Escanea la tarjeta del cliente, introduce el importe y confirma."
+        description="Escanea la tarjeta o busca al cliente para registrar una operación."
         actions={
           <Select value={locationId} onValueChange={chooseLocation}>
             <SelectTrigger className="w-56">
@@ -152,11 +207,19 @@ function CajaPage() {
       {!scan ? (
         <div className="mx-auto w-full max-w-md space-y-4">
           <div className="flex gap-2">
-            <Button variant={mode === "scan" ? "default" : "outline"} className="flex-1" onClick={() => setMode("scan")}>
+            <Button
+              variant={mode === "scan" ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setMode("scan")}
+            >
               <Camera aria-hidden className="size-4" /> Escanear
             </Button>
-            <Button variant={mode === "manual" ? "default" : "outline"} className="flex-1" onClick={() => setMode("manual")}>
-              <Keyboard aria-hidden className="size-4" /> Código
+            <Button
+              variant={mode === "manual" ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setMode("manual")}
+            >
+              <Keyboard aria-hidden className="size-4" /> Buscar
             </Button>
           </div>
 
@@ -167,21 +230,55 @@ function CajaPage() {
               className="surface space-y-3 p-5"
               onSubmit={(e) => {
                 e.preventDefault();
-                void resolve(manualCode.trim().toUpperCase());
+                void search();
               }}
             >
-              <Label htmlFor="code">Código corto de la tarjeta</Label>
+              <Label htmlFor="code">Nombre, email, teléfono o número de socio</Label>
               <Input
                 id="code"
                 autoFocus
                 value={manualCode}
-                onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-                placeholder="Ej. 7KD4P2"
-                className="text-center font-mono text-lg tracking-[0.3em]"
+                onChange={(e) => {
+                  setManualCode(e.target.value);
+                  setMatches([]);
+                }}
+                placeholder="Buscar cliente"
               />
-              <Button type="submit" className="w-full" disabled={busy || manualCode.length < 4}>
-                {busy ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null} Buscar cliente
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={busy || manualCode.trim().length < 2}
+              >
+                {busy ? (
+                  <Loader2 aria-hidden className="size-4 animate-spin" />
+                ) : (
+                  <Search aria-hidden className="size-4" />
+                )}{" "}
+                Buscar cliente
               </Button>
+              {matches.length > 1 ? (
+                <ul className="divide-y rounded-lg border">
+                  {matches.map((match) => (
+                    <li key={match.membership_id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left hover:bg-secondary"
+                        onClick={() => setScan(match)}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">
+                            {match.customer_name}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {match.customer_email}
+                          </span>
+                        </span>
+                        <Badge variant="secondary">{num(match.balance)} pts</Badge>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </form>
           )}
         </div>
@@ -200,7 +297,9 @@ function CajaPage() {
                 <p className="text-xs uppercase tracking-wide text-sidebar-foreground/70">Saldo</p>
                 <p className="metric-value text-sidebar-primary">{num(scan.balance)} pts</p>
               </div>
-              <Badge variant="secondary" className="font-mono">{scan.short_code}</Badge>
+              <Badge variant="secondary" className="font-mono">
+                {scan.short_code}
+              </Badge>
             </div>
           </div>
 
@@ -237,10 +336,16 @@ function CajaPage() {
               <div className="rounded-lg bg-secondary p-3 text-center">
                 <p className="text-xs text-muted-foreground">Puntos a otorgar</p>
                 <p className="metric-value">{preview !== null ? `+${num(preview)}` : "—"}</p>
-                {cents !== null ? <p className="text-xs text-muted-foreground">sobre {eur(cents)}</p> : null}
+                {cents !== null ? (
+                  <p className="text-xs text-muted-foreground">sobre {eur(cents)}</p>
+                ) : null}
               </div>
               <Button type="submit" size="lg" className="w-full" disabled={busy || cents === null}>
-                {busy ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <Check aria-hidden className="size-4" />}
+                {busy ? (
+                  <Loader2 aria-hidden className="size-4 animate-spin" />
+                ) : (
+                  <Check aria-hidden className="size-4" />
+                )}
                 Confirmar compra
               </Button>
             </form>
@@ -253,7 +358,10 @@ function CajaPage() {
               </div>
               <ul className="mt-3 space-y-2">
                 {scan.rewards.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                  >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{r.name}</p>
                       <p className="text-xs text-muted-foreground">{num(r.points_cost)} puntos</p>

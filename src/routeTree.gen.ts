@@ -18,7 +18,9 @@ import { Route as MiTarjetaPublicIdRouteImport } from './routes/mi-tarjeta.$publ
 import { Route as AuthenticatedPanelIndexRouteImport } from './routes/_authenticated/panel.index'
 import { Route as AuthenticatedPanelActividadRouteImport } from './routes/_authenticated/panel.actividad'
 import { Route as AuthenticatedPanelCajaRouteImport } from './routes/_authenticated/panel.caja'
+import { Route as AuthenticatedPanelCampanasRouteImport } from './routes/_authenticated/panel.campanas'
 import { Route as AuthenticatedPanelCaptacionRouteImport } from './routes/_authenticated/panel.captacion'
+import { Route as AuthenticatedPanelConfiguracionRouteImport } from './routes/_authenticated/panel.configuracion'
 import { Route as AuthenticatedPanelEquipoRouteImport } from './routes/_authenticated/panel.equipo'
 import { Route as AuthenticatedPanelEstablecimientosRouteImport } from './routes/_authenticated/panel.establecimientos'
 import { Route as AuthenticatedPanelProgramaRouteImport } from './routes/_authenticated/panel.programa'
@@ -74,10 +76,22 @@ const AuthenticatedPanelCajaRoute = AuthenticatedPanelCajaRouteImport.update({
   path: '/caja',
   getParentRoute: () => AuthenticatedPanelRoute,
 } as any)
+const AuthenticatedPanelCampanasRoute =
+  AuthenticatedPanelCampanasRouteImport.update({
+    id: '/campanas',
+    path: '/campanas',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 const AuthenticatedPanelCaptacionRoute =
   AuthenticatedPanelCaptacionRouteImport.update({
     id: '/captacion',
     path: '/captacion',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelConfiguracionRoute =
+  AuthenticatedPanelConfiguracionRouteImport.update({
+    id: '/configuracion',
+    path: '/configuracion',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
 const AuthenticatedPanelEquipoRoute =
@@ -143,7 +157,9 @@ export interface FileRoutesByFullPath {
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
+  '/panel/campanas': typeof AuthenticatedPanelCampanasRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
+  '/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
@@ -162,7 +178,9 @@ export interface FileRoutesByTo {
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
+  '/panel/campanas': typeof AuthenticatedPanelCampanasRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
+  '/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
@@ -184,7 +202,9 @@ export interface FileRoutesById {
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/_authenticated/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/_authenticated/panel/caja': typeof AuthenticatedPanelCajaRoute
+  '/_authenticated/panel/campanas': typeof AuthenticatedPanelCampanasRoute
   '/_authenticated/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
+  '/_authenticated/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
   '/_authenticated/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/_authenticated/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/_authenticated/panel/programa': typeof AuthenticatedPanelProgramaRoute
@@ -206,7 +226,9 @@ export interface FileRouteTypes {
     | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
     | '/panel/caja'
+    | '/panel/campanas'
     | '/panel/captacion'
+    | '/panel/configuracion'
     | '/panel/equipo'
     | '/panel/establecimientos'
     | '/panel/programa'
@@ -225,7 +247,9 @@ export interface FileRouteTypes {
     | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
     | '/panel/caja'
+    | '/panel/campanas'
     | '/panel/captacion'
+    | '/panel/configuracion'
     | '/panel/equipo'
     | '/panel/establecimientos'
     | '/panel/programa'
@@ -246,7 +270,9 @@ export interface FileRouteTypes {
     | '/mi-tarjeta/$publicId'
     | '/_authenticated/panel/actividad'
     | '/_authenticated/panel/caja'
+    | '/_authenticated/panel/campanas'
     | '/_authenticated/panel/captacion'
+    | '/_authenticated/panel/configuracion'
     | '/_authenticated/panel/equipo'
     | '/_authenticated/panel/establecimientos'
     | '/_authenticated/panel/programa'
@@ -333,11 +359,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelCajaRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/_authenticated/panel/campanas': {
+      id: '/_authenticated/panel/campanas'
+      path: '/campanas'
+      fullPath: '/panel/campanas'
+      preLoaderRoute: typeof AuthenticatedPanelCampanasRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
     '/_authenticated/panel/captacion': {
       id: '/_authenticated/panel/captacion'
       path: '/captacion'
       fullPath: '/panel/captacion'
       preLoaderRoute: typeof AuthenticatedPanelCaptacionRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/configuracion': {
+      id: '/_authenticated/panel/configuracion'
+      path: '/configuracion'
+      fullPath: '/panel/configuracion'
+      preLoaderRoute: typeof AuthenticatedPanelConfiguracionRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
     '/_authenticated/panel/equipo': {
@@ -409,7 +449,9 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedPanelRouteChildren {
   AuthenticatedPanelActividadRoute: typeof AuthenticatedPanelActividadRoute
   AuthenticatedPanelCajaRoute: typeof AuthenticatedPanelCajaRoute
+  AuthenticatedPanelCampanasRoute: typeof AuthenticatedPanelCampanasRoute
   AuthenticatedPanelCaptacionRoute: typeof AuthenticatedPanelCaptacionRoute
+  AuthenticatedPanelConfiguracionRoute: typeof AuthenticatedPanelConfiguracionRoute
   AuthenticatedPanelEquipoRoute: typeof AuthenticatedPanelEquipoRoute
   AuthenticatedPanelEstablecimientosRoute: typeof AuthenticatedPanelEstablecimientosRoute
   AuthenticatedPanelProgramaRoute: typeof AuthenticatedPanelProgramaRoute
@@ -423,7 +465,9 @@ interface AuthenticatedPanelRouteChildren {
 const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelActividadRoute: AuthenticatedPanelActividadRoute,
   AuthenticatedPanelCajaRoute: AuthenticatedPanelCajaRoute,
+  AuthenticatedPanelCampanasRoute: AuthenticatedPanelCampanasRoute,
   AuthenticatedPanelCaptacionRoute: AuthenticatedPanelCaptacionRoute,
+  AuthenticatedPanelConfiguracionRoute: AuthenticatedPanelConfiguracionRoute,
   AuthenticatedPanelEquipoRoute: AuthenticatedPanelEquipoRoute,
   AuthenticatedPanelEstablecimientosRoute:
     AuthenticatedPanelEstablecimientosRoute,

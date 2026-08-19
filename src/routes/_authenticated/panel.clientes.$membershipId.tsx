@@ -40,10 +40,12 @@ function ClienteDetalle() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["membership", membershipId],
     queryFn: async () => {
-      const [m, t, p] = await Promise.all([
+      const [m, t, p, earned] = await Promise.all([
         supabase
           .from("memberships")
-          .select("id, public_id, cached_points_balance, status, joined_at, customers(first_name, last_name, email)")
+          .select(
+            "id, public_id, cached_points_balance, status, joined_at, customers(first_name, last_name, email, phone)",
+          )
           .eq("id", membershipId)
           .maybeSingle(),
         supabase
@@ -52,10 +54,23 @@ function ClienteDetalle() {
           .eq("membership_id", membershipId)
           .order("created_at", { ascending: false })
           .limit(100),
-        supabase.from("wallet_passes").select("provider, status, is_sandbox, last_updated_at").eq("membership_id", membershipId),
+        supabase
+          .from("wallet_passes")
+          .select("provider, status, is_sandbox, last_updated_at")
+          .eq("membership_id", membershipId),
+        supabase
+          .from("customer_rewards")
+          .select("id, status, awarded_at, redeemed_at, rewards(name)")
+          .eq("membership_id", membershipId)
+          .order("awarded_at", { ascending: false }),
       ]);
       if (m.error) throw m.error;
-      return { membership: m.data, transactions: t.data ?? [], passes: p.data ?? [] };
+      return {
+        membership: m.data,
+        transactions: t.data ?? [],
+        passes: p.data ?? [],
+        earned: earned.data ?? [],
+      };
     },
   });
 
@@ -107,7 +122,12 @@ function ClienteDetalle() {
   if (isLoading) return <Skeleton className="h-72 w-full rounded-xl" />;
   const m = data?.membership;
   if (!m) return <p className="text-sm text-muted-foreground">No se encontró la membresía.</p>;
-  const c = m.customers as { first_name: string; last_name: string | null; email: string } | null;
+  const c = m.customers as {
+    first_name: string;
+    last_name: string | null;
+    email: string;
+    phone: string | null;
+  } | null;
 
   return (
     <>
@@ -119,7 +139,7 @@ function ClienteDetalle() {
 
       <PageHeader
         title={`${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim() || "Cliente"}
-        description={c?.email ?? undefined}
+        description={[c?.email, c?.phone].filter(Boolean).join(" · ") || undefined}
         actions={
           <>
             <Button variant="outline" onClick={() => void syncWallet()}>
@@ -145,11 +165,20 @@ function ClienteDetalle() {
                   <div className="space-y-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="delta">Puntos (positivo o negativo)</Label>
-                      <Input id="delta" inputMode="numeric" value={delta} onChange={(e) => setDelta(e.target.value)} />
+                      <Input
+                        id="delta"
+                        inputMode="numeric"
+                        value={delta}
+                        onChange={(e) => setDelta(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="reason">Motivo</Label>
-                      <Input id="reason" value={reason} onChange={(e) => setReason(e.target.value)} />
+                      <Input
+                        id="reason"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                      />
                     </div>
                   </div>
                   <DialogFooter>
@@ -190,14 +219,56 @@ function ClienteDetalle() {
       </div>
 
       <div className="surface overflow-hidden">
-        <h2 className="border-b px-5 py-4 font-display text-lg font-semibold">Histórico de movimientos</h2>
+        <h2 className="border-b px-5 py-4 font-display text-lg font-semibold">
+          Recompensas obtenidas
+        </h2>
+        {data.earned.length ? (
+          <ul className="divide-y">
+            {data.earned.map(
+              (earned: {
+                id: string;
+                status: string;
+                awarded_at: string;
+                rewards: { name: string } | null;
+              }) => (
+                <li key={earned.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div>
+                    <p className="text-sm font-medium">{earned.rewards?.name ?? "Recompensa"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Obtenida {dateTime(earned.awarded_at)}
+                    </p>
+                  </div>
+                  <Badge variant={earned.status === "available" ? "default" : "secondary"}>
+                    {earned.status === "available"
+                      ? "Disponible"
+                      : earned.status === "redeemed"
+                        ? "Canjeada"
+                        : earned.status}
+                  </Badge>
+                </li>
+              ),
+            )}
+          </ul>
+        ) : (
+          <p className="px-5 py-8 text-sm text-muted-foreground">
+            Todavía no ha obtenido recompensas.
+          </p>
+        )}
+      </div>
+
+      <div className="surface overflow-hidden">
+        <h2 className="border-b px-5 py-4 font-display text-lg font-semibold">
+          Histórico de movimientos
+        </h2>
         <ul className="divide-y">
           {data.transactions.map((t) => (
             <li key={t.id} className="flex items-center justify-between gap-3 px-5 py-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium">
                   {txnLabel[t.type] ?? t.type}
-                  {t.reversed_at ? <span className="ml-2 text-xs text-muted-foreground">(anulado)</span> : null}
+                  {t.reversed_at ? (
+                    <span className="ml-2 text-xs text-muted-foreground">(anulado)</span>
+                  ) : null}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {dateTime(t.created_at)}
@@ -211,7 +282,12 @@ function ClienteDetalle() {
                   {num(t.points_delta)}
                 </span>
                 {canAdjust && !t.reversed_at && t.type !== "reversal" ? (
-                  <Button variant="ghost" size="icon" aria-label="Anular movimiento" onClick={() => void reverse(t.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Anular movimiento"
+                    onClick={() => void reverse(t.id)}
+                  >
                     <RotateCcw className="size-4" />
                   </Button>
                 ) : null}
@@ -219,7 +295,9 @@ function ClienteDetalle() {
             </li>
           ))}
           {data.transactions.length === 0 ? (
-            <li className="px-5 py-10 text-center text-sm text-muted-foreground">Sin movimientos.</li>
+            <li className="px-5 py-10 text-center text-sm text-muted-foreground">
+              Sin movimientos.
+            </li>
           ) : null}
         </ul>
       </div>

@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Megaphone,
   ScanLine,
   Settings2,
   ShieldCheck,
@@ -29,9 +30,10 @@ interface NavItem {
 }
 
 const nav: NavItem[] = [
-  { to: "/panel", label: "Resumen", icon: LayoutDashboard, roles: ["admin", "manager"] },
-  { to: "/panel/caja", label: "Caja", icon: ScanLine, roles: ["admin", "manager", "staff"] },
+  { to: "/panel", label: "Inicio", icon: LayoutDashboard, roles: ["admin", "manager"] },
+  { to: "/panel/caja", label: "Escáner", icon: ScanLine, roles: ["admin", "manager", "staff"] },
   { to: "/panel/clientes", label: "Clientes", icon: Users, roles: ["admin", "manager"] },
+  { to: "/panel/campanas", label: "Campañas", icon: Megaphone, roles: ["admin"] },
   { to: "/panel/programa", label: "Programa", icon: Sparkles, roles: ["admin"] },
   { to: "/panel/recompensas", label: "Recompensas", icon: Gift, roles: ["admin"] },
   { to: "/panel/establecimientos", label: "Establecimientos", icon: Building2, roles: ["admin"] },
@@ -39,6 +41,7 @@ const nav: NavItem[] = [
   { to: "/panel/captacion", label: "Captación", icon: BarChart3, roles: ["admin", "manager"] },
   { to: "/panel/wallet", label: "Wallet", icon: Wallet, roles: ["admin"] },
   { to: "/panel/actividad", label: "Actividad", icon: Settings2, roles: ["admin"] },
+  { to: "/panel/configuracion", label: "Configuración", icon: Settings2, roles: ["admin"] },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -49,7 +52,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   const role = session?.org?.role ?? "staff";
-  const items = session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
+  const items =
+    session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
   const roleName = session?.isSuperadmin ? "Superadmin" : role;
 
   const signOut = async () => {
@@ -59,14 +63,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/auth", replace: true });
   };
 
-  const isActive = (to: string) => (to === "/panel" ? pathname === "/panel" : pathname.startsWith(to));
+  const isActive = (to: string) =>
+    to === "/panel" ? pathname === "/panel" : pathname.startsWith(to);
 
   const sidebar = (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex items-center justify-between px-5 py-5">
         <div>
           <p className="font-display text-lg font-semibold">Puntia</p>
-          <p className="text-xs text-sidebar-foreground/70">{session?.organizationName ?? "Sin organización"}</p>
+          <p className="text-xs text-sidebar-foreground/70">
+            {session?.organizationName ?? "Sin organización"}
+          </p>
         </div>
         <button className="lg:hidden" onClick={() => setOpen(false)} aria-label="Cerrar menú">
           <X className="size-5" />
@@ -108,7 +115,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="border-t border-sidebar-border px-4 py-4">
         <p className="truncate text-sm font-medium">{session?.fullName ?? session?.email}</p>
         <p className="text-xs capitalize text-sidebar-foreground/70">{roleName}</p>
-        <Button variant="ghost" size="sm" className="mt-2 w-full justify-start px-2 text-sidebar-foreground/80 hover:bg-sidebar-accent" onClick={signOut}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-2 w-full justify-start px-2 text-sidebar-foreground/80 hover:bg-sidebar-accent"
+          onClick={signOut}
+        >
           <LogOut aria-hidden className="size-4" /> Cerrar sesión
         </Button>
       </div>
