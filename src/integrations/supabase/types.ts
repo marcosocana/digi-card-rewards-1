@@ -14,6 +14,247 @@ export type Database = {
   }
   public: {
     Tables: {
+      acquisition_events: {
+        Row: {
+          anonymous_session_id: string | null
+          created_at: string
+          customer_id: string | null
+          event_type: string
+          id: string
+          location_id: string | null
+          organization_id: string
+          source_id: string | null
+        }
+        Insert: {
+          anonymous_session_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          event_type: string
+          id?: string
+          location_id?: string | null
+          organization_id: string
+          source_id?: string | null
+        }
+        Update: {
+          anonymous_session_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          event_type?: string
+          id?: string
+          location_id?: string | null
+          organization_id?: string
+          source_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acquisition_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acquisition_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acquisition_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acquisition_events_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "acquisition_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acquisition_sources: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          name: string
+          organization_id: string
+          slug: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          name: string
+          organization_id: string
+          slug: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          name?: string
+          organization_id?: string
+          slug?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acquisition_sources_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acquisition_sources_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_label: string | null
+          actor_user_id: string | null
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_label?: string | null
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_label?: string | null
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_consents: {
+        Row: {
+          captured_at: string
+          consent_type: string
+          customer_id: string
+          granted: boolean
+          id: string
+          organization_id: string
+          policy_version: string
+          source: string | null
+        }
+        Insert: {
+          captured_at?: string
+          consent_type: string
+          customer_id: string
+          granted?: boolean
+          id?: string
+          organization_id: string
+          policy_version?: string
+          source?: string | null
+        }
+        Update: {
+          captured_at?: string
+          consent_type?: string
+          customer_id?: string
+          granted?: boolean
+          id?: string
+          organization_id?: string
+          policy_version?: string
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_consents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_consents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          birth_date: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string | null
+          normalized_email: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name?: string | null
+          normalized_email: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string | null
+          normalized_email?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           address_line: string | null
@@ -78,6 +319,198 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_programs: {
+        Row: {
+          allow_earning: boolean
+          allow_redeeming: boolean
+          archived_at: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          earning_mode: Database["public"]["Enums"]["earning_mode"]
+          earning_value: number
+          ends_at: string | null
+          id: string
+          initial_points: number
+          internal_name: string
+          organization_id: string
+          points_expiry_months: number | null
+          public_name: string
+          rounding_mode: Database["public"]["Enums"]["rounding_mode"]
+          starts_at: string
+          status: Database["public"]["Enums"]["program_status"]
+          terms: string | null
+          updated_at: string
+        }
+        Insert: {
+          allow_earning?: boolean
+          allow_redeeming?: boolean
+          archived_at?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          earning_mode?: Database["public"]["Enums"]["earning_mode"]
+          earning_value?: number
+          ends_at?: string | null
+          id?: string
+          initial_points?: number
+          internal_name: string
+          organization_id: string
+          points_expiry_months?: number | null
+          public_name: string
+          rounding_mode?: Database["public"]["Enums"]["rounding_mode"]
+          starts_at?: string
+          status?: Database["public"]["Enums"]["program_status"]
+          terms?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allow_earning?: boolean
+          allow_redeeming?: boolean
+          archived_at?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          earning_mode?: Database["public"]["Enums"]["earning_mode"]
+          earning_value?: number
+          ends_at?: string | null
+          id?: string
+          initial_points?: number
+          internal_name?: string
+          organization_id?: string
+          points_expiry_months?: number | null
+          public_name?: string
+          rounding_mode?: Database["public"]["Enums"]["rounding_mode"]
+          starts_at?: string
+          status?: Database["public"]["Enums"]["program_status"]
+          terms?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_programs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          membership_id: string
+          rotated_at: string | null
+          short_code: string
+          status: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          membership_id: string
+          rotated_at?: string | null
+          short_code: string
+          status?: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          membership_id?: string
+          rotated_at?: string | null
+          short_code?: string
+          status?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_tokens_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          acquisition_location_id: string | null
+          acquisition_source_id: string | null
+          cached_points_balance: number
+          created_at: string
+          customer_id: string
+          id: string
+          joined_at: string
+          organization_id: string
+          program_id: string
+          public_id: string
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+        }
+        Insert: {
+          acquisition_location_id?: string | null
+          acquisition_source_id?: string | null
+          cached_points_balance?: number
+          created_at?: string
+          customer_id: string
+          id?: string
+          joined_at?: string
+          organization_id: string
+          program_id: string
+          public_id?: string
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+        }
+        Update: {
+          acquisition_location_id?: string | null
+          acquisition_source_id?: string | null
+          cached_points_balance?: number
+          created_at?: string
+          customer_id?: string
+          id?: string
+          joined_at?: string
+          organization_id?: string
+          program_id?: string
+          public_id?: string
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_acquisition_location_id_fkey"
+            columns: ["acquisition_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
             referencedColumns: ["id"]
           },
         ]
@@ -257,6 +690,101 @@ export type Database = {
         }
         Relationships: []
       }
+      point_transactions: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          currency: string
+          earning_rule_snapshot: Json | null
+          id: string
+          idempotency_key: string | null
+          location_id: string | null
+          membership_id: string
+          note: string | null
+          organization_id: string
+          performed_by_user_id: string | null
+          points_delta: number
+          previous_balance: number
+          reason: string | null
+          resulting_balance: number
+          reversal_of_transaction_id: string | null
+          reversed_at: string | null
+          ticket_reference: string | null
+          type: Database["public"]["Enums"]["txn_type"]
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string
+          earning_rule_snapshot?: Json | null
+          id?: string
+          idempotency_key?: string | null
+          location_id?: string | null
+          membership_id: string
+          note?: string | null
+          organization_id: string
+          performed_by_user_id?: string | null
+          points_delta: number
+          previous_balance: number
+          reason?: string | null
+          resulting_balance: number
+          reversal_of_transaction_id?: string | null
+          reversed_at?: string | null
+          ticket_reference?: string | null
+          type: Database["public"]["Enums"]["txn_type"]
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string
+          earning_rule_snapshot?: Json | null
+          id?: string
+          idempotency_key?: string | null
+          location_id?: string | null
+          membership_id?: string
+          note?: string | null
+          organization_id?: string
+          performed_by_user_id?: string | null
+          points_delta?: number
+          previous_balance?: number
+          reason?: string | null
+          resulting_balance?: number
+          reversal_of_transaction_id?: string | null
+          reversed_at?: string | null
+          ticket_reference?: string | null
+          type?: Database["public"]["Enums"]["txn_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_transactions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_transactions_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_transactions_reversal_of_transaction_id_fkey"
+            columns: ["reversal_of_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "point_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -290,6 +818,212 @@ export type Database = {
         }
         Relationships: []
       }
+      program_locations: {
+        Row: {
+          can_earn: boolean
+          can_redeem: boolean
+          id: string
+          location_id: string
+          program_id: string
+        }
+        Insert: {
+          can_earn?: boolean
+          can_redeem?: boolean
+          id?: string
+          location_id: string
+          program_id: string
+        }
+        Update: {
+          can_earn?: boolean
+          can_redeem?: boolean
+          id?: string
+          location_id?: string
+          program_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_locations_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      redemptions: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          membership_id: string
+          organization_id: string
+          performed_by_user_id: string | null
+          points_spent: number
+          reward_id: string
+          status: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          membership_id: string
+          organization_id: string
+          performed_by_user_id?: string | null
+          points_spent: number
+          reward_id: string
+          status?: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          membership_id?: string
+          organization_id?: string
+          performed_by_user_id?: string | null
+          points_spent?: number
+          reward_id?: string
+          status?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redemptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "point_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_locations: {
+        Row: {
+          id: string
+          location_id: string
+          reward_id: string
+        }
+        Insert: {
+          id?: string
+          location_id: string
+          reward_id: string
+        }
+        Update: {
+          id?: string
+          location_id?: string
+          reward_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_locations_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          ends_at: string | null
+          id: string
+          image_url: string | null
+          name: string
+          points_cost: number
+          program_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["program_status"]
+          terms: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          points_cost: number
+          program_id: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["program_status"]
+          terms?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          points_cost?: number
+          program_id?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["program_status"]
+          terms?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_location_assignments: {
         Row: {
           created_at: string
@@ -322,6 +1056,147 @@ export type Database = {
             columns: ["organization_user_id"]
             isOneToOne: false
             referencedRelation: "organization_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_devices: {
+        Row: {
+          created_at: string
+          device_identifier: string
+          id: string
+          push_token: string | null
+          status: string
+          wallet_pass_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_identifier: string
+          id?: string
+          push_token?: string | null
+          status?: string
+          wallet_pass_id: string
+        }
+        Update: {
+          created_at?: string
+          device_identifier?: string
+          id?: string
+          push_token?: string | null
+          status?: string
+          wallet_pass_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_devices_wallet_pass_id_fkey"
+            columns: ["wallet_pass_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_passes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          job_type: string
+          scheduled_at: string
+          status: string
+          wallet_pass_id: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_type: string
+          scheduled_at?: string
+          status?: string
+          wallet_pass_id: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_type?: string
+          scheduled_at?: string
+          status?: string
+          wallet_pass_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_jobs_wallet_pass_id_fkey"
+            columns: ["wallet_pass_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_passes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_passes: {
+        Row: {
+          created_at: string
+          id: string
+          installed_at: string | null
+          is_sandbox: boolean
+          last_error_code: string | null
+          last_error_message: string | null
+          last_generated_at: string | null
+          last_update_requested_at: string | null
+          last_updated_at: string | null
+          membership_id: string
+          provider: Database["public"]["Enums"]["wallet_provider"]
+          provider_object_id: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["pass_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          installed_at?: string | null
+          is_sandbox?: boolean
+          last_error_code?: string | null
+          last_error_message?: string | null
+          last_generated_at?: string | null
+          last_update_requested_at?: string | null
+          last_updated_at?: string | null
+          membership_id: string
+          provider: Database["public"]["Enums"]["wallet_provider"]
+          provider_object_id?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["pass_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          installed_at?: string | null
+          is_sandbox?: boolean
+          last_error_code?: string | null
+          last_error_message?: string | null
+          last_generated_at?: string | null
+          last_update_requested_at?: string | null
+          last_updated_at?: string | null
+          membership_id?: string
+          provider?: Database["public"]["Enums"]["wallet_provider"]
+          provider_object_id?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["pass_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_passes_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
             referencedColumns: ["id"]
           },
         ]
