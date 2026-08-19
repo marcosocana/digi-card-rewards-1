@@ -38,7 +38,7 @@ const nav: NavItem[] = [
   { to: "/panel/equipo", label: "Equipo", icon: ShieldCheck, roles: ["admin"] },
   { to: "/panel/captacion", label: "Captación", icon: BarChart3, roles: ["admin", "manager"] },
   { to: "/panel/wallet", label: "Wallet", icon: Wallet, roles: ["admin"] },
-  { to: "/panel/actividad", label: "Actividad", icon: Settings2, roles: ["admin", "manager"] },
+  { to: "/panel/actividad", label: "Actividad", icon: Settings2, roles: ["admin"] },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
