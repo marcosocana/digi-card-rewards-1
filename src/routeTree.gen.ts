@@ -23,6 +23,8 @@ import { Route as AuthenticatedPanelEstablecimientosRouteImport } from './routes
 import { Route as AuthenticatedPanelProgramaRouteImport } from './routes/_authenticated/panel.programa'
 import { Route as AuthenticatedPanelRecompensasRouteImport } from './routes/_authenticated/panel.recompensas'
 import { Route as AuthenticatedPanelWalletRouteImport } from './routes/_authenticated/panel.wallet'
+import { Route as UnirmeOrganizationSlugIndexRouteImport } from './routes/unirme.$organizationSlug.index'
+import { Route as UnirmeOrganizationSlugLocationSlugRouteImport } from './routes/unirme.$organizationSlug.$locationSlug'
 import { Route as AuthenticatedPanelClientesIndexRouteImport } from './routes/_authenticated/panel.clientes.index'
 import { Route as AuthenticatedPanelClientesMembershipIdRouteImport } from './routes/_authenticated/panel.clientes.$membershipId'
 
@@ -102,6 +104,18 @@ const AuthenticatedPanelWalletRoute =
     path: '/wallet',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
+const UnirmeOrganizationSlugIndexRoute =
+  UnirmeOrganizationSlugIndexRouteImport.update({
+    id: '/unirme/$organizationSlug/',
+    path: '/unirme/$organizationSlug/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const UnirmeOrganizationSlugLocationSlugRoute =
+  UnirmeOrganizationSlugLocationSlugRouteImport.update({
+    id: '/unirme/$organizationSlug/$locationSlug',
+    path: '/unirme/$organizationSlug/$locationSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedPanelClientesIndexRoute =
   AuthenticatedPanelClientesIndexRouteImport.update({
     id: '/clientes/',
@@ -128,7 +142,9 @@ export interface FileRoutesByFullPath {
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
+  '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
   '/panel/': typeof AuthenticatedPanelIndexRoute
+  '/unirme/$organizationSlug/': typeof UnirmeOrganizationSlugIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
 }
@@ -144,7 +160,9 @@ export interface FileRoutesByTo {
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
+  '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
   '/panel': typeof AuthenticatedPanelIndexRoute
+  '/unirme/$organizationSlug': typeof UnirmeOrganizationSlugIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/panel/clientes': typeof AuthenticatedPanelClientesIndexRoute
 }
@@ -163,7 +181,9 @@ export interface FileRoutesById {
   '/_authenticated/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/_authenticated/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
   '/_authenticated/panel/wallet': typeof AuthenticatedPanelWalletRoute
+  '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
   '/_authenticated/panel/': typeof AuthenticatedPanelIndexRoute
+  '/unirme/$organizationSlug/': typeof UnirmeOrganizationSlugIndexRoute
   '/_authenticated/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/_authenticated/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
 }
@@ -182,7 +202,9 @@ export interface FileRouteTypes {
     | '/panel/programa'
     | '/panel/recompensas'
     | '/panel/wallet'
+    | '/unirme/$organizationSlug/$locationSlug'
     | '/panel/'
+    | '/unirme/$organizationSlug/'
     | '/panel/clientes/$membershipId'
     | '/panel/clientes/'
   fileRoutesByTo: FileRoutesByTo
@@ -198,7 +220,9 @@ export interface FileRouteTypes {
     | '/panel/programa'
     | '/panel/recompensas'
     | '/panel/wallet'
+    | '/unirme/$organizationSlug/$locationSlug'
     | '/panel'
+    | '/unirme/$organizationSlug'
     | '/panel/clientes/$membershipId'
     | '/panel/clientes'
   id:
@@ -216,7 +240,9 @@ export interface FileRouteTypes {
     | '/_authenticated/panel/programa'
     | '/_authenticated/panel/recompensas'
     | '/_authenticated/panel/wallet'
+    | '/unirme/$organizationSlug/$locationSlug'
     | '/_authenticated/panel/'
+    | '/unirme/$organizationSlug/'
     | '/_authenticated/panel/clientes/$membershipId'
     | '/_authenticated/panel/clientes/'
   fileRoutesById: FileRoutesById
@@ -225,6 +251,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  UnirmeOrganizationSlugLocationSlugRoute: typeof UnirmeOrganizationSlugLocationSlugRoute
+  UnirmeOrganizationSlugIndexRoute: typeof UnirmeOrganizationSlugIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -327,6 +355,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelWalletRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/unirme/$organizationSlug/': {
+      id: '/unirme/$organizationSlug/'
+      path: '/unirme/$organizationSlug'
+      fullPath: '/unirme/$organizationSlug/'
+      preLoaderRoute: typeof UnirmeOrganizationSlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unirme/$organizationSlug/$locationSlug': {
+      id: '/unirme/$organizationSlug/$locationSlug'
+      path: '/unirme/$organizationSlug/$locationSlug'
+      fullPath: '/unirme/$organizationSlug/$locationSlug'
+      preLoaderRoute: typeof UnirmeOrganizationSlugLocationSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/panel/clientes/': {
       id: '/_authenticated/panel/clientes/'
       path: '/clientes'
@@ -394,6 +436,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  UnirmeOrganizationSlugLocationSlugRoute:
+    UnirmeOrganizationSlugLocationSlugRoute,
+  UnirmeOrganizationSlugIndexRoute: UnirmeOrganizationSlugIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
