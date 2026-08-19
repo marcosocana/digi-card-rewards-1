@@ -11,7 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useSession } from "@/lib/session";
 import { ruleText } from "@/lib/format";
 
@@ -43,6 +49,8 @@ function ProgramaPage() {
     public_name: "",
     description: "",
     earning_mode: "points_per_currency_unit",
+    mechanic_type: "points",
+    mechanic_config: { stamps_per_purchase: 1, percentage: 5, discount_percentage: 10 },
     earning_value: 1,
     rounding_mode: "floor",
     initial_points: 0,
@@ -59,6 +67,12 @@ function ProgramaPage() {
       public_name: data.public_name,
       description: data.description ?? "",
       earning_mode: data.earning_mode,
+      mechanic_type: data.mechanic_type,
+      mechanic_config: {
+        stamps_per_purchase: Number(data.mechanic_config?.stamps_per_purchase ?? 1),
+        percentage: Number(data.mechanic_config?.percentage ?? 5),
+        discount_percentage: Number(data.mechanic_config?.discount_percentage ?? 10),
+      },
       earning_value: Number(data.earning_value),
       rounding_mode: data.rounding_mode,
       initial_points: data.initial_points,
@@ -78,6 +92,8 @@ function ProgramaPage() {
         public_name: form.public_name,
         description: form.description || null,
         earning_mode: form.earning_mode as "points_per_currency_unit",
+        mechanic_type: form.mechanic_type,
+        mechanic_config: form.mechanic_config,
         earning_value: form.earning_value,
         rounding_mode: form.rounding_mode as "floor",
         initial_points: form.initial_points,
@@ -97,7 +113,13 @@ function ProgramaPage() {
   };
 
   if (isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
-  if (!data) return <EmptyState title="Sin programa configurado" description="Crea un programa desde la plataforma." />;
+  if (!data)
+    return (
+      <EmptyState
+        title="Sin programa configurado"
+        description="Crea un programa desde la plataforma."
+      />
+    );
 
   return (
     <>
@@ -116,23 +138,123 @@ function ProgramaPage() {
           <h2 className="font-display text-lg font-semibold">Identidad</h2>
           <div className="space-y-1.5">
             <Label htmlFor="pn">Nombre público</Label>
-            <Input id="pn" value={form.public_name} onChange={(e) => setForm({ ...form, public_name: e.target.value })} />
+            <Input
+              id="pn"
+              value={form.public_name}
+              onChange={(e) => setForm({ ...form, public_name: e.target.value })}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="desc">Descripción</Label>
-            <Textarea id="desc" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <Textarea
+              id="desc"
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="terms">Condiciones</Label>
-            <Textarea id="terms" rows={4} value={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.value })} />
+            <Textarea
+              id="terms"
+              rows={4}
+              value={form.terms}
+              onChange={(e) => setForm({ ...form, terms: e.target.value })}
+            />
           </div>
         </div>
 
         <div className="surface space-y-4 p-5">
           <h2 className="font-display text-lg font-semibold">Reglas de acumulación</h2>
           <div className="space-y-1.5">
+            <Label>Mecánica principal</Label>
+            <Select
+              value={form.mechanic_type}
+              onValueChange={(v) => setForm({ ...form, mechanic_type: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="spend">Acumulación por gasto</SelectItem>
+                <SelectItem value="points">Puntos</SelectItem>
+                <SelectItem value="stamps">Sellos</SelectItem>
+                <SelectItem value="cashback">Cashback</SelectItem>
+                <SelectItem value="membership">Membresía / descuento</SelectItem>
+                <SelectItem value="coupon">Cupón</SelectItem>
+                <SelectItem value="gift_card">Tarjeta regalo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.mechanic_type === "stamps" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="stamps">Sellos por compra</Label>
+              <Input
+                id="stamps"
+                type="number"
+                min="1"
+                value={form.mechanic_config.stamps_per_purchase}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    mechanic_config: {
+                      ...form.mechanic_config,
+                      stamps_per_purchase: Number(e.target.value),
+                    },
+                  })
+                }
+              />
+            </div>
+          ) : null}
+          {form.mechanic_type === "cashback" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="cashback">Porcentaje de cashback</Label>
+              <Input
+                id="cashback"
+                type="number"
+                min="0.1"
+                max="100"
+                step="0.1"
+                value={form.mechanic_config.percentage}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    mechanic_config: {
+                      ...form.mechanic_config,
+                      percentage: Number(e.target.value),
+                    },
+                  })
+                }
+              />
+            </div>
+          ) : null}
+          {form.mechanic_type === "membership" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="discount">Descuento de membresía (%)</Label>
+              <Input
+                id="discount"
+                type="number"
+                min="1"
+                max="100"
+                value={form.mechanic_config.discount_percentage}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    mechanic_config: {
+                      ...form.mechanic_config,
+                      discount_percentage: Number(e.target.value),
+                    },
+                  })
+                }
+              />
+            </div>
+          ) : null}
+          <div className="space-y-1.5">
             <Label>Modo</Label>
-            <Select value={form.earning_mode} onValueChange={(v) => setForm({ ...form, earning_mode: v })}>
+            <Select
+              value={form.earning_mode}
+              onValueChange={(v) => setForm({ ...form, earning_mode: v })}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -156,7 +278,10 @@ function ProgramaPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Redondeo</Label>
-              <Select value={form.rounding_mode} onValueChange={(v) => setForm({ ...form, rounding_mode: v })}>
+              <Select
+                value={form.rounding_mode}
+                onValueChange={(v) => setForm({ ...form, rounding_mode: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

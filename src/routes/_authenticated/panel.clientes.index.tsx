@@ -26,7 +26,9 @@ function ClientesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("memberships")
-        .select("id, public_id, cached_points_balance, status, joined_at, customers(first_name, last_name, email)")
+        .select(
+          "id, public_id, cached_points_balance, status, joined_at, customers(first_name, last_name, email)",
+        )
         .eq("organization_id", orgId!)
         .order("joined_at", { ascending: false })
         .limit(500);
@@ -46,7 +48,10 @@ function ClientesPage() {
       <PageHeader title="Clientes" description="Miembros del programa y su saldo actual." />
 
       <div className="relative">
-        <Search aria-hidden className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search
+          aria-hidden
+          className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           className="pl-9"
           placeholder="Buscar por nombre o email"
@@ -70,7 +75,11 @@ function ClientesPage() {
       ) : (
         <div className="surface divide-y overflow-hidden">
           {filtered.map((m) => {
-            const c = m.customers as { first_name: string; last_name: string | null; email: string } | null;
+            const c = m.customers as {
+              first_name: string;
+              last_name: string | null;
+              email: string;
+            } | null;
             return (
               <Link
                 key={m.id}
@@ -88,7 +97,9 @@ function ClientesPage() {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {m.status !== "active" ? <Badge variant="outline">{m.status}</Badge> : null}
-                  <span className="font-mono text-sm font-semibold">{num(m.cached_points_balance)} pts</span>
+                  <span className="font-mono text-sm font-semibold">
+                    {num(m.cached_points_balance)} pts
+                  </span>
                 </div>
               </Link>
             );

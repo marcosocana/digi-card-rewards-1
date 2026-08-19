@@ -49,6 +49,16 @@ export const errorLabel = (message: string) => {
     INVALID_EMAIL: "Introduce un email válido.",
     INVALID_PHONE: "Introduce un teléfono válido.",
     NAME_REQUIRED: "Introduce tu nombre.",
+    DAILY_NOTIFICATION_LIMIT: "Ya se ha alcanzado el límite diario de notificaciones.",
+    SEGMENT_NOT_FOUND: "No se encontró el segmento seleccionado.",
+    COUPON_NOT_AVAILABLE: "El cupón no está disponible o ha caducado.",
+    COUPON_LIMIT_REACHED: "El cupón ha alcanzado su límite de usos.",
+    COUPON_ALREADY_USED: "Este cliente ya utilizó el cupón.",
+    GIFT_CARD_NOT_AVAILABLE: "La tarjeta regalo no existe, está suspendida o ha caducado.",
+    INSUFFICIENT_GIFT_CARD_BALANCE: "La tarjeta regalo no tiene saldo suficiente.",
+    CASHBACK_NOT_AVAILABLE: "Este programa no tiene cashback activo.",
+    INSUFFICIENT_CASHBACK: "El cliente no tiene cashback suficiente.",
+    PURCHASE_BELOW_MINIMUM: "La compra no alcanza el importe mínimo del programa.",
   };
   for (const key of Object.keys(map)) if (message.includes(key)) return map[key]!;
   return message;

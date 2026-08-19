@@ -1,0 +1,137 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Bot, Play } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/lib/session";
+import { dateTime, num } from "@/lib/format";
+import { PageHeader } from "@/components/app/page-header";
+import { MetricCard } from "@/components/app/metric-card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+
+export const Route = createFileRoute("/_authenticated/panel/automatizaciones")({
+  component: AutomatizacionesPage,
+});
+
+const triggerLabel: Record<string, string> = {
+  welcome: "Después del registro",
+  reward_earned: "Al obtener recompensa",
+  inactivity: "Cliente inactivo",
+  birthday: "Cumpleaños",
+  reward_reminder: "Recordatorio de recompensa",
+  points_expiry: "Puntos próximos a caducar",
+  post_transaction: "Después de una transacción",
+};
+
+function AutomatizacionesPage() {
+  const { data: session } = useSession();
+  const orgId = session?.org?.organization_id;
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["automations", orgId],
+    enabled: Boolean(orgId),
+    queryFn: async () => {
+      const [automations, jobs] = await Promise.all([
+        supabase
+          .from("notification_automations")
+          .select("*")
+          .eq("organization_id", orgId!)
+          .order("created_at"),
+        supabase.from("automation_jobs").select("id,status").eq("organization_id", orgId!),
+      ]);
+      if (automations.error) throw automations.error;
+      return { automations: automations.data ?? [], jobs: jobs.data ?? [] };
+    },
+  });
+
+  const toggle = async (id: string, isActive: boolean) => {
+    const { error } = await supabase
+      .from("notification_automations")
+      .update({ is_active: isActive })
+      .eq("id", id);
+    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    toast.success(isActive ? "Automatización activada" : "Automatización pausada");
+    void refetch();
+  };
+
+  const run = async () => {
+    if (!orgId) return;
+    const scheduled = await supabase.rpc("enqueue_scheduled_automations", {
+      _organization_id: orgId,
+    });
+    if (scheduled.error)
+      return toast.error("No se pudo preparar la ejecución", {
+        description: scheduled.error.message,
+      });
+    const processed = await supabase.rpc("process_automation_jobs", {
+      _organization_id: orgId,
+      _limit: 100,
+    });
+    if (processed.error)
+      return toast.error("No se pudo procesar la cola", { description: processed.error.message });
+    const result = processed.data as { processed?: number; failed?: number };
+    toast.success("Cola procesada", {
+      description: `${num(result.processed)} trabajos preparados; ${num(result.failed)} fallidos. Las entregas sandbox siguen en modo demo.`,
+    });
+    void refetch();
+  };
+
+  const count = (status: string) => data?.jobs.filter((job) => job.status === status).length ?? 0;
+  return (
+    <>
+      <PageHeader
+        title="Automatizaciones"
+        description="Mensajes activados por comportamiento, fechas y recompensas."
+        actions={
+          <Button variant="outline" onClick={() => void run()}>
+            <Play className="size-4" /> Ejecutar cola ahora
+          </Button>
+        }
+      />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MetricCard
+          label="Activas"
+          value={num(data?.automations.filter((item) => item.is_active).length)}
+        />
+        <MetricCard label="Pendientes" value={num(count("pending"))} />
+        <MetricCard label="Completadas" value={num(count("completed"))} />
+      </div>
+      {isLoading ? (
+        <Skeleton className="h-64 rounded-xl" />
+      ) : (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {(data?.automations ?? []).map((automation) => (
+            <article key={automation.id} className="surface space-y-4 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Bot className="size-4 text-primary" />
+                    <h2 className="font-display text-lg font-semibold">{automation.name}</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {triggerLabel[automation.trigger_type] ?? automation.trigger_type}
+                  </p>
+                </div>
+                <Switch
+                  checked={automation.is_active}
+                  onCheckedChange={(value) => void toggle(automation.id, value)}
+                  aria-label={`Activar ${automation.name}`}
+                />
+              </div>
+              <div className="rounded-lg bg-secondary p-3">
+                <p className="text-sm font-medium">{automation.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{automation.message}</p>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Última ejecución: {dateTime(automation.last_run_at)}</span>
+                <Badge variant="secondary">{automation.is_active ? "Activa" : "Pausada"}</Badge>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}

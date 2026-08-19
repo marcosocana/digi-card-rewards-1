@@ -106,11 +106,23 @@ function AuthPage() {
               <form onSubmit={signIn} className="mt-5 space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Contraseña</Label>
-                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Entrando…" : "Entrar"}
@@ -122,15 +134,33 @@ function AuthPage() {
               <form onSubmit={signUp} className="mt-5 space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Nombre completo</Label>
-                  <Input id="name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <Input
+                    id="name"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="email2">Email</Label>
-                  <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input
+                    id="email2"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password2">Contraseña</Label>
-                  <Input id="password2" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Input
+                    id="password2"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                   <p className="text-xs text-muted-foreground">
                     Usa el email al que te invitaron para heredar tu rol automáticamente.
                   </p>
@@ -141,7 +171,6 @@ function AuthPage() {
               </form>
             </TabsContent>
           </Tabs>
-
         </div>
 
         <div className="surface mt-4 p-5">

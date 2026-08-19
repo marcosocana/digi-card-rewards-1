@@ -46,15 +46,18 @@ function WalletPage() {
           <MetricCard label="Google Wallet" value={num(count((p) => p.provider === "google"))} />
           <MetricCard
             label="Pendientes de actualizar"
-            value={num(count((p) => p.status === "update_pending" || p.status === "pending_generation"))}
+            value={num(
+              count((p) => p.status === "update_pending" || p.status === "pending_generation"),
+            )}
           />
         </div>
       )}
       <div className="surface p-5">
         <h2 className="font-display text-lg font-semibold">Proveedor de emisión</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          El sistema registra cada tarjeta y encola sus actualizaciones. Al conectar los certificados de Apple y las
-          credenciales de Google, las tarjetas ya existentes se emitirán automáticamente sin perder el histórico.
+          El sistema registra cada tarjeta y encola sus actualizaciones. Al conectar los
+          certificados de Apple y las credenciales de Google, las tarjetas ya existentes se emitirán
+          automáticamente sin perder el histórico.
         </p>
       </div>
     </>

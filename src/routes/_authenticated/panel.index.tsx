@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Coins, Gift, Receipt, TrendingUp, Users } from "lucide-react";
+import { ArrowUpRight, Coins, Gift, Lightbulb, Receipt, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/app/metric-card";
@@ -54,6 +54,17 @@ function ResumenPage() {
       const rows = txns.data ?? [];
       const purchases = rows.filter((r) => r.type === "purchase");
       const locName = new Map((locations.data ?? []).map((l) => [l.id, l.name]));
+      const locationRows = (locations.data ?? [])
+        .map((location) => {
+          const locationPurchases = purchases.filter((row) => row.location_id === location.id);
+          return {
+            id: location.id,
+            name: location.name,
+            purchases: locationPurchases.length,
+            sales: locationPurchases.reduce((sum, row) => sum + (row.amount_cents ?? 0), 0),
+          };
+        })
+        .sort((a, b) => b.sales - a.sales);
       return {
         members: members.count ?? 0,
         newMembers: newMembers.count ?? 0,
@@ -72,6 +83,7 @@ function ResumenPage() {
         recent: rows
           .slice(0, 12)
           .map((r) => ({ ...r, locationName: locName.get(r.location_id ?? "") ?? "—" })),
+        locationRows,
       };
     },
   });
@@ -87,7 +99,10 @@ function ResumenPage() {
 
   return (
     <>
-      <PageHeader title="Resumen" description={`Últimos 30 días · ${session.organizationName}`} />
+      <PageHeader
+        title={`Hola, ${(session.fullName ?? "equipo").split(" ")[0]}`}
+        description={`${new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" }).format(new Date())} · ${session.organizationName}`}
+      />
 
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -103,6 +118,7 @@ function ResumenPage() {
               value={num(data?.members)}
               hint={`+${num(data?.newMembers)} nuevos`}
               icon={<Users className="size-4" />}
+              className="border-pink-200/70"
             />
             <MetricCard
               label="Puntos emitidos"
@@ -119,6 +135,7 @@ function ResumenPage() {
               label="Ventas asociadas"
               value={eur(data?.sales)}
               icon={<TrendingUp className="size-4" />}
+              className="bg-[#f4efff]"
             />
             <MetricCard
               label="Compras registradas"
@@ -132,42 +149,91 @@ function ResumenPage() {
             />
           </div>
 
-          <div className="surface overflow-hidden">
-            <div className="flex items-center justify-between border-b px-5 py-4">
-              <h2 className="font-display text-lg font-semibold">Actividad reciente</h2>
+          <div className="flex items-start gap-3 rounded-2xl bg-[#d9f4ff] p-5 sm:p-6">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-primary">
+              <Lightbulb className="size-5" />
+            </span>
+            <div>
+              <p className="font-semibold">Oportunidad del mes</p>
+              <p className="mt-1 text-sm leading-relaxed text-foreground/65">
+                Has registrado {num(data?.newMembers)} nuevas altas y {num(data?.redemptions)}{" "}
+                canjes en los últimos 30 días. Revisa los clientes próximos a recompensa para
+                impulsar su próxima visita.
+              </p>
               <Link
-                to="/panel/clientes"
-                className="text-sm text-primary underline-offset-2 hover:underline"
+                to="/panel/notificaciones"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-semibold"
               >
-                Ver clientes
+                Crear campaña de retorno <ArrowUpRight className="size-4" />
               </Link>
             </div>
-            {data?.recent.length ? (
-              <ul className="divide-y">
-                {data.recent.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{txnLabel[t.type] ?? t.type}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {t.locationName} · {dateTime(t.created_at)}
-                        {t.amount_cents ? ` · ${eur(t.amount_cents)}` : ""}
-                      </p>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[1.55fr_.45fr]">
+            <div className="surface overflow-hidden">
+              <div className="flex items-center justify-between border-b px-5 py-4">
+                <h2 className="font-display text-lg font-semibold">Actividad reciente</h2>
+                <Link
+                  to="/panel/clientes"
+                  className="text-sm text-primary underline-offset-2 hover:underline"
+                >
+                  Ver clientes
+                </Link>
+              </div>
+              {data?.recent.length ? (
+                <ul className="divide-y">
+                  {data.recent.map((t) => (
+                    <li key={t.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{txnLabel[t.type] ?? t.type}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {t.locationName} · {dateTime(t.created_at)}
+                          {t.amount_cents ? ` · ${eur(t.amount_cents)}` : ""}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={t.points_delta >= 0 ? "secondary" : "outline"}
+                        className="shrink-0 font-mono"
+                      >
+                        {t.points_delta >= 0 ? "+" : ""}
+                        {num(t.points_delta)}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+                  Todavía no hay movimientos.
+                </p>
+              )}
+            </div>
+            <aside className="surface overflow-hidden">
+              <div className="border-b px-5 py-4">
+                <h2 className="font-display text-lg font-bold">Por establecimiento</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Ventas asociadas · 30 días</p>
+              </div>
+              <div className="divide-y">
+                {data?.locationRows.map((location, index) => (
+                  <div key={location.id} className="px-5 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">{location.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {num(location.purchases)} compras
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold">{eur(location.sales)}</span>
                     </div>
-                    <Badge
-                      variant={t.points_delta >= 0 ? "secondary" : "outline"}
-                      className="shrink-0 font-mono"
-                    >
-                      {t.points_delta >= 0 ? "+" : ""}
-                      {num(t.points_delta)}
-                    </Badge>
-                  </li>
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${Math.max(8, 100 - index * 15)}%` }}
+                      />
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            ) : (
-              <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                Todavía no hay movimientos.
-              </p>
-            )}
+              </div>
+            </aside>
           </div>
         </>
       )}

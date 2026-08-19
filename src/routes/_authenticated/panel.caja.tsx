@@ -2,7 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Check, Gift, Keyboard, Loader2, Receipt, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Check,
+  CreditCard,
+  Gift,
+  Keyboard,
+  Loader2,
+  Receipt,
+  Search,
+  TicketPercent,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +34,9 @@ import {
   redeemReward,
   resolveMembershipQr,
   searchMemberships,
+  redeemCoupon,
+  consumeGiftCard,
+  consumeCashback,
   type ScanResult,
 } from "@/lib/operations";
 
@@ -30,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/panel/caja")({
   component: CajaPage,
 });
 
-type Mode = "scan" | "manual";
+type Mode = "scan" | "manual" | "gift";
 
 function CajaPage() {
   const { data: session } = useSession();
@@ -44,6 +58,10 @@ function CajaPage() {
   const [busy, setBusy] = useState(false);
   const [amount, setAmount] = useState("");
   const [ticket, setTicket] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [giftCode, setGiftCode] = useState("");
+  const [giftAmount, setGiftAmount] = useState("");
+  const [cashbackAmount, setCashbackAmount] = useState("");
   const idemRef = useRef<string>(crypto.randomUUID());
 
   useEffect(() => {
@@ -91,14 +109,29 @@ function CajaPage() {
   };
 
   const cents = parseAmountToCents(amount);
+  const mechanic = scan?.program.mechanic_type ?? "points";
+  const unit =
+    mechanic === "stamps"
+      ? "sellos"
+      : mechanic === "cashback"
+        ? "céntimos"
+        : mechanic === "spend"
+          ? "€ acumulados"
+          : "puntos";
   const preview =
     scan && cents !== null
-      ? computePoints(
-          cents,
-          scan.program.earning_mode,
-          scan.program.earning_value,
-          scan.program.rounding_mode,
-        )
+      ? mechanic === "stamps"
+        ? Number(scan.program.mechanic_config?.stamps_per_purchase ?? 1)
+        : mechanic === "cashback"
+          ? Math.floor((cents * Number(scan.program.mechanic_config?.percentage ?? 5)) / 100)
+          : mechanic === "membership"
+            ? 0
+            : computePoints(
+                cents,
+                scan.program.earning_mode,
+                scan.program.earning_value,
+                scan.program.rounding_mode,
+              )
       : null;
 
   const confirmPurchase = async () => {
@@ -117,11 +150,11 @@ function CajaPage() {
       });
       const earned = res.earned_rewards?.map((reward) => reward.name).join(", ");
       toast.success(
-        res.duplicate ? "Operación ya registrada" : `+${num(res.points_awarded)} puntos`,
+        res.duplicate ? "Operación ya registrada" : `+${num(res.points_awarded)} ${unit}`,
         {
           description: earned
-            ? `Recompensa obtenida: ${earned} · Saldo: ${num(res.resulting_balance)} puntos`
-            : `Saldo: ${num(res.resulting_balance)} puntos`,
+            ? `Recompensa obtenida: ${earned} · Saldo: ${num(res.resulting_balance)} ${unit}`
+            : `Saldo: ${num(res.resulting_balance)} ${unit}`,
         },
       );
       setScan({
@@ -138,6 +171,63 @@ function CajaPage() {
       void queryClient.invalidateQueries();
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmCoupon = async () => {
+    if (!scan || couponCode.trim().length < 3) return;
+    setBusy(true);
+    try {
+      const result = await redeemCoupon(scan.membership_id, couponCode.trim(), locationId);
+      toast.success(`Cupón canjeado: ${result.title}`, {
+        description:
+          result.discount_type === "percentage"
+            ? `${result.discount_value}% de descuento`
+            : `${eur(result.discount_value)} de descuento`,
+      });
+      setCouponCode("");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmGiftCard = async () => {
+    const amountCents = parseAmountToCents(giftAmount);
+    if (!locationId || !giftCode.trim() || amountCents === null)
+      return toast.error("Introduce código e importe válidos");
+    setBusy(true);
+    try {
+      const result = await consumeGiftCard(giftCode.trim(), locationId, amountCents);
+      toast.success("Consumo registrado", {
+        description: `Saldo restante: ${eur(result.resulting_balance_cents)}`,
+      });
+      setGiftCode("");
+      setGiftAmount("");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmCashback = async () => {
+    if (!scan) return;
+    const amountCents = parseAmountToCents(cashbackAmount);
+    if (amountCents === null) return toast.error("Introduce un importe válido");
+    setBusy(true);
+    try {
+      const result = await consumeCashback(scan.membership_id, locationId, amountCents);
+      toast.success("Cashback utilizado", {
+        description: `Saldo restante: ${eur(result.resulting_balance_cents)}`,
+      });
+      setScan({ ...scan, balance: result.resulting_balance_cents });
+      setCashbackAmount("");
+    } catch (error) {
+      toast.error((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -221,11 +311,18 @@ function CajaPage() {
             >
               <Keyboard aria-hidden className="size-4" /> Buscar
             </Button>
+            <Button
+              variant={mode === "gift" ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setMode("gift")}
+            >
+              <CreditCard aria-hidden className="size-4" /> Regalo
+            </Button>
           </div>
 
           {mode === "scan" ? (
             <QrScanner active onResult={(v) => void resolve(v)} />
-          ) : (
+          ) : mode === "manual" ? (
             <form
               className="surface space-y-3 p-5"
               onSubmit={(e) => {
@@ -280,6 +377,39 @@ function CajaPage() {
                 </ul>
               ) : null}
             </form>
+          ) : (
+            <form
+              className="surface space-y-4 p-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void confirmGiftCard();
+              }}
+            >
+              <div className="flex items-center gap-2 font-medium">
+                <CreditCard className="size-4 text-primary" /> Consumir tarjeta regalo
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="gift-code">Código</Label>
+                <Input
+                  id="gift-code"
+                  className="font-mono uppercase"
+                  value={giftCode}
+                  onChange={(event) => setGiftCode(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="gift-amount">Importe (€)</Label>
+                <Input
+                  id="gift-amount"
+                  inputMode="decimal"
+                  value={giftAmount}
+                  onChange={(event) => setGiftAmount(event.target.value)}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                Confirmar consumo
+              </Button>
+            </form>
           )}
         </div>
       ) : (
@@ -295,7 +425,9 @@ function CajaPage() {
             <div className="mt-4 flex items-end justify-between">
               <div>
                 <p className="text-xs uppercase tracking-wide text-sidebar-foreground/70">Saldo</p>
-                <p className="metric-value text-sidebar-primary">{num(scan.balance)} pts</p>
+                <p className="metric-value text-sidebar-primary">
+                  {mechanic === "cashback" ? eur(scan.balance) : `${num(scan.balance)} ${unit}`}
+                </p>
               </div>
               <Badge variant="secondary" className="font-mono">
                 {scan.short_code}
@@ -334,7 +466,7 @@ function CajaPage() {
                 <Input id="ticket" value={ticket} onChange={(e) => setTicket(e.target.value)} />
               </div>
               <div className="rounded-lg bg-secondary p-3 text-center">
-                <p className="text-xs text-muted-foreground">Puntos a otorgar</p>
+                <p className="text-xs text-muted-foreground">Progreso a añadir</p>
                 <p className="metric-value">{preview !== null ? `+${num(preview)}` : "—"}</p>
                 {cents !== null ? (
                   <p className="text-xs text-muted-foreground">sobre {eur(cents)}</p>
@@ -350,6 +482,58 @@ function CajaPage() {
               </Button>
             </form>
           ) : null}
+
+          {mechanic === "cashback" && scan.balance > 0 ? (
+            <form
+              className="surface space-y-3 p-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void confirmCashback();
+              }}
+            >
+              <div className="font-medium">Utilizar cashback</div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cashback-amount">Importe a descontar (€)</Label>
+                <Input
+                  id="cashback-amount"
+                  inputMode="decimal"
+                  value={cashbackAmount}
+                  onChange={(event) => setCashbackAmount(event.target.value)}
+                />
+              </div>
+              <Button className="w-full" disabled={busy}>
+                Aplicar cashback
+              </Button>
+            </form>
+          ) : null}
+
+          <form
+            className="surface space-y-3 p-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void confirmCoupon();
+            }}
+          >
+            <div className="flex items-center gap-2 font-medium">
+              <TicketPercent className="size-4 text-primary" /> Canjear cupón
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="coupon-code">Código del cupón</Label>
+              <Input
+                id="coupon-code"
+                className="font-mono uppercase"
+                value={couponCode}
+                onChange={(event) => setCouponCode(event.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={busy || couponCode.trim().length < 3}
+            >
+              Validar cupón
+            </Button>
+          </form>
 
           {scan.program.allow_redeeming && scan.rewards.length > 0 ? (
             <div className="surface p-5">

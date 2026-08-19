@@ -45,11 +45,15 @@ function ActividadPage() {
                     {a.entity_type} · {a.actor_label ?? "sistema"}
                   </p>
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">{dateTime(a.created_at)}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {dateTime(a.created_at)}
+                </span>
               </div>
             ))
           ) : (
-            <p className="px-5 py-10 text-center text-sm text-muted-foreground">Sin registros todavía.</p>
+            <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+              Sin registros todavía.
+            </p>
           )}
         </div>
       )}

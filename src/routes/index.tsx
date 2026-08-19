@@ -1,69 +1,631 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CreditCard, QrCode, ScanLine, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  BellRing,
+  Check,
+  ChevronRight,
+  CircleDollarSign,
+  Gift,
+  Menu,
+  QrCode,
+  ScanLine,
+  Sparkles,
+  Users,
+  WalletCards,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Puntia — Acceso a la plataforma de fidelización" },
+      { title: "Fideleo — Fidelización digital para negocios que quieren crecer" },
       {
         name: "description",
         content:
-          "Accede al backoffice de Puntia para gestionar programas de puntos, recompensas y tarjetas en Apple Wallet y Google Wallet.",
+          "Crea un club de fidelización con Wallet, QR, recompensas, campañas y métricas. Sin app y preparado para uno o varios establecimientos.",
       },
-      { property: "og:title", content: "Puntia — Acceso a la plataforma" },
+      { property: "og:title", content: "Fideleo — Convierte cada visita en una relación" },
       {
         property: "og:description",
-        content: "Backoffice de fidelización para comercios: puntos, recompensas y tarjetas Wallet.",
+        content: "La plataforma de fidelización digital para captar, conocer y recuperar clientes.",
       },
     ],
   }),
-  component: Index,
+  component: HomePage,
 });
 
-const pillars = [
-  { icon: QrCode, title: "Captación por QR", text: "QR públicos por establecimiento y origen." },
-  { icon: CreditCard, title: "Tarjeta en Wallet", text: "Apple Wallet y Google Wallet, sin app." },
-  { icon: ScanLine, title: "Caja en 10 segundos", text: "Escanear, importe y confirmar." },
-  { icon: ShieldCheck, title: "Ledger auditable", text: "Ningún saldo cambia sin movimiento." },
+const capabilities = [
+  {
+    icon: QrCode,
+    eyebrow: "CAPTACIÓN",
+    title: "De un QR a un cliente identificado",
+    text: "Publica una landing con tu marca, registra al cliente en segundos y entrégale su tarjeta digital sin descargar ninguna app.",
+    color: "bg-[#dff7ff]",
+  },
+  {
+    icon: ScanLine,
+    eyebrow: "OPERACIONES",
+    title: "Una experiencia de caja realmente rápida",
+    text: "Escanea, registra la compra y actualiza puntos, sellos o cashback desde cualquier móvil o tablet detrás de la barra.",
+    color: "bg-[#f3e9ff]",
+  },
+  {
+    icon: BellRing,
+    eyebrow: "RETENCIÓN",
+    title: "El mensaje adecuado, en el momento adecuado",
+    text: "Segmenta tu base y activa comunicaciones por bienvenida, recompensa, cumpleaños o inactividad.",
+    color: "bg-[#fff0d8]",
+  },
+  {
+    icon: BarChart3,
+    eyebrow: "INTELIGENCIA",
+    title: "Decisiones basadas en visitas reales",
+    text: "Sigue altas, frecuencia, ventas asociadas, canjes y rendimiento por ubicación desde un único panel.",
+    color: "bg-[#e7f8ed]",
+  },
 ];
 
-function Index() {
-  return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-5 py-16">
-        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground">
-          Plataforma interna · MVP 1.0
-        </span>
-        <h1 className="mt-6 max-w-3xl text-4xl font-semibold leading-[1.05] sm:text-6xl">
-          Fidelización con tarjeta en Wallet para comercios físicos.
-        </h1>
-        <p className="mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-          Programas de puntos por gasto, recompensas y trazabilidad completa. Multiempresa y
-          multiestablecimiento desde el primer día.
-        </p>
+const steps = [
+  [
+    "01",
+    "Diseña tu club",
+    "Elige mecánica, recompensa, colores y condiciones desde un onboarding guiado.",
+  ],
+  ["02", "Publica tu QR", "Colócalo en barra, mesas, tickets, redes o web y empieza a captar."],
+  [
+    "03",
+    "Reconoce cada visita",
+    "Tu equipo escanea la tarjeta y Fideleo actualiza el progreso de forma segura.",
+  ],
+  [
+    "04",
+    "Haz que vuelvan",
+    "Activa recompensas, segmentos y automatizaciones basadas en comportamiento real.",
+  ],
+];
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Button asChild size="lg">
-            <Link to="/auth">Entrar al backoffice</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link to="/unirme/$organizationSlug" params={{ organizationSlug: "cafe-norte" }}>
-              Ver landing de ejemplo
-            </Link>
+function BrandMark() {
+  return (
+    <span className="flex items-center gap-2 text-lg font-bold tracking-[-0.04em]">
+      <span className="grid size-8 place-items-center rounded-full bg-black text-white">
+        <Sparkles className="size-4" />
+      </span>
+      Fideleo
+    </span>
+  );
+}
+
+function HomePage() {
+  const [mobileMenu, setMobileMenu] = useState(false);
+  return (
+    <main className="min-h-screen overflow-hidden bg-white text-[#111111]">
+      <header className="absolute inset-x-0 top-0 z-30">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-5 lg:px-10">
+          <Link to="/" aria-label="Fideleo, inicio">
+            <BrandMark />
+          </Link>
+          <nav
+            className="hidden items-center gap-8 text-sm font-medium lg:flex"
+            aria-label="Navegación principal"
+          >
+            <a href="#plataforma" className="hover:opacity-55">
+              Plataforma
+            </a>
+            <a href="#como-funciona" className="hover:opacity-55">
+              Cómo funciona
+            </a>
+            <a href="#negocios" className="hover:opacity-55">
+              Para tu negocio
+            </a>
+            <a href="#preguntas" className="hover:opacity-55">
+              Preguntas
+            </a>
+          </nav>
+          <div className="hidden items-center gap-3 sm:flex">
+            <Button asChild variant="ghost">
+              <Link to="/auth">Iniciar sesión</Link>
+            </Button>
+            <Button asChild className="rounded-full bg-black px-6 text-white hover:bg-black/75">
+              <a href="#demo">Solicitar demo</a>
+            </Button>
+          </div>
+          <Button
+            className="sm:hidden"
+            variant="ghost"
+            size="icon"
+            aria-label={mobileMenu ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={mobileMenu}
+            onClick={() => setMobileMenu((current) => !current)}
+          >
+            <Menu />
           </Button>
         </div>
+        {mobileMenu ? (
+          <nav
+            className="mx-4 rounded-2xl border border-black/10 bg-white p-3 shadow-xl sm:hidden"
+            aria-label="Navegación móvil"
+          >
+            {[
+              ["#plataforma", "Plataforma"],
+              ["#como-funciona", "Cómo funciona"],
+              ["#negocios", "Para tu negocio"],
+              ["#preguntas", "Preguntas"],
+            ].map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                onClick={() => setMobileMenu(false)}
+                className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-black/5"
+              >
+                {label}
+              </a>
+            ))}
+            <Button asChild className="mt-2 w-full rounded-xl bg-black text-white">
+              <Link to="/auth">Entrar al backoffice</Link>
+            </Button>
+          </nav>
+        ) : null}
+      </header>
 
-        <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {pillars.map((p) => (
-            <div key={p.title} className="surface p-5">
-              <p.icon aria-hidden className="size-5 text-primary" />
-              <h2 className="mt-3 text-base font-semibold">{p.title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{p.text}</p>
+      <section className="relative bg-[#f8b9e7] px-5 pb-16 pt-32 sm:pt-40 lg:px-10 lg:pb-24">
+        <div className="pointer-events-none absolute -right-20 top-10 size-72 rounded-full bg-[#ffdf55] lg:size-96" />
+        <div className="relative mx-auto max-w-[1440px]">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr]">
+            <div className="relative z-10 max-w-3xl">
+              <p className="mb-5 text-xs font-bold uppercase tracking-[0.18em]">
+                Fidelización para hostelería y retail
+              </p>
+              <h1 className="text-[clamp(3.4rem,7vw,7.5rem)] font-semibold leading-[.88] tracking-[-.07em]">
+                Haz que cada visita cuente.
+              </h1>
+              <p className="mt-7 max-w-xl text-lg leading-relaxed sm:text-xl">
+                Capta clientes, premia su fidelidad y consigue que vuelvan con una tarjeta digital
+                que vive en su móvil.
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-13 rounded-full bg-black px-7 text-white hover:bg-black/75"
+                >
+                  <a href="#demo">
+                    Quiero ver Fideleo <ArrowRight />
+                  </a>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-13 rounded-full border-black bg-transparent px-7 hover:bg-white/40"
+                >
+                  <Link to="/club/$businessSlug" params={{ businessSlug: "cafe-norte" }}>
+                    Ver experiencia cliente
+                  </Link>
+                </Button>
+              </div>
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                {["Sin app", "Listo para Wallet", "Multiubicación"].map((item) => (
+                  <span key={item} className="flex items-center gap-1.5">
+                    <Check className="size-4" />
+                    {item}
+                  </span>
+                ))}
+              </div>
             </div>
-          ))}
+            <ProductPreview />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-black/10 bg-white px-5 py-8 lg:px-10">
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <p className="max-w-sm text-sm font-semibold">
+            Un sistema flexible para negocios que viven de sus clientes recurrentes.
+          </p>
+          <div className="flex flex-wrap gap-x-8 gap-y-3 text-lg font-semibold text-black/40">
+            <span>Cafeterías</span>
+            <span>Restaurantes</span>
+            <span>Retail</span>
+            <span>Franquicias</span>
+            <span>Servicios</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="plataforma" className="px-5 py-24 lg:px-10 lg:py-32">
+        <div className="mx-auto max-w-[1440px]">
+          <div className="max-w-4xl">
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#c93c9f]">
+              Una sola plataforma
+            </p>
+            <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">
+              Todo lo que necesitas para convertir visitas en relaciones.
+            </h2>
+          </div>
+          <div className="mt-14 grid gap-4 md:grid-cols-2">
+            {capabilities.map((item) => (
+              <article
+                key={item.title}
+                className={`${item.color} group min-h-80 rounded-[2rem] p-7 sm:p-10`}
+              >
+                <div className="flex items-start justify-between">
+                  <item.icon className="size-8" />
+                  <ChevronRight className="size-6 transition-transform group-hover:translate-x-1" />
+                </div>
+                <p className="mt-14 text-xs font-bold tracking-[.15em]">{item.eyebrow}</p>
+                <h3 className="mt-3 max-w-lg text-3xl font-semibold leading-tight tracking-[-.04em]">
+                  {item.title}
+                </h3>
+                <p className="mt-4 max-w-xl leading-relaxed text-black/65">{item.text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="como-funciona" className="bg-[#111111] px-5 py-24 text-white lg:px-10 lg:py-32">
+        <div className="mx-auto grid max-w-[1440px] gap-16 lg:grid-cols-[.75fr_1.25fr]">
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#f8b9e7]">
+              Del primer escaneo a la próxima visita
+            </p>
+            <h2 className="mt-4 text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
+              Tu club activo en cuatro pasos.
+            </h2>
+            <p className="mt-6 max-w-md text-lg leading-relaxed text-white/60">
+              Fideleo conecta captación, operación y retención para que el equipo pueda centrarse en
+              atender.
+            </p>
+          </div>
+          <ol className="divide-y divide-white/15 border-y border-white/15">
+            {steps.map(([number, title, text]) => (
+              <li key={number} className="grid gap-5 py-8 sm:grid-cols-[5rem_1fr] sm:py-10">
+                <span className="text-sm font-semibold text-[#f8b9e7]">{number}</span>
+                <div>
+                  <h3 className="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">{title}</h3>
+                  <p className="mt-3 max-w-xl leading-relaxed text-white/60">{text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section id="negocios" className="bg-[#d9f4ff] px-5 py-24 lg:px-10 lg:py-32">
+        <div className="mx-auto max-w-[1440px]">
+          <div className="grid items-center gap-14 lg:grid-cols-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.18em]">
+                Control sin complejidad
+              </p>
+              <h2 className="mt-4 text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
+                Una visión clara de lo que hace volver a tus clientes.
+              </h2>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-black/65">
+                Consulta rendimiento por periodo y ubicación, identifica clientes recurrentes y mide
+                el impacto real de recompensas y campañas.
+              </p>
+              <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+                {[
+                  "Ventas y ticket medio",
+                  "Altas y recurrencia",
+                  "Wallet y recompensas",
+                  "Rendimiento por local",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-3 font-medium">
+                    <BadgeCheck className="size-5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <AnalyticsPreview />
+          </div>
+        </div>
+      </section>
+
+      <section className="px-5 py-24 lg:px-10 lg:py-32">
+        <div className="mx-auto max-w-[1440px]">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-[2rem] bg-[#f4efff] p-8">
+              <WalletCards className="size-8" />
+              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">0</p>
+              <p className="mt-2 text-lg">apps que descargar para el cliente</p>
+            </div>
+            <div className="rounded-[2rem] bg-[#ffe65c] p-8">
+              <Zap className="size-8" />
+              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">1</p>
+              <p className="mt-2 text-lg">flujo para captar, premiar y recuperar</p>
+            </div>
+            <div className="rounded-[2rem] bg-[#ffd9ee] p-8">
+              <Users className="size-8" />
+              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">5</p>
+              <p className="mt-2 text-lg">ubicaciones activas en la demo de Café Norte</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="preguntas" className="border-t border-black/10 px-5 py-24 lg:px-10 lg:py-32">
+        <div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[.7fr_1.3fr]">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#c93c9f]">
+              Preguntas frecuentes
+            </p>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
+              Lo importante, claro desde el principio.
+            </h2>
+          </div>
+          <div className="divide-y divide-black/15 border-y border-black/15">
+            {[
+              [
+                "¿El cliente tiene que descargar una app?",
+                "No. Puede usar su tarjeta web y, cuando estén configuradas las credenciales del negocio, añadirla a Apple Wallet o Google Wallet.",
+              ],
+              [
+                "¿Sirve para varias ubicaciones?",
+                "Sí. Fideleo está diseñado como SaaS multiempresa y multiubicación, con permisos y métricas separadas por local.",
+              ],
+              [
+                "¿Qué mecánicas puedo utilizar?",
+                "Acumulación por gasto, puntos, sellos, cashback, membresías, cupones y tarjetas regalo.",
+              ],
+              [
+                "¿Mi equipo puede usarlo desde la barra?",
+                "Sí. El escáner está optimizado para móvil y tablet, e incluye búsqueda alternativa por nombre, email, teléfono o número de socio.",
+              ],
+            ].map(([question, answer]) => (
+              <details key={question} className="group py-6">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-xl font-semibold">
+                  {question}
+                  <span className="text-2xl font-normal transition-transform group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="max-w-2xl pt-4 leading-relaxed text-black/60">{answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="demo" className="px-5 pb-5 lg:px-10 lg:pb-10">
+        <div className="mx-auto max-w-[1440px] overflow-hidden rounded-[2.5rem] bg-[#f8b9e7] px-6 py-16 text-center sm:px-10 lg:py-24">
+          <CircleDollarSign className="mx-auto size-10" />
+          <h2 className="mx-auto mt-6 max-w-4xl text-5xl font-semibold leading-[.93] tracking-[-.06em] sm:text-7xl">
+            Empieza a convertir clientes ocasionales en habituales.
+          </h2>
+          <p className="mx-auto mt-6 max-w-xl text-lg text-black/65">
+            Explora el backoffice con las cuentas demo o entra en la experiencia pública de Café
+            Norte.
+          </p>
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button
+              asChild
+              size="lg"
+              className="h-13 rounded-full bg-black px-8 text-white hover:bg-black/75"
+            >
+              <Link to="/auth">
+                Probar el backoffice <ArrowRight />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="h-13 rounded-full border-black bg-transparent px-8"
+            >
+              <Link to="/club/$businessSlug" params={{ businessSlug: "cafe-norte" }}>
+                Ver club de ejemplo
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-[#111] px-5 py-12 text-white lg:px-10">
+        <div className="mx-auto grid max-w-[1440px] gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sm:col-span-2">
+            <BrandMark />
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">
+              La plataforma para captar, conocer y fidelizar clientes desde una tarjeta digital.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Producto</p>
+            <ul className="mt-4 space-y-2 text-sm text-white/55">
+              <li>
+                <a href="#plataforma">Plataforma</a>
+              </li>
+              <li>
+                <a href="#como-funciona">Cómo funciona</a>
+              </li>
+              <li>
+                <Link to="/auth">Acceso</Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Experiencia</p>
+            <ul className="mt-4 space-y-2 text-sm text-white/55">
+              <li>
+                <Link to="/club/$businessSlug" params={{ businessSlug: "cafe-norte" }}>
+                  Club de ejemplo
+                </Link>
+              </li>
+              <li>
+                <Link to="/auth">Cuentas demo</Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="mx-auto mt-12 flex max-w-[1440px] flex-col gap-2 border-t border-white/15 pt-6 text-xs text-white/45 sm:flex-row sm:justify-between">
+          <span>© {new Date().getFullYear()} Fideleo</span>
+          <span>Fidelización digital, sin fricción.</span>
+        </div>
+      </footer>
+    </main>
+  );
+}
+
+function ProductPreview() {
+  return (
+    <div className="relative z-10 mx-auto w-full max-w-2xl lg:translate-x-10">
+      <div className="rounded-[2rem] border-[8px] border-black bg-[#f7f7fb] p-3 shadow-[0_30px_80px_rgba(0,0,0,.2)] sm:p-5">
+        <div className="flex items-center gap-3 border-b border-black/10 pb-4">
+          <span className="grid size-9 place-items-center rounded-lg bg-black text-white">
+            <Sparkles className="size-4" />
+          </span>
+          <span className="text-sm font-bold">FIDELEO</span>
+          <div className="ml-auto hidden h-9 w-1/2 items-center rounded-lg border bg-white px-3 text-xs text-black/40 sm:flex">
+            Buscar cliente...
+          </div>
+        </div>
+        <div className="grid gap-3 pt-4 sm:grid-cols-[8rem_1fr]">
+          <aside className="hidden space-y-2 text-xs sm:block">
+            {["Resumen", "Escáner", "Clientes", "Campañas", "Estadísticas"].map((item, index) => (
+              <div
+                key={item}
+                className={`rounded-lg px-3 py-2.5 ${index === 0 ? "bg-[#f8d9ef] font-semibold" : "text-black/45"}`}
+              >
+                {item}
+              </div>
+            ))}
+          </aside>
+          <div>
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[10px] text-black/40">Café Norte · Últimos 30 días</p>
+                <p className="text-xl font-bold tracking-tight">Buenos días, Lucía</p>
+              </div>
+              <span className="rounded-full bg-[#ddf8ec] px-2 py-1 text-[9px] font-semibold text-[#167a52]">
+                ● En directo
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <MiniMetric label="Clientes activos" value="842" trend="+12%" />
+              <MiniMetric label="Ventas asociadas" value="31.480 €" trend="+8,4%" />
+            </div>
+            <div className="mt-2 rounded-xl border bg-white p-4">
+              <div className="flex justify-between text-[10px]">
+                <span className="font-semibold">Evolución de visitas</span>
+                <span className="text-black/35">30 días</span>
+              </div>
+              <div className="mt-5 flex h-24 items-end gap-1.5">
+                {[36, 52, 44, 68, 61, 75, 58, 84, 73, 91, 82, 100].map((height, index) => (
+                  <span
+                    key={index}
+                    className="flex-1 rounded-t bg-[#df5ab6]"
+                    style={{ height: `${height}%`, opacity: 0.5 + index / 24 }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-3 rounded-xl bg-[#d9f4ff] p-3">
+              <span className="grid size-8 place-items-center rounded-full bg-white">
+                <Gift className="size-4" />
+              </span>
+              <div>
+                <p className="text-[10px] font-semibold">Oportunidad de fidelización</p>
+                <p className="text-[9px] text-black/50">
+                  46 clientes están a una visita de su recompensa.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </main>
+      <div className="absolute -bottom-8 -left-5 hidden w-52 rounded-2xl border bg-white p-4 shadow-xl sm:block">
+        <p className="text-[10px] font-semibold">Tarjeta actualizada</p>
+        <div className="mt-3 rounded-xl bg-black p-3 text-white">
+          <p className="text-[8px] text-white/55">CAFÉ NORTE CLUB</p>
+          <p className="mt-6 text-sm font-semibold">75 / 100 puntos</p>
+          <div className="mt-2 h-1.5 rounded-full bg-white/20">
+            <div className="h-full w-3/4 rounded-full bg-[#f8b9e7]" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value, trend }: { label: string; value: string; trend: string }) {
+  return (
+    <div className="rounded-xl border bg-white p-3">
+      <p className="text-[9px] text-black/40">{label}</p>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <p className="text-lg font-bold tracking-tight">{value}</p>
+        <span className="text-[9px] font-semibold text-[#149467]">↑ {trend}</span>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsPreview() {
+  const locations = [
+    ["Malasaña", 82],
+    ["Chamberí", 68],
+    ["Retiro", 61],
+    ["Salamanca", 54],
+    ["Chueca", 47],
+  ] as const;
+  return (
+    <div className="rounded-[2rem] bg-[#9c98aa] p-4 sm:p-7">
+      <div className="rounded-2xl bg-[#fafafd] p-4 shadow-2xl sm:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-black/40">
+              Estadísticas / <strong className="text-black">Resumen</strong>
+            </p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight">Rendimiento del club</h3>
+          </div>
+          <span className="rounded-lg border bg-white px-3 py-2 text-xs">
+            Todas las ubicaciones
+          </span>
+        </div>
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          <MiniMetric label="Retención" value="64%" trend="5,2%" />
+          <MiniMetric label="Ticket medio" value="12,80 €" trend="3,8%" />
+          <MiniMetric label="Canjes" value="184" trend="11%" />
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-[1.35fr_.65fr]">
+          <div className="rounded-xl border bg-white p-4">
+            <p className="text-xs font-semibold">Ingresos registrados</p>
+            <div className="mt-5 space-y-3">
+              {locations.map(([name, width]) => (
+                <div key={name}>
+                  <div className="flex justify-between text-[10px]">
+                    <span>{name}</span>
+                    <span>{width}%</span>
+                  </div>
+                  <div className="mt-1 h-2 rounded-full bg-black/5">
+                    <div
+                      className="h-full rounded-full bg-[#df5ab6]"
+                      style={{ width: `${width}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border bg-white p-4">
+            <p className="text-xs font-semibold">Clientes</p>
+            <div
+              className="mx-auto mt-5 grid size-28 place-items-center rounded-full"
+              style={{ background: "conic-gradient(#df5ab6 0 64%, #d9dbea 64% 100%)" }}
+            >
+              <div className="grid size-20 place-items-center rounded-full bg-white text-xl font-bold">
+                64%
+              </div>
+            </div>
+            <p className="mt-3 text-center text-[10px] text-black/45">Clientes recurrentes</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

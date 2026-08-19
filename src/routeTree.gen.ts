@@ -14,15 +14,21 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPlataformaRouteImport } from './routes/_authenticated/plataforma'
+import { Route as ClubBusinessSlugRouteImport } from './routes/club.$businessSlug'
 import { Route as MiTarjetaPublicIdRouteImport } from './routes/mi-tarjeta.$publicId'
 import { Route as AuthenticatedPanelIndexRouteImport } from './routes/_authenticated/panel.index'
 import { Route as AuthenticatedPanelActividadRouteImport } from './routes/_authenticated/panel.actividad'
+import { Route as AuthenticatedPanelAutomatizacionesRouteImport } from './routes/_authenticated/panel.automatizaciones'
+import { Route as AuthenticatedPanelBeneficiosRouteImport } from './routes/_authenticated/panel.beneficios'
 import { Route as AuthenticatedPanelCajaRouteImport } from './routes/_authenticated/panel.caja'
 import { Route as AuthenticatedPanelCampanasRouteImport } from './routes/_authenticated/panel.campanas'
 import { Route as AuthenticatedPanelCaptacionRouteImport } from './routes/_authenticated/panel.captacion'
 import { Route as AuthenticatedPanelConfiguracionRouteImport } from './routes/_authenticated/panel.configuracion'
 import { Route as AuthenticatedPanelEquipoRouteImport } from './routes/_authenticated/panel.equipo'
 import { Route as AuthenticatedPanelEstablecimientosRouteImport } from './routes/_authenticated/panel.establecimientos'
+import { Route as AuthenticatedPanelEstadisticasRouteImport } from './routes/_authenticated/panel.estadisticas'
+import { Route as AuthenticatedPanelNotificacionesRouteImport } from './routes/_authenticated/panel.notificaciones'
+import { Route as AuthenticatedPanelOnboardingRouteImport } from './routes/_authenticated/panel.onboarding'
 import { Route as AuthenticatedPanelProgramaRouteImport } from './routes/_authenticated/panel.programa'
 import { Route as AuthenticatedPanelRecompensasRouteImport } from './routes/_authenticated/panel.recompensas'
 import { Route as AuthenticatedPanelWalletRouteImport } from './routes/_authenticated/panel.wallet'
@@ -55,6 +61,11 @@ const AuthenticatedPlataformaRoute = AuthenticatedPlataformaRouteImport.update({
   path: '/plataforma',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ClubBusinessSlugRoute = ClubBusinessSlugRouteImport.update({
+  id: '/club/$businessSlug',
+  path: '/club/$businessSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MiTarjetaPublicIdRoute = MiTarjetaPublicIdRouteImport.update({
   id: '/mi-tarjeta/$publicId',
   path: '/mi-tarjeta/$publicId',
@@ -69,6 +80,18 @@ const AuthenticatedPanelActividadRoute =
   AuthenticatedPanelActividadRouteImport.update({
     id: '/actividad',
     path: '/actividad',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelAutomatizacionesRoute =
+  AuthenticatedPanelAutomatizacionesRouteImport.update({
+    id: '/automatizaciones',
+    path: '/automatizaciones',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelBeneficiosRoute =
+  AuthenticatedPanelBeneficiosRouteImport.update({
+    id: '/beneficios',
+    path: '/beneficios',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
 const AuthenticatedPanelCajaRoute = AuthenticatedPanelCajaRouteImport.update({
@@ -104,6 +127,24 @@ const AuthenticatedPanelEstablecimientosRoute =
   AuthenticatedPanelEstablecimientosRouteImport.update({
     id: '/establecimientos',
     path: '/establecimientos',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelEstadisticasRoute =
+  AuthenticatedPanelEstadisticasRouteImport.update({
+    id: '/estadisticas',
+    path: '/estadisticas',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelNotificacionesRoute =
+  AuthenticatedPanelNotificacionesRouteImport.update({
+    id: '/notificaciones',
+    path: '/notificaciones',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelOnboardingRoute =
+  AuthenticatedPanelOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
 const AuthenticatedPanelProgramaRoute =
@@ -154,14 +195,20 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/panel': typeof AuthenticatedPanelRouteWithChildren
   '/plataforma': typeof AuthenticatedPlataformaRoute
+  '/club/$businessSlug': typeof ClubBusinessSlugRoute
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
+  '/panel/automatizaciones': typeof AuthenticatedPanelAutomatizacionesRoute
+  '/panel/beneficios': typeof AuthenticatedPanelBeneficiosRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/campanas': typeof AuthenticatedPanelCampanasRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
+  '/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
+  '/panel/notificaciones': typeof AuthenticatedPanelNotificacionesRoute
+  '/panel/onboarding': typeof AuthenticatedPanelOnboardingRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
@@ -175,14 +222,20 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/plataforma': typeof AuthenticatedPlataformaRoute
+  '/club/$businessSlug': typeof ClubBusinessSlugRoute
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
+  '/panel/automatizaciones': typeof AuthenticatedPanelAutomatizacionesRoute
+  '/panel/beneficios': typeof AuthenticatedPanelBeneficiosRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/campanas': typeof AuthenticatedPanelCampanasRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
+  '/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
+  '/panel/notificaciones': typeof AuthenticatedPanelNotificacionesRoute
+  '/panel/onboarding': typeof AuthenticatedPanelOnboardingRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
@@ -199,14 +252,20 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRouteWithChildren
   '/_authenticated/plataforma': typeof AuthenticatedPlataformaRoute
+  '/club/$businessSlug': typeof ClubBusinessSlugRoute
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/_authenticated/panel/actividad': typeof AuthenticatedPanelActividadRoute
+  '/_authenticated/panel/automatizaciones': typeof AuthenticatedPanelAutomatizacionesRoute
+  '/_authenticated/panel/beneficios': typeof AuthenticatedPanelBeneficiosRoute
   '/_authenticated/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/_authenticated/panel/campanas': typeof AuthenticatedPanelCampanasRoute
   '/_authenticated/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/_authenticated/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
   '/_authenticated/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/_authenticated/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
+  '/_authenticated/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
+  '/_authenticated/panel/notificaciones': typeof AuthenticatedPanelNotificacionesRoute
+  '/_authenticated/panel/onboarding': typeof AuthenticatedPanelOnboardingRoute
   '/_authenticated/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/_authenticated/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
   '/_authenticated/panel/wallet': typeof AuthenticatedPanelWalletRoute
@@ -223,14 +282,20 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/plataforma'
+    | '/club/$businessSlug'
     | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
+    | '/panel/automatizaciones'
+    | '/panel/beneficios'
     | '/panel/caja'
     | '/panel/campanas'
     | '/panel/captacion'
     | '/panel/configuracion'
     | '/panel/equipo'
     | '/panel/establecimientos'
+    | '/panel/estadisticas'
+    | '/panel/notificaciones'
+    | '/panel/onboarding'
     | '/panel/programa'
     | '/panel/recompensas'
     | '/panel/wallet'
@@ -244,14 +309,20 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/plataforma'
+    | '/club/$businessSlug'
     | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
+    | '/panel/automatizaciones'
+    | '/panel/beneficios'
     | '/panel/caja'
     | '/panel/campanas'
     | '/panel/captacion'
     | '/panel/configuracion'
     | '/panel/equipo'
     | '/panel/establecimientos'
+    | '/panel/estadisticas'
+    | '/panel/notificaciones'
+    | '/panel/onboarding'
     | '/panel/programa'
     | '/panel/recompensas'
     | '/panel/wallet'
@@ -267,14 +338,20 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/panel'
     | '/_authenticated/plataforma'
+    | '/club/$businessSlug'
     | '/mi-tarjeta/$publicId'
     | '/_authenticated/panel/actividad'
+    | '/_authenticated/panel/automatizaciones'
+    | '/_authenticated/panel/beneficios'
     | '/_authenticated/panel/caja'
     | '/_authenticated/panel/campanas'
     | '/_authenticated/panel/captacion'
     | '/_authenticated/panel/configuracion'
     | '/_authenticated/panel/equipo'
     | '/_authenticated/panel/establecimientos'
+    | '/_authenticated/panel/estadisticas'
+    | '/_authenticated/panel/notificaciones'
+    | '/_authenticated/panel/onboarding'
     | '/_authenticated/panel/programa'
     | '/_authenticated/panel/recompensas'
     | '/_authenticated/panel/wallet'
@@ -289,6 +366,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ClubBusinessSlugRoute: typeof ClubBusinessSlugRoute
   MiTarjetaPublicIdRoute: typeof MiTarjetaPublicIdRoute
   UnirmeOrganizationSlugLocationSlugRoute: typeof UnirmeOrganizationSlugLocationSlugRoute
   UnirmeOrganizationSlugIndexRoute: typeof UnirmeOrganizationSlugIndexRoute
@@ -331,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlataformaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/club/$businessSlug': {
+      id: '/club/$businessSlug'
+      path: '/club/$businessSlug'
+      fullPath: '/club/$businessSlug'
+      preLoaderRoute: typeof ClubBusinessSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mi-tarjeta/$publicId': {
       id: '/mi-tarjeta/$publicId'
       path: '/mi-tarjeta/$publicId'
@@ -350,6 +435,20 @@ declare module '@tanstack/react-router' {
       path: '/actividad'
       fullPath: '/panel/actividad'
       preLoaderRoute: typeof AuthenticatedPanelActividadRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/automatizaciones': {
+      id: '/_authenticated/panel/automatizaciones'
+      path: '/automatizaciones'
+      fullPath: '/panel/automatizaciones'
+      preLoaderRoute: typeof AuthenticatedPanelAutomatizacionesRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/beneficios': {
+      id: '/_authenticated/panel/beneficios'
+      path: '/beneficios'
+      fullPath: '/panel/beneficios'
+      preLoaderRoute: typeof AuthenticatedPanelBeneficiosRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
     '/_authenticated/panel/caja': {
@@ -392,6 +491,27 @@ declare module '@tanstack/react-router' {
       path: '/establecimientos'
       fullPath: '/panel/establecimientos'
       preLoaderRoute: typeof AuthenticatedPanelEstablecimientosRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/estadisticas': {
+      id: '/_authenticated/panel/estadisticas'
+      path: '/estadisticas'
+      fullPath: '/panel/estadisticas'
+      preLoaderRoute: typeof AuthenticatedPanelEstadisticasRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/notificaciones': {
+      id: '/_authenticated/panel/notificaciones'
+      path: '/notificaciones'
+      fullPath: '/panel/notificaciones'
+      preLoaderRoute: typeof AuthenticatedPanelNotificacionesRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/onboarding': {
+      id: '/_authenticated/panel/onboarding'
+      path: '/onboarding'
+      fullPath: '/panel/onboarding'
+      preLoaderRoute: typeof AuthenticatedPanelOnboardingRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
     '/_authenticated/panel/programa': {
@@ -448,12 +568,17 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedPanelRouteChildren {
   AuthenticatedPanelActividadRoute: typeof AuthenticatedPanelActividadRoute
+  AuthenticatedPanelAutomatizacionesRoute: typeof AuthenticatedPanelAutomatizacionesRoute
+  AuthenticatedPanelBeneficiosRoute: typeof AuthenticatedPanelBeneficiosRoute
   AuthenticatedPanelCajaRoute: typeof AuthenticatedPanelCajaRoute
   AuthenticatedPanelCampanasRoute: typeof AuthenticatedPanelCampanasRoute
   AuthenticatedPanelCaptacionRoute: typeof AuthenticatedPanelCaptacionRoute
   AuthenticatedPanelConfiguracionRoute: typeof AuthenticatedPanelConfiguracionRoute
   AuthenticatedPanelEquipoRoute: typeof AuthenticatedPanelEquipoRoute
   AuthenticatedPanelEstablecimientosRoute: typeof AuthenticatedPanelEstablecimientosRoute
+  AuthenticatedPanelEstadisticasRoute: typeof AuthenticatedPanelEstadisticasRoute
+  AuthenticatedPanelNotificacionesRoute: typeof AuthenticatedPanelNotificacionesRoute
+  AuthenticatedPanelOnboardingRoute: typeof AuthenticatedPanelOnboardingRoute
   AuthenticatedPanelProgramaRoute: typeof AuthenticatedPanelProgramaRoute
   AuthenticatedPanelRecompensasRoute: typeof AuthenticatedPanelRecompensasRoute
   AuthenticatedPanelWalletRoute: typeof AuthenticatedPanelWalletRoute
@@ -464,6 +589,9 @@ interface AuthenticatedPanelRouteChildren {
 
 const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelActividadRoute: AuthenticatedPanelActividadRoute,
+  AuthenticatedPanelAutomatizacionesRoute:
+    AuthenticatedPanelAutomatizacionesRoute,
+  AuthenticatedPanelBeneficiosRoute: AuthenticatedPanelBeneficiosRoute,
   AuthenticatedPanelCajaRoute: AuthenticatedPanelCajaRoute,
   AuthenticatedPanelCampanasRoute: AuthenticatedPanelCampanasRoute,
   AuthenticatedPanelCaptacionRoute: AuthenticatedPanelCaptacionRoute,
@@ -471,6 +599,9 @@ const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelEquipoRoute: AuthenticatedPanelEquipoRoute,
   AuthenticatedPanelEstablecimientosRoute:
     AuthenticatedPanelEstablecimientosRoute,
+  AuthenticatedPanelEstadisticasRoute: AuthenticatedPanelEstadisticasRoute,
+  AuthenticatedPanelNotificacionesRoute: AuthenticatedPanelNotificacionesRoute,
+  AuthenticatedPanelOnboardingRoute: AuthenticatedPanelOnboardingRoute,
   AuthenticatedPanelProgramaRoute: AuthenticatedPanelProgramaRoute,
   AuthenticatedPanelRecompensasRoute: AuthenticatedPanelRecompensasRoute,
   AuthenticatedPanelWalletRoute: AuthenticatedPanelWalletRoute,
@@ -500,6 +631,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ClubBusinessSlugRoute: ClubBusinessSlugRoute,
   MiTarjetaPublicIdRoute: MiTarjetaPublicIdRoute,
   UnirmeOrganizationSlugLocationSlugRoute:
     UnirmeOrganizationSlugLocationSlugRoute,

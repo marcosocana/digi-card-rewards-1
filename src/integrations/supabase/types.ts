@@ -190,6 +190,76 @@ export type Database = {
           },
         ];
       };
+      automation_jobs: {
+        Row: {
+          attempts: number;
+          automation_id: string;
+          completed_at: string | null;
+          created_at: string;
+          event_id: string | null;
+          event_type: string;
+          id: string;
+          last_error: string | null;
+          membership_id: string;
+          organization_id: string;
+          payload: Json;
+          scheduled_for: string;
+          status: string;
+        };
+        Insert: {
+          attempts?: number;
+          automation_id: string;
+          completed_at?: string | null;
+          created_at?: string;
+          event_id?: string | null;
+          event_type: string;
+          id?: string;
+          last_error?: string | null;
+          membership_id: string;
+          organization_id: string;
+          payload?: Json;
+          scheduled_for?: string;
+          status?: string;
+        };
+        Update: {
+          attempts?: number;
+          automation_id?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          event_id?: string | null;
+          event_type?: string;
+          id?: string;
+          last_error?: string | null;
+          membership_id?: string;
+          organization_id?: string;
+          payload?: Json;
+          scheduled_for?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "automation_jobs_automation_id_fkey";
+            columns: ["automation_id"];
+            isOneToOne: false;
+            referencedRelation: "notification_automations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "automation_jobs_membership_id_fkey";
+            columns: ["membership_id"];
+            isOneToOne: false;
+            referencedRelation: "memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "automation_jobs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_locations: {
         Row: {
           campaign_id: string;
@@ -317,6 +387,87 @@ export type Database = {
           },
         ];
       };
+      coupons: {
+        Row: {
+          archived_at: string | null;
+          campaign_id: string | null;
+          code: string;
+          converts_to_membership: boolean;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          discount_type: string;
+          discount_value: number;
+          expires_at: string | null;
+          id: string;
+          maximum_uses: number | null;
+          organization_id: string;
+          single_use_per_customer: boolean;
+          starts_at: string;
+          status: string;
+          title: string;
+          updated_at: string;
+          used_count: number;
+        };
+        Insert: {
+          archived_at?: string | null;
+          campaign_id?: string | null;
+          code: string;
+          converts_to_membership?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          discount_type: string;
+          discount_value: number;
+          expires_at?: string | null;
+          id?: string;
+          maximum_uses?: number | null;
+          organization_id: string;
+          single_use_per_customer?: boolean;
+          starts_at?: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+          used_count?: number;
+        };
+        Update: {
+          archived_at?: string | null;
+          campaign_id?: string | null;
+          code?: string;
+          converts_to_membership?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          discount_type?: string;
+          discount_value?: number;
+          expires_at?: string | null;
+          id?: string;
+          maximum_uses?: number | null;
+          organization_id?: string;
+          single_use_per_customer?: boolean;
+          starts_at?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+          used_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coupons_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupons_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       customer_consents: {
         Row: {
           captured_at: string;
@@ -326,6 +477,7 @@ export type Database = {
           id: string;
           organization_id: string;
           policy_version: string;
+          revoked_at: string | null;
           source: string | null;
         };
         Insert: {
@@ -336,6 +488,7 @@ export type Database = {
           id?: string;
           organization_id: string;
           policy_version?: string;
+          revoked_at?: string | null;
           source?: string | null;
         };
         Update: {
@@ -346,6 +499,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           policy_version?: string;
+          revoked_at?: string | null;
           source?: string | null;
         };
         Relationships: [
@@ -358,6 +512,74 @@ export type Database = {
           },
           {
             foreignKeyName: "customer_consents_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      customer_coupons: {
+        Row: {
+          coupon_id: string;
+          created_at: string;
+          id: string;
+          idempotency_key: string | null;
+          location_id: string | null;
+          membership_id: string;
+          organization_id: string;
+          redeemed_at: string | null;
+          redeemed_by: string | null;
+          status: string;
+        };
+        Insert: {
+          coupon_id: string;
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          location_id?: string | null;
+          membership_id: string;
+          organization_id: string;
+          redeemed_at?: string | null;
+          redeemed_by?: string | null;
+          status?: string;
+        };
+        Update: {
+          coupon_id?: string;
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          location_id?: string | null;
+          membership_id?: string;
+          organization_id?: string;
+          redeemed_at?: string | null;
+          redeemed_by?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_coupons_coupon_id_fkey";
+            columns: ["coupon_id"];
+            isOneToOne: false;
+            referencedRelation: "coupons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_coupons_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_coupons_membership_id_fkey";
+            columns: ["membership_id"];
+            isOneToOne: false;
+            referencedRelation: "memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_coupons_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
@@ -456,6 +678,53 @@ export type Database = {
           },
         ];
       };
+      customer_segments: {
+        Row: {
+          archived_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          definition: Json;
+          description: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          definition?: Json;
+          description?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          definition?: Json;
+          description?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_segments_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       customers: {
         Row: {
           birth_date: string | null;
@@ -508,6 +777,308 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "customers_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      external_operations: {
+        Row: {
+          connection_id: string | null;
+          created_at: string;
+          error: string | null;
+          external_id: string;
+          id: string;
+          operation_type: string;
+          organization_id: string;
+          payload: Json;
+          processed_at: string | null;
+          result: Json | null;
+          status: string;
+        };
+        Insert: {
+          connection_id?: string | null;
+          created_at?: string;
+          error?: string | null;
+          external_id: string;
+          id?: string;
+          operation_type: string;
+          organization_id: string;
+          payload: Json;
+          processed_at?: string | null;
+          result?: Json | null;
+          status?: string;
+        };
+        Update: {
+          connection_id?: string | null;
+          created_at?: string;
+          error?: string | null;
+          external_id?: string;
+          id?: string;
+          operation_type?: string;
+          organization_id?: string;
+          payload?: Json;
+          processed_at?: string | null;
+          result?: Json | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "external_operations_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "integration_connections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "external_operations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gift_card_transactions: {
+        Row: {
+          amount_delta_cents: number;
+          created_at: string;
+          gift_card_id: string;
+          id: string;
+          idempotency_key: string | null;
+          location_id: string | null;
+          note: string | null;
+          organization_id: string;
+          performed_by_user_id: string | null;
+          previous_balance_cents: number;
+          resulting_balance_cents: number;
+          type: string;
+        };
+        Insert: {
+          amount_delta_cents: number;
+          created_at?: string;
+          gift_card_id: string;
+          id?: string;
+          idempotency_key?: string | null;
+          location_id?: string | null;
+          note?: string | null;
+          organization_id: string;
+          performed_by_user_id?: string | null;
+          previous_balance_cents: number;
+          resulting_balance_cents: number;
+          type: string;
+        };
+        Update: {
+          amount_delta_cents?: number;
+          created_at?: string;
+          gift_card_id?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          location_id?: string | null;
+          note?: string | null;
+          organization_id?: string;
+          performed_by_user_id?: string | null;
+          previous_balance_cents?: number;
+          resulting_balance_cents?: number;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gift_card_transactions_gift_card_id_fkey";
+            columns: ["gift_card_id"];
+            isOneToOne: false;
+            referencedRelation: "gift_cards";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gift_card_transactions_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gift_card_transactions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gift_cards: {
+        Row: {
+          archived_at: string | null;
+          code_hash: string;
+          code_hint: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string | null;
+          id: string;
+          initial_balance_cents: number;
+          message: string | null;
+          organization_id: string;
+          public_id: string;
+          purchaser_email: string | null;
+          purchaser_name: string | null;
+          recipient_email: string | null;
+          recipient_name: string | null;
+          remaining_balance_cents: number;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          code_hash: string;
+          code_hint: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          initial_balance_cents: number;
+          message?: string | null;
+          organization_id: string;
+          public_id?: string;
+          purchaser_email?: string | null;
+          purchaser_name?: string | null;
+          recipient_email?: string | null;
+          recipient_name?: string | null;
+          remaining_balance_cents: number;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          code_hash?: string;
+          code_hint?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          initial_balance_cents?: number;
+          message?: string | null;
+          organization_id?: string;
+          public_id?: string;
+          purchaser_email?: string | null;
+          purchaser_name?: string | null;
+          recipient_email?: string | null;
+          recipient_name?: string | null;
+          remaining_balance_cents?: number;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gift_cards_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      integration_api_keys: {
+        Row: {
+          connection_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string | null;
+          id: string;
+          key_hash: string;
+          key_prefix: string;
+          last_used_at: string | null;
+          name: string;
+          organization_id: string;
+          revoked_at: string | null;
+          scopes: string[];
+          status: string;
+        };
+        Insert: {
+          connection_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          key_hash: string;
+          key_prefix: string;
+          last_used_at?: string | null;
+          name: string;
+          organization_id: string;
+          revoked_at?: string | null;
+          scopes?: string[];
+          status?: string;
+        };
+        Update: {
+          connection_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          key_hash?: string;
+          key_prefix?: string;
+          last_used_at?: string | null;
+          name?: string;
+          organization_id?: string;
+          revoked_at?: string | null;
+          scopes?: string[];
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_api_keys_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "integration_connections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "integration_api_keys_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      integration_connections: {
+        Row: {
+          configuration: Json;
+          created_at: string;
+          id: string;
+          last_error: string | null;
+          last_sync_at: string | null;
+          organization_id: string;
+          provider: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          configuration?: Json;
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_sync_at?: string | null;
+          organization_id: string;
+          provider: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          configuration?: Json;
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_sync_at?: string | null;
+          organization_id?: string;
+          provider?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_connections_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
@@ -579,6 +1150,175 @@ export type Database = {
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      loyalty_account_transactions: {
+        Row: {
+          account_id: string;
+          amount_cents: number | null;
+          created_at: string;
+          id: string;
+          idempotency_key: string | null;
+          location_id: string | null;
+          metadata: Json;
+          organization_id: string;
+          performed_by_user_id: string | null;
+          related_point_transaction_id: string | null;
+          type: string;
+          value_after: number;
+          value_before: number;
+          value_delta: number;
+        };
+        Insert: {
+          account_id: string;
+          amount_cents?: number | null;
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          location_id?: string | null;
+          metadata?: Json;
+          organization_id: string;
+          performed_by_user_id?: string | null;
+          related_point_transaction_id?: string | null;
+          type: string;
+          value_after: number;
+          value_before: number;
+          value_delta: number;
+        };
+        Update: {
+          account_id?: string;
+          amount_cents?: number | null;
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          location_id?: string | null;
+          metadata?: Json;
+          organization_id?: string;
+          performed_by_user_id?: string | null;
+          related_point_transaction_id?: string | null;
+          type?: string;
+          value_after?: number;
+          value_before?: number;
+          value_delta?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_account_transactions_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "loyalty_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "loyalty_account_transactions_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "loyalty_account_transactions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "loyalty_account_transactions_related_point_transaction_id_fkey";
+            columns: ["related_point_transaction_id"];
+            isOneToOne: false;
+            referencedRelation: "point_transactions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      loyalty_accounts: {
+        Row: {
+          cashback_balance_cents: number;
+          created_at: string;
+          id: string;
+          lifetime_progress: number;
+          lifetime_spend_cents: number;
+          mechanic_type: string;
+          membership_ends_at: string | null;
+          membership_id: string;
+          membership_started_at: string | null;
+          organization_id: string;
+          program_id: string;
+          progress_balance: number;
+          stamp_balance: number;
+          status: string;
+          tier_id: string | null;
+          updated_at: string;
+          visit_count: number;
+        };
+        Insert: {
+          cashback_balance_cents?: number;
+          created_at?: string;
+          id?: string;
+          lifetime_progress?: number;
+          lifetime_spend_cents?: number;
+          mechanic_type?: string;
+          membership_ends_at?: string | null;
+          membership_id: string;
+          membership_started_at?: string | null;
+          organization_id: string;
+          program_id: string;
+          progress_balance?: number;
+          stamp_balance?: number;
+          status?: string;
+          tier_id?: string | null;
+          updated_at?: string;
+          visit_count?: number;
+        };
+        Update: {
+          cashback_balance_cents?: number;
+          created_at?: string;
+          id?: string;
+          lifetime_progress?: number;
+          lifetime_spend_cents?: number;
+          mechanic_type?: string;
+          membership_ends_at?: string | null;
+          membership_id?: string;
+          membership_started_at?: string | null;
+          organization_id?: string;
+          program_id?: string;
+          progress_balance?: number;
+          stamp_balance?: number;
+          status?: string;
+          tier_id?: string | null;
+          updated_at?: string;
+          visit_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_accounts_membership_id_fkey";
+            columns: ["membership_id"];
+            isOneToOne: true;
+            referencedRelation: "memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "loyalty_accounts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "loyalty_accounts_program_id_fkey";
+            columns: ["program_id"];
+            isOneToOne: false;
+            referencedRelation: "loyalty_programs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "loyalty_accounts_tier_id_fkey";
+            columns: ["tier_id"];
+            isOneToOne: false;
+            referencedRelation: "membership_tiers";
             referencedColumns: ["id"];
           },
         ];
@@ -672,12 +1412,67 @@ export type Database = {
           },
         ];
       };
+      membership_tiers: {
+        Row: {
+          benefits: Json;
+          created_at: string;
+          id: string;
+          minimum_progress: number;
+          name: string;
+          organization_id: string;
+          program_id: string;
+          rank: number;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          benefits?: Json;
+          created_at?: string;
+          id?: string;
+          minimum_progress?: number;
+          name: string;
+          organization_id: string;
+          program_id: string;
+          rank?: number;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          benefits?: Json;
+          created_at?: string;
+          id?: string;
+          minimum_progress?: number;
+          name?: string;
+          organization_id?: string;
+          program_id?: string;
+          rank?: number;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "membership_tiers_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "membership_tiers_program_id_fkey";
+            columns: ["program_id"];
+            isOneToOne: false;
+            referencedRelation: "loyalty_programs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       membership_tokens: {
         Row: {
           created_at: string;
           expires_at: string | null;
           id: string;
           membership_id: string;
+          revoked_at: string | null;
           rotated_at: string | null;
           short_code: string;
           status: string;
@@ -688,6 +1483,7 @@ export type Database = {
           expires_at?: string | null;
           id?: string;
           membership_id: string;
+          revoked_at?: string | null;
           rotated_at?: string | null;
           short_code: string;
           status?: string;
@@ -698,6 +1494,7 @@ export type Database = {
           expires_at?: string | null;
           id?: string;
           membership_id?: string;
+          revoked_at?: string | null;
           rotated_at?: string | null;
           short_code?: string;
           status?: string;
@@ -783,6 +1580,230 @@ export type Database = {
             columns: ["program_id"];
             isOneToOne: false;
             referencedRelation: "loyalty_programs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notification_automations: {
+        Row: {
+          conditions: Json;
+          created_at: string;
+          created_by: string | null;
+          delay_minutes: number;
+          destination_url: string | null;
+          id: string;
+          is_active: boolean;
+          last_run_at: string | null;
+          message: string;
+          name: string;
+          next_run_at: string | null;
+          organization_id: string;
+          segment_id: string | null;
+          title: string;
+          trigger_type: string;
+          updated_at: string;
+        };
+        Insert: {
+          conditions?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          delay_minutes?: number;
+          destination_url?: string | null;
+          id?: string;
+          is_active?: boolean;
+          last_run_at?: string | null;
+          message: string;
+          name: string;
+          next_run_at?: string | null;
+          organization_id: string;
+          segment_id?: string | null;
+          title: string;
+          trigger_type: string;
+          updated_at?: string;
+        };
+        Update: {
+          conditions?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          delay_minutes?: number;
+          destination_url?: string | null;
+          id?: string;
+          is_active?: boolean;
+          last_run_at?: string | null;
+          message?: string;
+          name?: string;
+          next_run_at?: string | null;
+          organization_id?: string;
+          segment_id?: string | null;
+          title?: string;
+          trigger_type?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_automations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_automations_segment_id_fkey";
+            columns: ["segment_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_segments";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notification_deliveries: {
+        Row: {
+          attempted_at: string | null;
+          created_at: string;
+          delivered_at: string | null;
+          failure_reason: string | null;
+          id: string;
+          membership_id: string;
+          notification_id: string;
+          organization_id: string;
+          provider: Database["public"]["Enums"]["wallet_provider"] | null;
+          provider_message_id: string | null;
+          status: string;
+          wallet_pass_id: string | null;
+        };
+        Insert: {
+          attempted_at?: string | null;
+          created_at?: string;
+          delivered_at?: string | null;
+          failure_reason?: string | null;
+          id?: string;
+          membership_id: string;
+          notification_id: string;
+          organization_id: string;
+          provider?: Database["public"]["Enums"]["wallet_provider"] | null;
+          provider_message_id?: string | null;
+          status?: string;
+          wallet_pass_id?: string | null;
+        };
+        Update: {
+          attempted_at?: string | null;
+          created_at?: string;
+          delivered_at?: string | null;
+          failure_reason?: string | null;
+          id?: string;
+          membership_id?: string;
+          notification_id?: string;
+          organization_id?: string;
+          provider?: Database["public"]["Enums"]["wallet_provider"] | null;
+          provider_message_id?: string | null;
+          status?: string;
+          wallet_pass_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_deliveries_membership_id_fkey";
+            columns: ["membership_id"];
+            isOneToOne: false;
+            referencedRelation: "memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_deliveries_notification_id_fkey";
+            columns: ["notification_id"];
+            isOneToOne: false;
+            referencedRelation: "notifications";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_deliveries_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_deliveries_wallet_pass_id_fkey";
+            columns: ["wallet_pass_id"];
+            isOneToOne: false;
+            referencedRelation: "wallet_passes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          delivered_count: number;
+          destination_url: string | null;
+          failed_count: number;
+          id: string;
+          idempotency_key: string | null;
+          image_url: string | null;
+          kind: string;
+          message: string;
+          organization_id: string;
+          recipient_count: number;
+          scheduled_for: string | null;
+          segment_id: string | null;
+          sent_at: string | null;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          delivered_count?: number;
+          destination_url?: string | null;
+          failed_count?: number;
+          id?: string;
+          idempotency_key?: string | null;
+          image_url?: string | null;
+          kind?: string;
+          message: string;
+          organization_id: string;
+          recipient_count?: number;
+          scheduled_for?: string | null;
+          segment_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          delivered_count?: number;
+          destination_url?: string | null;
+          failed_count?: number;
+          id?: string;
+          idempotency_key?: string | null;
+          image_url?: string | null;
+          kind?: string;
+          message?: string;
+          organization_id?: string;
+          recipient_count?: number;
+          scheduled_for?: string | null;
+          segment_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_segment_id_fkey";
+            columns: ["segment_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_segments";
             referencedColumns: ["id"];
           },
         ];
@@ -1419,6 +2440,53 @@ export type Database = {
           },
         ];
       };
+      wallet_integration_settings: {
+        Row: {
+          created_at: string;
+          id: string;
+          last_error: string | null;
+          last_verified_at: string | null;
+          mode: string;
+          organization_id: string;
+          provider: Database["public"]["Enums"]["wallet_provider"];
+          public_configuration: Json;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_verified_at?: string | null;
+          mode?: string;
+          organization_id: string;
+          provider: Database["public"]["Enums"]["wallet_provider"];
+          public_configuration?: Json;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_verified_at?: string | null;
+          mode?: string;
+          organization_id?: string;
+          provider?: Database["public"]["Enums"]["wallet_provider"];
+          public_configuration?: Json;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wallet_integration_settings_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       wallet_jobs: {
         Row: {
           attempts: number;
@@ -1539,6 +2607,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      anonymize_customer: {
+        Args: { _membership_id: string; _reason: string };
+        Returns: undefined;
+      };
       can_access_location: {
         Args: { _loc: string; _uid?: string };
         Returns: boolean;
@@ -1556,11 +2628,71 @@ export type Database = {
         };
         Returns: number;
       };
+      consume_cashback: {
+        Args: {
+          _amount_cents: number;
+          _idempotency_key: string;
+          _location_id: string;
+          _membership_id: string;
+        };
+        Returns: Json;
+      };
+      consume_gift_card: {
+        Args: {
+          _amount_cents: number;
+          _code: string;
+          _idempotency_key: string;
+          _location_id: string;
+          _note?: string;
+        };
+        Returns: Json;
+      };
+      enqueue_scheduled_automations: {
+        Args: { _organization_id: string };
+        Returns: number;
+      };
+      export_customer_data: { Args: { _membership_id: string }; Returns: Json };
       get_membership_portal: { Args: { _public_id: string }; Returns: Json };
+      get_wallet_install_state: {
+        Args: {
+          _membership_public_id: string;
+          _provider: Database["public"]["Enums"]["wallet_provider"];
+        };
+        Returns: Json;
+      };
       hash_token: { Args: { _t: string }; Returns: string };
+      ingest_pos_operation: {
+        Args: {
+          _api_key: string;
+          _external_id: string;
+          _operation_type: string;
+          _payload: Json;
+        };
+        Returns: Json;
+      };
       is_org_admin: { Args: { _org: string; _uid?: string }; Returns: boolean };
       is_org_member: { Args: { _org: string; _uid?: string }; Returns: boolean };
       is_superadmin: { Args: { _uid?: string }; Returns: boolean };
+      issue_gift_card: {
+        Args: {
+          _expires_at?: string;
+          _initial_balance_cents: number;
+          _message?: string;
+          _organization_id: string;
+          _recipient_email?: string;
+          _recipient_name?: string;
+        };
+        Returns: Json;
+      };
+      issue_integration_api_key: {
+        Args: {
+          _connection_id?: string;
+          _expires_at?: string;
+          _name: string;
+          _organization_id: string;
+        };
+        Returns: Json;
+      };
       membership_service_payload: {
         Args: { _location_id: string; _membership_id: string };
         Returns: Json;
@@ -1569,6 +2701,23 @@ export type Database = {
       org_role_of: {
         Args: { _org: string; _uid?: string };
         Returns: Database["public"]["Enums"]["org_role"];
+      };
+      preview_segment_count: { Args: { _segment_id: string }; Returns: number };
+      process_automation_jobs: {
+        Args: { _limit?: number; _organization_id: string };
+        Returns: Json;
+      };
+      queue_manual_notification: {
+        Args: {
+          _destination_url?: string;
+          _idempotency_key?: string;
+          _message: string;
+          _organization_id: string;
+          _scheduled_for?: string;
+          _segment_id: string;
+          _title: string;
+        };
+        Returns: Json;
       };
       queue_wallet_update: {
         Args: { _membership: string; _reason: string };
@@ -1582,6 +2731,15 @@ export type Database = {
           _membership_id: string;
           _note?: string;
           _ticket_reference?: string;
+        };
+        Returns: Json;
+      };
+      redeem_coupon: {
+        Args: {
+          _coupon_code: string;
+          _idempotency_key: string;
+          _location_id: string;
+          _membership_id: string;
         };
         Returns: Json;
       };
@@ -1632,9 +2790,17 @@ export type Database = {
         Args: { _reason: string; _transaction_id: string };
         Returns: Json;
       };
+      revoke_integration_api_key: {
+        Args: { _key_id: string };
+        Returns: undefined;
+      };
       search_memberships: {
         Args: { _location_id: string; _query: string };
         Returns: Json;
+      };
+      segment_matches: {
+        Args: { _definition: Json; _membership_id: string };
+        Returns: boolean;
       };
     };
     Enums: {

@@ -13,7 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useSession } from "@/lib/session";
 import { num } from "@/lib/format";
 
@@ -72,7 +79,10 @@ function RecompensasPage() {
   };
 
   const toggle = async (id: string, active: boolean) => {
-    const { error } = await supabase.from("rewards").update({ status: active ? "active" : "paused" }).eq("id", id);
+    const { error } = await supabase
+      .from("rewards")
+      .update({ status: active ? "active" : "paused" })
+      .eq("id", id);
     if (error) {
       toast.error("No se pudo actualizar");
       return;
@@ -99,11 +109,20 @@ function RecompensasPage() {
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="rn">Nombre</Label>
-                  <Input id="rn" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                  <Input
+                    id="rn"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="rd">Descripción</Label>
-                  <Textarea id="rd" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  <Textarea
+                    id="rd"
+                    rows={3}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="rp">Coste en puntos</Label>
@@ -132,11 +151,17 @@ function RecompensasPage() {
             <div key={r.id} className="surface flex flex-col gap-2 p-5">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-display text-lg font-semibold">{r.name}</h2>
-                <Badge variant="secondary" className="shrink-0 font-mono">{num(r.points_cost)} pts</Badge>
+                <Badge variant="secondary" className="shrink-0 font-mono">
+                  {num(r.points_cost)} pts
+                </Badge>
               </div>
-              {r.description ? <p className="text-sm text-muted-foreground">{r.description}</p> : null}
+              {r.description ? (
+                <p className="text-sm text-muted-foreground">{r.description}</p>
+              ) : null}
               <div className="mt-auto flex items-center justify-between border-t pt-3">
-                <span className="text-xs text-muted-foreground">{r.status === "active" ? "Visible" : "Pausada"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {r.status === "active" ? "Visible" : "Pausada"}
+                </span>
                 <Switch
                   checked={r.status === "active"}
                   onCheckedChange={(v) => void toggle(r.id, v)}
@@ -147,7 +172,11 @@ function RecompensasPage() {
           ))}
         </div>
       ) : (
-        <EmptyState icon={<Gift className="size-8" />} title="Aún no hay recompensas" description="Crea la primera para que tus clientes tengan un objetivo." />
+        <EmptyState
+          icon={<Gift className="size-8" />}
+          title="Aún no hay recompensas"
+          description="Crea la primera para que tus clientes tengan un objetivo."
+        />
       )}
     </>
   );

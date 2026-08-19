@@ -8,9 +8,15 @@ export const Route = createFileRoute("/unirme/$organizationSlug/")({
   head: () => ({
     meta: [
       { title: "Únete al programa de fidelización" },
-      { name: "description", content: "Regístrate y consigue puntos por cada compra, con tu tarjeta en Wallet." },
+      {
+        name: "description",
+        content: "Regístrate y consigue puntos por cada compra, con tu tarjeta en Wallet.",
+      },
       { property: "og:title", content: "Únete al programa de fidelización" },
-      { property: "og:description", content: "Puntos por cada compra y recompensas, sin instalar ninguna app." },
+      {
+        property: "og:description",
+        content: "Puntos por cada compra y recompensas, sin instalar ninguna app.",
+      },
     ],
   }),
   component: JoinPage,
@@ -58,18 +64,26 @@ function JoinPage() {
         ) : !data ? (
           <div className="surface p-8 text-center">
             <h1 className="font-display text-xl font-semibold">Programa no disponible</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Revisa el enlace o pregunta en el establecimiento.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Revisa el enlace o pregunta en el establecimiento.
+            </p>
           </div>
         ) : (
           <>
             <header className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">{data.organization.display_name}</p>
-              <h1 className="mt-1 font-display text-3xl font-semibold">{data.program.public_name}</h1>
+              <p className="text-sm font-medium text-muted-foreground">
+                {data.organization.display_name}
+              </p>
+              <h1 className="mt-1 font-display text-3xl font-semibold">
+                {data.program.public_name}
+              </h1>
               {data.program.description ? (
                 <p className="mt-2 text-sm text-muted-foreground">{data.program.description}</p>
               ) : null}
               {data.location ? (
-                <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">{data.location.name}</p>
+                <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">
+                  {data.location.name}
+                </p>
               ) : null}
             </header>
             <JoinForm ctx={data} />

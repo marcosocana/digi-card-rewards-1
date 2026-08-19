@@ -24,6 +24,16 @@ export interface ScanResult {
     rounding_mode: string;
     allow_earning: boolean;
     allow_redeeming: boolean;
+    mechanic_type?: string;
+    mechanic_config?: Record<string, number>;
+  };
+  account?: {
+    progress_balance: number;
+    lifetime_spend_cents: number;
+    visit_count: number;
+    stamp_balance: number;
+    cashback_balance_cents: number;
+    tier: string | null;
   };
   rewards: { id: string; name: string; points_cost: number; available: boolean }[];
   last_transaction: { type: string; points_delta: number; created_at: string } | null;
@@ -100,8 +110,41 @@ export const reverseTransaction = (transactionId: string, reason: string) =>
 export const requestWalletUpdate = (membershipId: string) =>
   rpc<{ ok: boolean }>("request_wallet_update", { _membership_id: membershipId });
 
+export const redeemCoupon = (membershipId: string, couponCode: string, locationId: string) =>
+  rpc<{ title: string; discount_type: string; discount_value: number }>("redeem_coupon", {
+    _membership_id: membershipId,
+    _coupon_code: couponCode,
+    _location_id: locationId,
+    _idempotency_key: crypto.randomUUID(),
+  });
+
+export const consumeGiftCard = (code: string, locationId: string, amountCents: number) =>
+  rpc<{ amount_cents: number; resulting_balance_cents: number }>("consume_gift_card", {
+    _code: code,
+    _location_id: locationId,
+    _amount_cents: amountCents,
+    _idempotency_key: crypto.randomUUID(),
+  });
+
+export const consumeCashback = (membershipId: string, locationId: string, amountCents: number) =>
+  rpc<{ amount_cents: number; resulting_balance_cents: number }>("consume_cashback", {
+    _membership_id: membershipId,
+    _location_id: locationId,
+    _amount_cents: amountCents,
+    _idempotency_key: crypto.randomUUID(),
+  });
+
 export const getMembershipPortal = (publicId: string) =>
   rpc<PortalData | null>("get_membership_portal", { _public_id: publicId });
+
+export const getWalletInstallState = (publicId: string, provider: "apple" | "google") =>
+  rpc<{
+    mode: "demo" | "live";
+    status: string;
+    install_url: string | null;
+    web_fallback_url: string;
+    message: string;
+  }>("get_wallet_install_state", { _membership_public_id: publicId, _provider: provider });
 
 export interface PortalData {
   membership: { public_id: string; balance: number; status: string; joined_at: string };
@@ -113,8 +156,18 @@ export interface PortalData {
     description: string | null;
     earning_mode: string;
     earning_value: number;
+    mechanic_type?: string;
+    mechanic_config?: Record<string, number>;
     terms: string | null;
   };
+  account?: {
+    progress_balance: number;
+    lifetime_spend_cents: number;
+    visit_count: number;
+    stamp_balance: number;
+    cashback_balance_cents: number;
+    tier: string | null;
+  } | null;
   short_code: string | null;
   rewards: {
     id: string;
@@ -122,6 +175,13 @@ export interface PortalData {
     description: string | null;
     points_cost: number;
     available: boolean;
+  }[];
+  earned_rewards?: {
+    id: string;
+    name: string;
+    status: string;
+    awarded_at: string;
+    expires_at: string | null;
   }[];
   locations: { name: string; address_line: string | null; city: string | null }[];
   history: {

@@ -28,7 +28,12 @@ function CaptacionPage() {
     queryFn: async () => {
       const [org, locs] = await Promise.all([
         supabase.from("organizations").select("slug").eq("id", orgId!).maybeSingle(),
-        supabase.from("locations").select("id, name, slug").eq("organization_id", orgId!).eq("status", "active").order("name"),
+        supabase
+          .from("locations")
+          .select("id, name, slug")
+          .eq("organization_id", orgId!)
+          .eq("status", "active")
+          .order("name"),
       ]);
       return { orgSlug: org.data?.slug ?? "", locations: locs.data ?? [] };
     },
@@ -38,7 +43,10 @@ function CaptacionPage() {
     if (!data || !origin) return;
     void (async () => {
       const entries = await Promise.all(
-        data.locations.map(async (l) => [l.id, await qrPngDataUrl(`${origin}/unirme/${data.orgSlug}/${l.slug}`)] as const),
+        data.locations.map(
+          async (l) =>
+            [l.id, await qrPngDataUrl(`${origin}/unirme/${data.orgSlug}/${l.slug}`)] as const,
+        ),
       );
       setCodes(Object.fromEntries(entries));
     })();
@@ -46,7 +54,10 @@ function CaptacionPage() {
 
   return (
     <>
-      <PageHeader title="Captación" description="QR y enlaces públicos de alta por establecimiento." />
+      <PageHeader
+        title="Captación"
+        description="QR y enlaces públicos de alta por establecimiento."
+      />
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : (
@@ -57,7 +68,11 @@ function CaptacionPage() {
               <div key={l.id} className="surface flex flex-col items-center gap-3 p-5 text-center">
                 <h2 className="font-display text-lg font-semibold">{l.name}</h2>
                 {codes[l.id] ? (
-                  <img src={codes[l.id]} alt={`QR de alta para ${l.name}`} className="size-44 rounded-lg border" />
+                  <img
+                    src={codes[l.id]}
+                    alt={`QR de alta para ${l.name}`}
+                    className="size-44 rounded-lg border"
+                  />
                 ) : (
                   <Skeleton className="size-44 rounded-lg" />
                 )}

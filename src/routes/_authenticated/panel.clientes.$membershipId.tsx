@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, RotateCcw, Wallet } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, RotateCcw, UserX, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ function ClienteDetalle() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["membership", membershipId],
     queryFn: async () => {
-      const [m, t, p, earned] = await Promise.all([
+      const [m, t, p, earned, deliveries] = await Promise.all([
         supabase
           .from("memberships")
           .select(
@@ -63,6 +63,12 @@ function ClienteDetalle() {
           .select("id, status, awarded_at, redeemed_at, rewards(name)")
           .eq("membership_id", membershipId)
           .order("awarded_at", { ascending: false }),
+        supabase
+          .from("notification_deliveries")
+          .select("id,status,provider,created_at,notifications(title,message)")
+          .eq("membership_id", membershipId)
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
       if (m.error) throw m.error;
       return {
@@ -70,6 +76,7 @@ function ClienteDetalle() {
         transactions: t.data ?? [],
         passes: p.data ?? [],
         earned: earned.data ?? [],
+        deliveries: deliveries.data ?? [],
       };
     },
   });
@@ -119,6 +126,36 @@ function ClienteDetalle() {
     }
   };
 
+  const exportData = async () => {
+    const { data: result, error } = await supabase.rpc("export_customer_data", {
+      _membership_id: membershipId,
+    });
+    if (error) return toast.error("No se pudo exportar", { description: error.message });
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = `datos-cliente-${data?.membership?.public_id ?? membershipId}.json`;
+    anchor.click();
+    URL.revokeObjectURL(href);
+    toast.success("Exportación RGPD descargada");
+  };
+
+  const anonymize = async () => {
+    const reason = window.prompt(
+      "Indica el motivo de la anonimización. Esta acción revoca la tarjeta y no se puede deshacer.",
+    );
+    if (!reason || reason.trim().length < 5) return;
+    if (!window.confirm("¿Confirmas la anonimización definitiva de los datos personales?")) return;
+    const { error } = await supabase.rpc("anonymize_customer", {
+      _membership_id: membershipId,
+      _reason: reason.trim(),
+    });
+    if (error) return toast.error("No se pudo anonimizar", { description: error.message });
+    toast.success("Datos personales anonimizados y tarjeta revocada");
+    void refetch();
+  };
+
   if (isLoading) return <Skeleton className="h-72 w-full rounded-xl" />;
   const m = data?.membership;
   if (!m) return <p className="text-sm text-muted-foreground">No se encontró la membresía.</p>;
@@ -142,6 +179,11 @@ function ClienteDetalle() {
         description={[c?.email, c?.phone].filter(Boolean).join(" · ") || undefined}
         actions={
           <>
+            {canAdjust ? (
+              <Button variant="outline" onClick={() => void exportData()}>
+                <Download aria-hidden className="size-4" /> Exportar datos
+              </Button>
+            ) : null}
             <Button variant="outline" onClick={() => void syncWallet()}>
               <Wallet aria-hidden className="size-4" /> Actualizar tarjeta
             </Button>
@@ -186,6 +228,15 @@ function ClienteDetalle() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+            ) : null}
+            {canAdjust ? (
+              <Button
+                variant="outline"
+                className="text-destructive"
+                onClick={() => void anonymize()}
+              >
+                <UserX aria-hidden className="size-4" /> Anonimizar
+              </Button>
             ) : null}
           </>
         }
@@ -253,6 +304,31 @@ function ClienteDetalle() {
           <p className="px-5 py-8 text-sm text-muted-foreground">
             Todavía no ha obtenido recompensas.
           </p>
+        )}
+      </div>
+
+      <div className="surface overflow-hidden">
+        <h2 className="border-b px-5 py-4 font-display text-lg font-semibold">
+          Historial de notificaciones
+        </h2>
+        {data.deliveries.length ? (
+          <ul className="divide-y">
+            {data.deliveries.map((delivery) => (
+              <li key={delivery.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {delivery.notifications?.title ?? "Notificación"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {dateTime(delivery.created_at)} · {delivery.provider ?? "sin pase"}
+                  </p>
+                </div>
+                <Badge variant="secondary">{delivery.status}</Badge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-5 py-8 text-sm text-muted-foreground">Sin notificaciones registradas.</p>
         )}
       </div>
 

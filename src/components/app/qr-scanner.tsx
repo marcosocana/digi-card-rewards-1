@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 
 type State = "idle" | "starting" | "running" | "denied" | "unsupported";
 
-export function QrScanner({ onResult, active }: { onResult: (value: string) => void; active: boolean }) {
+export function QrScanner({
+  onResult,
+  active,
+}: {
+  onResult: (value: string) => void;
+  active: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -101,7 +107,9 @@ export function QrScanner({ onResult, active }: { onResult: (value: string) => v
                 <Button variant="secondary" size="sm" onClick={() => setAttempt((a) => a + 1)}>
                   Reintentar
                 </Button>
-                <p className="text-xs opacity-80">También puedes introducir el código corto manualmente.</p>
+                <p className="text-xs opacity-80">
+                  También puedes introducir el código corto manualmente.
+                </p>
               </>
             ) : (
               <>

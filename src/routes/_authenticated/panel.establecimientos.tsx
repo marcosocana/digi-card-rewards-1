@@ -11,7 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/panel/establecimientos")({
@@ -19,7 +26,12 @@ export const Route = createFileRoute("/_authenticated/panel/establecimientos")({
 });
 
 const slugify = (v: string) =>
-  v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  v
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 function EstablecimientosPage() {
   const { data: session } = useSession();
@@ -70,7 +82,9 @@ function EstablecimientosPage() {
       .limit(1)
       .maybeSingle();
     if (program && created) {
-      await supabase.from("program_locations").insert({ program_id: program.id, location_id: created.id });
+      await supabase
+        .from("program_locations")
+        .insert({ program_id: program.id, location_id: created.id });
     }
     toast.success("Establecimiento creado");
     setOpen(false);
@@ -105,7 +119,11 @@ function EstablecimientosPage() {
                 ).map(([key, label]) => (
                   <div key={key} className="space-y-1.5">
                     <Label htmlFor={key}>{label}</Label>
-                    <Input id={key} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+                    <Input
+                      id={key}
+                      value={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                    />
                   </div>
                 ))}
               </div>
@@ -126,7 +144,8 @@ function EstablecimientosPage() {
               <div className="min-w-0">
                 <p className="text-sm font-medium">{l.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {[l.address_line, l.postal_code, l.city].filter(Boolean).join(", ") || "Sin dirección"}
+                  {[l.address_line, l.postal_code, l.city].filter(Boolean).join(", ") ||
+                    "Sin dirección"}
                 </p>
               </div>
               <Badge variant={l.status === "active" ? "secondary" : "outline"}>{l.status}</Badge>
@@ -134,7 +153,11 @@ function EstablecimientosPage() {
           ))}
         </div>
       ) : (
-        <EmptyState icon={<Building2 className="size-8" />} title="Sin establecimientos" description="Crea el primero para empezar a operar." />
+        <EmptyState
+          icon={<Building2 className="size-8" />}
+          title="Sin establecimientos"
+          description="Crea el primero para empezar a operar."
+        />
       )}
     </>
   );
