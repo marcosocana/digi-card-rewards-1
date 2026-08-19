@@ -13,13 +13,16 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
+import { Route as AuthenticatedPlataformaRouteImport } from './routes/_authenticated/plataforma'
 import { Route as AuthenticatedPanelIndexRouteImport } from './routes/_authenticated/panel.index'
+import { Route as AuthenticatedPanelActividadRouteImport } from './routes/_authenticated/panel.actividad'
 import { Route as AuthenticatedPanelCajaRouteImport } from './routes/_authenticated/panel.caja'
 import { Route as AuthenticatedPanelCaptacionRouteImport } from './routes/_authenticated/panel.captacion'
 import { Route as AuthenticatedPanelEquipoRouteImport } from './routes/_authenticated/panel.equipo'
 import { Route as AuthenticatedPanelEstablecimientosRouteImport } from './routes/_authenticated/panel.establecimientos'
 import { Route as AuthenticatedPanelProgramaRouteImport } from './routes/_authenticated/panel.programa'
 import { Route as AuthenticatedPanelRecompensasRouteImport } from './routes/_authenticated/panel.recompensas'
+import { Route as AuthenticatedPanelWalletRouteImport } from './routes/_authenticated/panel.wallet'
 import { Route as AuthenticatedPanelClientesIndexRouteImport } from './routes/_authenticated/panel.clientes.index'
 import { Route as AuthenticatedPanelClientesMembershipIdRouteImport } from './routes/_authenticated/panel.clientes.$membershipId'
 
@@ -42,11 +45,22 @@ const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
   path: '/panel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPlataformaRoute = AuthenticatedPlataformaRouteImport.update({
+  id: '/plataforma',
+  path: '/plataforma',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPanelIndexRoute = AuthenticatedPanelIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedPanelRoute,
 } as any)
+const AuthenticatedPanelActividadRoute =
+  AuthenticatedPanelActividadRouteImport.update({
+    id: '/actividad',
+    path: '/actividad',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 const AuthenticatedPanelCajaRoute = AuthenticatedPanelCajaRouteImport.update({
   id: '/caja',
   path: '/caja',
@@ -82,6 +96,12 @@ const AuthenticatedPanelRecompensasRoute =
     path: '/recompensas',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
+const AuthenticatedPanelWalletRoute =
+  AuthenticatedPanelWalletRouteImport.update({
+    id: '/wallet',
+    path: '/wallet',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 const AuthenticatedPanelClientesIndexRoute =
   AuthenticatedPanelClientesIndexRouteImport.update({
     id: '/clientes/',
@@ -99,12 +119,15 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/panel': typeof AuthenticatedPanelRouteWithChildren
+  '/plataforma': typeof AuthenticatedPlataformaRoute
+  '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/panel/': typeof AuthenticatedPanelIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
@@ -112,12 +135,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/plataforma': typeof AuthenticatedPlataformaRoute
+  '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/panel': typeof AuthenticatedPanelIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/panel/clientes': typeof AuthenticatedPanelClientesIndexRoute
@@ -128,12 +154,15 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRouteWithChildren
+  '/_authenticated/plataforma': typeof AuthenticatedPlataformaRoute
+  '/_authenticated/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/_authenticated/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/_authenticated/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/_authenticated/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/_authenticated/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/_authenticated/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/_authenticated/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/_authenticated/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/_authenticated/panel/': typeof AuthenticatedPanelIndexRoute
   '/_authenticated/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
   '/_authenticated/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
@@ -144,12 +173,15 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/panel'
+    | '/plataforma'
+    | '/panel/actividad'
     | '/panel/caja'
     | '/panel/captacion'
     | '/panel/equipo'
     | '/panel/establecimientos'
     | '/panel/programa'
     | '/panel/recompensas'
+    | '/panel/wallet'
     | '/panel/'
     | '/panel/clientes/$membershipId'
     | '/panel/clientes/'
@@ -157,12 +189,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/plataforma'
+    | '/panel/actividad'
     | '/panel/caja'
     | '/panel/captacion'
     | '/panel/equipo'
     | '/panel/establecimientos'
     | '/panel/programa'
     | '/panel/recompensas'
+    | '/panel/wallet'
     | '/panel'
     | '/panel/clientes/$membershipId'
     | '/panel/clientes'
@@ -172,12 +207,15 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/panel'
+    | '/_authenticated/plataforma'
+    | '/_authenticated/panel/actividad'
     | '/_authenticated/panel/caja'
     | '/_authenticated/panel/captacion'
     | '/_authenticated/panel/equipo'
     | '/_authenticated/panel/establecimientos'
     | '/_authenticated/panel/programa'
     | '/_authenticated/panel/recompensas'
+    | '/_authenticated/panel/wallet'
     | '/_authenticated/panel/'
     | '/_authenticated/panel/clientes/$membershipId'
     | '/_authenticated/panel/clientes/'
@@ -219,11 +257,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/plataforma': {
+      id: '/_authenticated/plataforma'
+      path: '/plataforma'
+      fullPath: '/plataforma'
+      preLoaderRoute: typeof AuthenticatedPlataformaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/panel/': {
       id: '/_authenticated/panel/'
       path: '/'
       fullPath: '/panel/'
       preLoaderRoute: typeof AuthenticatedPanelIndexRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/actividad': {
+      id: '/_authenticated/panel/actividad'
+      path: '/actividad'
+      fullPath: '/panel/actividad'
+      preLoaderRoute: typeof AuthenticatedPanelActividadRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
     '/_authenticated/panel/caja': {
@@ -268,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelRecompensasRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/_authenticated/panel/wallet': {
+      id: '/_authenticated/panel/wallet'
+      path: '/wallet'
+      fullPath: '/panel/wallet'
+      preLoaderRoute: typeof AuthenticatedPanelWalletRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
     '/_authenticated/panel/clientes/': {
       id: '/_authenticated/panel/clientes/'
       path: '/clientes'
@@ -286,18 +345,21 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedPanelRouteChildren {
+  AuthenticatedPanelActividadRoute: typeof AuthenticatedPanelActividadRoute
   AuthenticatedPanelCajaRoute: typeof AuthenticatedPanelCajaRoute
   AuthenticatedPanelCaptacionRoute: typeof AuthenticatedPanelCaptacionRoute
   AuthenticatedPanelEquipoRoute: typeof AuthenticatedPanelEquipoRoute
   AuthenticatedPanelEstablecimientosRoute: typeof AuthenticatedPanelEstablecimientosRoute
   AuthenticatedPanelProgramaRoute: typeof AuthenticatedPanelProgramaRoute
   AuthenticatedPanelRecompensasRoute: typeof AuthenticatedPanelRecompensasRoute
+  AuthenticatedPanelWalletRoute: typeof AuthenticatedPanelWalletRoute
   AuthenticatedPanelIndexRoute: typeof AuthenticatedPanelIndexRoute
   AuthenticatedPanelClientesMembershipIdRoute: typeof AuthenticatedPanelClientesMembershipIdRoute
   AuthenticatedPanelClientesIndexRoute: typeof AuthenticatedPanelClientesIndexRoute
 }
 
 const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
+  AuthenticatedPanelActividadRoute: AuthenticatedPanelActividadRoute,
   AuthenticatedPanelCajaRoute: AuthenticatedPanelCajaRoute,
   AuthenticatedPanelCaptacionRoute: AuthenticatedPanelCaptacionRoute,
   AuthenticatedPanelEquipoRoute: AuthenticatedPanelEquipoRoute,
@@ -305,6 +367,7 @@ const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
     AuthenticatedPanelEstablecimientosRoute,
   AuthenticatedPanelProgramaRoute: AuthenticatedPanelProgramaRoute,
   AuthenticatedPanelRecompensasRoute: AuthenticatedPanelRecompensasRoute,
+  AuthenticatedPanelWalletRoute: AuthenticatedPanelWalletRoute,
   AuthenticatedPanelIndexRoute: AuthenticatedPanelIndexRoute,
   AuthenticatedPanelClientesMembershipIdRoute:
     AuthenticatedPanelClientesMembershipIdRoute,
@@ -316,10 +379,12 @@ const AuthenticatedPanelRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRouteWithChildren
+  AuthenticatedPlataformaRoute: typeof AuthenticatedPlataformaRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPanelRoute: AuthenticatedPanelRouteWithChildren,
+  AuthenticatedPlataformaRoute: AuthenticatedPlataformaRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
