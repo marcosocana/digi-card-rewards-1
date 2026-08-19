@@ -1206,10 +1206,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_points: {
+        Args: {
+          _delta: number
+          _membership_id: string
+          _note?: string
+          _reason: string
+        }
+        Returns: Json
+      }
       can_access_location: {
         Args: { _loc: string; _uid?: string }
         Returns: boolean
       }
+      compute_points: {
+        Args: {
+          _amount_cents: number
+          _mode: Database["public"]["Enums"]["earning_mode"]
+          _rounding: Database["public"]["Enums"]["rounding_mode"]
+          _value: number
+        }
+        Returns: number
+      }
+      get_membership_portal: { Args: { _public_id: string }; Returns: Json }
+      hash_token: { Args: { _t: string }; Returns: string }
       is_org_admin: { Args: { _org: string; _uid?: string }; Returns: boolean }
       is_org_member: { Args: { _org: string; _uid?: string }; Returns: boolean }
       is_superadmin: { Args: { _uid?: string }; Returns: boolean }
@@ -1217,6 +1237,52 @@ export type Database = {
       org_role_of: {
         Args: { _org: string; _uid?: string }
         Returns: Database["public"]["Enums"]["org_role"]
+      }
+      queue_wallet_update: {
+        Args: { _membership: string; _reason: string }
+        Returns: undefined
+      }
+      record_purchase: {
+        Args: {
+          _amount_cents: number
+          _idempotency_key?: string
+          _location_id: string
+          _membership_id: string
+          _note?: string
+          _ticket_reference?: string
+        }
+        Returns: Json
+      }
+      redeem_reward: {
+        Args: {
+          _idempotency_key?: string
+          _location_id: string
+          _membership_id: string
+          _reward_id: string
+        }
+        Returns: Json
+      }
+      register_customer_and_membership: {
+        Args: {
+          _birth_date?: string
+          _email: string
+          _first_name: string
+          _last_name?: string
+          _location_id?: string
+          _marketing?: boolean
+          _program_id: string
+          _source_id?: string
+        }
+        Returns: Json
+      }
+      request_wallet_update: { Args: { _membership_id: string }; Returns: Json }
+      resolve_membership_qr: {
+        Args: { _location_id: string; _token: string }
+        Returns: Json
+      }
+      reverse_transaction: {
+        Args: { _reason: string; _transaction_id: string }
+        Returns: Json
       }
     }
     Enums: {
