@@ -40,8 +40,11 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error("No hemos podido iniciar sesión", { description: error.message });
-    navigate({ to: "/panel" });
+    if (error) {
+      toast.error("No hemos podido iniciar sesión", { description: error.message });
+      return;
+    }
+    void navigate({ to: "/panel" });
   };
 
   const signUp = async (e: React.FormEvent) => {
@@ -53,19 +56,25 @@ function AuthPage() {
       options: { emailRedirectTo: window.location.origin, data: { full_name: fullName } },
     });
     setLoading(false);
-    if (error) return toast.error("No hemos podido crear la cuenta", { description: error.message });
+    if (error) {
+      toast.error("No hemos podido crear la cuenta", { description: error.message });
+      return;
+    }
     if (!data.session) {
       toast.success("Revisa tu correo para confirmar la cuenta");
       return;
     }
-    navigate({ to: "/panel" });
+    void navigate({ to: "/panel" });
   };
 
   const google = async () => {
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) return toast.error("No hemos podido continuar con Google");
+    if (result.error) {
+      toast.error("No hemos podido continuar con Google");
+      return;
+    }
     if (result.redirected) return;
-    navigate({ to: "/panel" });
+    void navigate({ to: "/panel" });
   };
 
   return (
