@@ -15,6 +15,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPanelIndexRouteImport } from './routes/_authenticated/panel.index'
 import { Route as AuthenticatedPanelCajaRouteImport } from './routes/_authenticated/panel.caja'
+import { Route as AuthenticatedPanelClientesIndexRouteImport } from './routes/_authenticated/panel.clientes.index'
+import { Route as AuthenticatedPanelClientesMembershipIdRouteImport } from './routes/_authenticated/panel.clientes.$membershipId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,6 +47,18 @@ const AuthenticatedPanelCajaRoute = AuthenticatedPanelCajaRouteImport.update({
   path: '/caja',
   getParentRoute: () => AuthenticatedPanelRoute,
 } as any)
+const AuthenticatedPanelClientesIndexRoute =
+  AuthenticatedPanelClientesIndexRouteImport.update({
+    id: '/clientes/',
+    path: '/clientes/',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelClientesMembershipIdRoute =
+  AuthenticatedPanelClientesMembershipIdRouteImport.update({
+    id: '/clientes/$membershipId',
+    path: '/clientes/$membershipId',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,12 +66,16 @@ export interface FileRoutesByFullPath {
   '/panel': typeof AuthenticatedPanelRouteWithChildren
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/': typeof AuthenticatedPanelIndexRoute
+  '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
+  '/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel': typeof AuthenticatedPanelIndexRoute
+  '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
+  '/panel/clientes': typeof AuthenticatedPanelClientesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -67,12 +85,27 @@ export interface FileRoutesById {
   '/_authenticated/panel': typeof AuthenticatedPanelRouteWithChildren
   '/_authenticated/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/_authenticated/panel/': typeof AuthenticatedPanelIndexRoute
+  '/_authenticated/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
+  '/_authenticated/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/panel' | '/panel/caja' | '/panel/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/panel'
+    | '/panel/caja'
+    | '/panel/'
+    | '/panel/clientes/$membershipId'
+    | '/panel/clientes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/panel/caja' | '/panel'
+  to:
+    | '/'
+    | '/auth'
+    | '/panel/caja'
+    | '/panel'
+    | '/panel/clientes/$membershipId'
+    | '/panel/clientes'
   id:
     | '__root__'
     | '/'
@@ -81,6 +114,8 @@ export interface FileRouteTypes {
     | '/_authenticated/panel'
     | '/_authenticated/panel/caja'
     | '/_authenticated/panel/'
+    | '/_authenticated/panel/clientes/$membershipId'
+    | '/_authenticated/panel/clientes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -133,17 +168,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelCajaRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/_authenticated/panel/clientes/': {
+      id: '/_authenticated/panel/clientes/'
+      path: '/clientes'
+      fullPath: '/panel/clientes/'
+      preLoaderRoute: typeof AuthenticatedPanelClientesIndexRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/clientes/$membershipId': {
+      id: '/_authenticated/panel/clientes/$membershipId'
+      path: '/clientes/$membershipId'
+      fullPath: '/panel/clientes/$membershipId'
+      preLoaderRoute: typeof AuthenticatedPanelClientesMembershipIdRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
   }
 }
 
 interface AuthenticatedPanelRouteChildren {
   AuthenticatedPanelCajaRoute: typeof AuthenticatedPanelCajaRoute
   AuthenticatedPanelIndexRoute: typeof AuthenticatedPanelIndexRoute
+  AuthenticatedPanelClientesMembershipIdRoute: typeof AuthenticatedPanelClientesMembershipIdRoute
+  AuthenticatedPanelClientesIndexRoute: typeof AuthenticatedPanelClientesIndexRoute
 }
 
 const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelCajaRoute: AuthenticatedPanelCajaRoute,
   AuthenticatedPanelIndexRoute: AuthenticatedPanelIndexRoute,
+  AuthenticatedPanelClientesMembershipIdRoute:
+    AuthenticatedPanelClientesMembershipIdRoute,
+  AuthenticatedPanelClientesIndexRoute: AuthenticatedPanelClientesIndexRoute,
 }
 
 const AuthenticatedPanelRouteWithChildren =
