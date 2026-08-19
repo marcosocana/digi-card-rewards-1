@@ -48,7 +48,7 @@ function ClienteDetalle() {
           .maybeSingle(),
         supabase
           .from("point_transactions")
-          .select("id, type, points_delta, amount_cents, note, created_at, reversed_by_transaction_id")
+          .select("id, type, points_delta, amount_cents, note, created_at, reversed_at")
           .eq("membership_id", membershipId)
           .order("created_at", { ascending: false })
           .limit(100),
@@ -119,7 +119,7 @@ function ClienteDetalle() {
 
       <PageHeader
         title={`${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim() || "Cliente"}
-        description={c?.email}
+        description={c?.email ?? undefined}
         actions={
           <>
             <Button variant="outline" onClick={() => void syncWallet()}>
@@ -197,7 +197,7 @@ function ClienteDetalle() {
               <div className="min-w-0">
                 <p className="text-sm font-medium">
                   {txnLabel[t.type] ?? t.type}
-                  {t.reversed_by_transaction_id ? <span className="ml-2 text-xs text-muted-foreground">(anulado)</span> : null}
+                  {t.reversed_at ? <span className="ml-2 text-xs text-muted-foreground">(anulado)</span> : null}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {dateTime(t.created_at)}
@@ -210,7 +210,7 @@ function ClienteDetalle() {
                   {t.points_delta >= 0 ? "+" : ""}
                   {num(t.points_delta)}
                 </span>
-                {canAdjust && !t.reversed_by_transaction_id && t.type !== "reversal" ? (
+                {canAdjust && !t.reversed_at && t.type !== "reversal" ? (
                   <Button variant="ghost" size="icon" aria-label="Anular movimiento" onClick={() => void reverse(t.id)}>
                     <RotateCcw className="size-4" />
                   </Button>
