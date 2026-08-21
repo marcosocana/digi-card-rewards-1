@@ -198,7 +198,7 @@ function CajaPage() {
   const confirmGiftCard = async () => {
     const amountCents = parseAmountToCents(giftAmount);
     if (!locationId || !giftCode.trim() || amountCents === null)
-      return toast.error("Introduce código e importe válidos");
+      { toast.error("Introduce código e importe válidos"); return; }
     setBusy(true);
     try {
       const result = await consumeGiftCard(giftCode.trim(), locationId, amountCents);
@@ -217,7 +217,7 @@ function CajaPage() {
   const confirmCashback = async () => {
     if (!scan) return;
     const amountCents = parseAmountToCents(cashbackAmount);
-    if (amountCents === null) return toast.error("Introduce un importe válido");
+    if (amountCents === null) { toast.error("Introduce un importe válido"); return; }
     setBusy(true);
     try {
       const result = await consumeCashback(scan.membership_id, locationId, amountCents);

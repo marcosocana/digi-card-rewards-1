@@ -113,7 +113,7 @@ function CampanasPage() {
       rules: {},
     });
     setSaving(false);
-    if (error) return toast.error("No se pudo crear la campaña", { description: error.message });
+    if (error) { toast.error("No se pudo crear la campaña", { description: error.message }); return; }
     toast.success("Campaña guardada como borrador");
     setOpen(false);
     setForm({ internal_name: "", public_name: "", description: "", mechanic_type: "spend" });
@@ -122,7 +122,7 @@ function CampanasPage() {
 
   const setStatus = async (campaign: Campaign, status: "active" | "paused") => {
     const { error } = await supabase.from("campaigns").update({ status }).eq("id", campaign.id);
-    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    if (error) { toast.error("No se pudo actualizar", { description: error.message }); return; }
     toast.success(status === "active" ? "Campaña activada" : "Campaña pausada");
     void refetch();
   };
@@ -139,7 +139,7 @@ function CampanasPage() {
       is_primary: false,
       rules: {},
     });
-    if (error) return toast.error("No se pudo duplicar", { description: error.message });
+    if (error) { toast.error("No se pudo duplicar", { description: error.message }); return; }
     toast.success("Campaña duplicada como borrador");
     void refetch();
   };
