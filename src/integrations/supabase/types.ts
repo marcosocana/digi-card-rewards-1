@@ -2352,6 +2352,53 @@ export type Database = {
           },
         ]
       }
+      wallet_integration_settings: {
+        Row: {
+          created_at: string
+          id: string
+          last_error: string | null
+          last_verified_at: string | null
+          mode: string
+          organization_id: string
+          provider: Database["public"]["Enums"]["wallet_provider"]
+          public_configuration: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_verified_at?: string | null
+          mode?: string
+          organization_id: string
+          provider: Database["public"]["Enums"]["wallet_provider"]
+          public_configuration?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_verified_at?: string | null
+          mode?: string
+          organization_id?: string
+          provider?: Database["public"]["Enums"]["wallet_provider"]
+          public_configuration?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_integration_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_jobs: {
         Row: {
           attempts: number
@@ -2513,6 +2560,13 @@ export type Database = {
         Returns: number
       }
       get_membership_portal: { Args: { _public_id: string }; Returns: Json }
+      get_wallet_install_state: {
+        Args: {
+          _membership_public_id: string
+          _provider: Database["public"]["Enums"]["wallet_provider"]
+        }
+        Returns: Json
+      }
       hash_token: { Args: { _t: string }; Returns: string }
       is_org_admin: { Args: { _org: string; _uid?: string }; Returns: boolean }
       is_org_member: { Args: { _org: string; _uid?: string }; Returns: boolean }
