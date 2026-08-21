@@ -220,7 +220,7 @@ function EstadisticasPage() {
               <h2 className="font-display text-lg font-semibold">Ventas y altas · 12 meses</h2>
               <div className="mt-5 h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data?.months}>
+                  <BarChart data={data?.months ?? []}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="label" />
                     <YAxis />

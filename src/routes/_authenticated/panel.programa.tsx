@@ -69,9 +69,15 @@ function ProgramaPage() {
       earning_mode: data.earning_mode,
       mechanic_type: data.mechanic_type,
       mechanic_config: {
-        stamps_per_purchase: Number(data.mechanic_config?.stamps_per_purchase ?? 1),
-        percentage: Number(data.mechanic_config?.percentage ?? 5),
-        discount_percentage: Number(data.mechanic_config?.discount_percentage ?? 10),
+        stamps_per_purchase: Number(
+          (data.mechanic_config as Record<string, number> | null)?.["stamps_per_purchase"] ?? 1,
+        ),
+        percentage: Number(
+          (data.mechanic_config as Record<string, number> | null)?.["percentage"] ?? 5,
+        ),
+        discount_percentage: Number(
+          (data.mechanic_config as Record<string, number> | null)?.["discount_percentage"] ?? 10,
+        ),
       },
       earning_value: Number(data.earning_value),
       rounding_mode: data.rounding_mode,

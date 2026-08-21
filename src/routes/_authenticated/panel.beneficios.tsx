@@ -70,8 +70,10 @@ function BeneficiosPage() {
     },
   });
   const createCoupon = async () => {
-    if (!orgId || coupon.title.trim().length < 2 || coupon.code.trim().length < 3)
-      return toast.error("Revisa el título y el código");
+    if (!orgId || coupon.title.trim().length < 2 || coupon.code.trim().length < 3) {
+      toast.error("Revisa el título y el código");
+      return;
+    }
     const { error } = await supabase.from("coupons").insert({
       organization_id: orgId,
       title: coupon.title.trim(),
@@ -81,7 +83,10 @@ function BeneficiosPage() {
       maximum_uses: coupon.maximum ? Number(coupon.maximum) : null,
       status: "active",
     });
-    if (error) return toast.error("No se pudo crear", { description: error.message });
+    if (error) {
+      toast.error("No se pudo crear", { description: error.message });
+      return;
+    }
     toast.success("Cupón activado");
     setCouponOpen(false);
     setCoupon({ title: "", code: "", type: "percentage", value: 20, maximum: "" });
@@ -93,10 +98,13 @@ function BeneficiosPage() {
     const { data: result, error } = await supabase.rpc("issue_gift_card", {
       _organization_id: orgId,
       _initial_balance_cents: cents,
-      _recipient_name: gift.recipient_name || undefined,
-      _recipient_email: gift.recipient_email || undefined,
+      ...(gift.recipient_name ? { _recipient_name: gift.recipient_name } : {}),
+      ...(gift.recipient_email ? { _recipient_email: gift.recipient_email } : {}),
     });
-    if (error) return toast.error("No se pudo emitir", { description: error.message });
+    if (error) {
+      toast.error("No se pudo emitir", { description: error.message });
+      return;
+    }
     const response = result as { code: string };
     setIssuedCode(response.code);
     toast.success("Tarjeta regalo emitida");

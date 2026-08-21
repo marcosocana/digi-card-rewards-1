@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+
 import {
   ArrowRight,
   BadgeCheck,
@@ -18,6 +19,9 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import isotipo from "@/assets/isotipo.svg.asset.json";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -88,12 +92,16 @@ const steps = [
   ],
 ];
 
-function BrandMark() {
+function BrandMark({ onDark = false }: { onDark?: boolean }) {
   return (
-    <span className="flex items-center gap-2 text-lg font-bold tracking-[-0.04em]">
-      <span className="grid size-8 place-items-center rounded-full bg-black text-white">
-        <Sparkles className="size-4" />
-      </span>
+    <span className="flex items-center gap-2.5 text-lg font-bold tracking-[-0.04em]">
+      <img
+        src={isotipo.url}
+        alt="Isotipo de Fideleo"
+        width={32}
+        height={32}
+        className={cn("size-8 rounded-full", onDark && "ring-1 ring-white/25")}
+      />
       Fideleo
     </span>
   );
@@ -101,10 +109,30 @@ function BrandMark() {
 
 function HomePage() {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <main className="min-h-screen overflow-hidden bg-white text-[#111111]">
-      <header className="absolute inset-x-0 top-0 z-30">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-5 lg:px-10">
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 transition-all duration-300",
+          scrolled ? "border-b border-black/10 bg-white/85 backdrop-blur-xl" : "bg-transparent",
+        )}
+      >
+        <div
+          className={cn(
+            "mx-auto flex max-w-[1440px] items-center justify-between px-5 transition-all duration-300 lg:px-10",
+            scrolled ? "py-3" : "py-5",
+          )}
+        >
+
           <Link to="/" aria-label="Fideleo, inicio">
             <BrandMark />
           </Link>
@@ -430,7 +458,8 @@ function HomePage() {
       <footer className="bg-[#111] px-5 py-12 text-white lg:px-10">
         <div className="mx-auto grid max-w-[1440px] gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2">
-            <BrandMark />
+            <BrandMark onDark />
+
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">
               La plataforma para captar, conocer y fidelizar clientes desde una tarjeta digital.
             </p>

@@ -51,7 +51,10 @@ function AutomatizacionesPage() {
       .from("notification_automations")
       .update({ is_active: isActive })
       .eq("id", id);
-    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    if (error) {
+      toast.error("No se pudo actualizar", { description: error.message });
+      return;
+    }
     toast.success(isActive ? "Automatización activada" : "Automatización pausada");
     void refetch();
   };
@@ -61,16 +64,20 @@ function AutomatizacionesPage() {
     const scheduled = await supabase.rpc("enqueue_scheduled_automations", {
       _organization_id: orgId,
     });
-    if (scheduled.error)
-      return toast.error("No se pudo preparar la ejecución", {
+    if (scheduled.error) {
+      toast.error("No se pudo preparar la ejecución", {
         description: scheduled.error.message,
       });
+      return;
+    }
     const processed = await supabase.rpc("process_automation_jobs", {
       _organization_id: orgId,
       _limit: 100,
     });
-    if (processed.error)
-      return toast.error("No se pudo procesar la cola", { description: processed.error.message });
+    if (processed.error) {
+      toast.error("No se pudo procesar la cola", { description: processed.error.message });
+      return;
+    }
     const result = processed.data as { processed?: number; failed?: number };
     toast.success("Cola procesada", {
       description: `${num(result.processed)} trabajos preparados; ${num(result.failed)} fallidos. Las entregas sandbox siguen en modo demo.`,

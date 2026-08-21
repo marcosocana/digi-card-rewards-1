@@ -130,7 +130,10 @@ function ClienteDetalle() {
     const { data: result, error } = await supabase.rpc("export_customer_data", {
       _membership_id: membershipId,
     });
-    if (error) return toast.error("No se pudo exportar", { description: error.message });
+    if (error) {
+      toast.error("No se pudo exportar", { description: error.message });
+      return;
+    }
     const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
     const href = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -151,7 +154,10 @@ function ClienteDetalle() {
       _membership_id: membershipId,
       _reason: reason.trim(),
     });
-    if (error) return toast.error("No se pudo anonimizar", { description: error.message });
+    if (error) {
+      toast.error("No se pudo anonimizar", { description: error.message });
+      return;
+    }
     toast.success("Datos personales anonimizados y tarjeta revocada");
     void refetch();
   };

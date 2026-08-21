@@ -121,9 +121,20 @@ function CajaPage() {
   const preview =
     scan && cents !== null
       ? mechanic === "stamps"
-        ? Number(scan.program.mechanic_config?.stamps_per_purchase ?? 1)
+        ? Number(
+            (scan.program.mechanic_config as Record<string, number> | null)?.[
+              "stamps_per_purchase"
+            ] ?? 1,
+          )
         : mechanic === "cashback"
-          ? Math.floor((cents * Number(scan.program.mechanic_config?.percentage ?? 5)) / 100)
+          ? Math.floor(
+              (cents *
+                Number(
+                  (scan.program.mechanic_config as Record<string, number> | null)?.["percentage"] ??
+                    5,
+                )) /
+                100,
+            )
           : mechanic === "membership"
             ? 0
             : computePoints(
@@ -197,8 +208,10 @@ function CajaPage() {
 
   const confirmGiftCard = async () => {
     const amountCents = parseAmountToCents(giftAmount);
-    if (!locationId || !giftCode.trim() || amountCents === null)
-      return toast.error("Introduce código e importe válidos");
+    if (!locationId || !giftCode.trim() || amountCents === null) {
+      toast.error("Introduce código e importe válidos");
+      return;
+    }
     setBusy(true);
     try {
       const result = await consumeGiftCard(giftCode.trim(), locationId, amountCents);
@@ -217,7 +230,10 @@ function CajaPage() {
   const confirmCashback = async () => {
     if (!scan) return;
     const amountCents = parseAmountToCents(cashbackAmount);
-    if (amountCents === null) return toast.error("Introduce un importe válido");
+    if (amountCents === null) {
+      toast.error("Introduce un importe válido");
+      return;
+    }
     setBusy(true);
     try {
       const result = await consumeCashback(scan.membership_id, locationId, amountCents);
