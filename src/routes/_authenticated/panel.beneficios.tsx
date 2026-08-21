@@ -70,8 +70,10 @@ function BeneficiosPage() {
     },
   });
   const createCoupon = async () => {
-    if (!orgId || coupon.title.trim().length < 2 || coupon.code.trim().length < 3)
-      { toast.error("Revisa el título y el código"); return; }
+    if (!orgId || coupon.title.trim().length < 2 || coupon.code.trim().length < 3) {
+      toast.error("Revisa el título y el código");
+      return;
+    }
     const { error } = await supabase.from("coupons").insert({
       organization_id: orgId,
       title: coupon.title.trim(),
@@ -81,7 +83,10 @@ function BeneficiosPage() {
       maximum_uses: coupon.maximum ? Number(coupon.maximum) : null,
       status: "active",
     });
-    if (error) { toast.error("No se pudo crear", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo crear", { description: error.message });
+      return;
+    }
     toast.success("Cupón activado");
     setCouponOpen(false);
     setCoupon({ title: "", code: "", type: "percentage", value: 20, maximum: "" });
@@ -96,7 +101,10 @@ function BeneficiosPage() {
       _recipient_name: gift.recipient_name || undefined,
       _recipient_email: gift.recipient_email || undefined,
     });
-    if (error) { toast.error("No se pudo emitir", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo emitir", { description: error.message });
+      return;
+    }
     const response = result as { code: string };
     setIssuedCode(response.code);
     toast.success("Tarjeta regalo emitida");

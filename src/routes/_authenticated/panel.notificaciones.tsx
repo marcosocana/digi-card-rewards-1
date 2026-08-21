@@ -130,8 +130,10 @@ function NotificacionesPage() {
   }, [form.segmentId]);
 
   const send = async () => {
-    if (!orgId || !form.segmentId || !form.title.trim() || !form.message.trim())
-      { toast.error("Completa título, mensaje y destinatarios"); return; }
+    if (!orgId || !form.segmentId || !form.title.trim() || !form.message.trim()) {
+      toast.error("Completa título, mensaje y destinatarios");
+      return;
+    }
     setBusy(true);
     const { data: result, error } = await supabase.rpc("queue_manual_notification", {
       _organization_id: orgId,
@@ -143,13 +145,15 @@ function NotificacionesPage() {
       _idempotency_key: crypto.randomUUID(),
     });
     setBusy(false);
-    if (error)
-      { toast.error(
+    if (error) {
+      toast.error(
         error.message.includes("DAILY_NOTIFICATION_LIMIT")
           ? "Ya se alcanzó el límite diario de notificaciones"
           : "No se pudo preparar la notificación",
         { description: error.message },
-      ); return; }
+      );
+      return;
+    }
     const response = result as { recipient_count?: number; status?: string };
     toast.success(form.scheduled ? "Notificación programada" : "Notificación añadida a la cola", {
       description: `${num(response.recipient_count)} destinatarios. Los pases sandbox permanecen en modo demo.`,
@@ -160,8 +164,10 @@ function NotificacionesPage() {
   };
 
   const createSegment = async () => {
-    if (!orgId || segmentForm.name.trim().length < 2)
-      { toast.error("Indica un nombre para el segmento"); return; }
+    if (!orgId || segmentForm.name.trim().length < 2) {
+      toast.error("Indica un nombre para el segmento");
+      return;
+    }
     const numeric = Math.max(0, Number(segmentForm.value) || 0);
     const definition: Record<string, string | number> = { type: segmentForm.type };
     if (["new", "inactive"].includes(segmentForm.type)) definition.days = numeric || 30;
@@ -170,7 +176,10 @@ function NotificacionesPage() {
     if (["spend", "vip"].includes(segmentForm.type))
       definition.minimum_cents = Math.round((numeric || 100) * 100);
     if (segmentForm.type === "location") {
-      if (!segmentForm.value) { toast.error("Selecciona una ubicación"); return; }
+      if (!segmentForm.value) {
+        toast.error("Selecciona una ubicación");
+        return;
+      }
       definition.location_id = segmentForm.value;
     }
     const { error } = await supabase.from("customer_segments").insert({
@@ -178,7 +187,10 @@ function NotificacionesPage() {
       name: segmentForm.name.trim(),
       definition,
     });
-    if (error) { toast.error("No se pudo crear el segmento", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo crear el segmento", { description: error.message });
+      return;
+    }
     toast.success("Segmento dinámico creado");
     setSegmentOpen(false);
     setSegmentForm({ name: "", type: "marketing", value: "" });

@@ -120,18 +120,26 @@ function OnboardingPage() {
 
   const upload = async (file: File, kind: "logo" | "cover") => {
     if (!orgId) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("La imagen no puede superar 5 MB"); return; }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 5 MB");
+      return;
+    }
     const extension = file.name.split(".").pop()?.toLowerCase() || "png";
     const path = `${orgId}/${kind}-${crypto.randomUUID()}.${extension}`;
     const { error } = await supabase.storage.from("brand-assets").upload(path, file, {
       contentType: file.type,
     });
-    if (error) { toast.error("No se pudo subir la imagen", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo subir la imagen", { description: error.message });
+      return;
+    }
     const { data: signed, error: signError } = await supabase.storage
       .from("brand-assets")
       .createSignedUrl(path, 31_536_000);
-    if (signError)
-      { toast.error("No se pudo preparar la imagen", { description: signError.message }); return; }
+    if (signError) {
+      toast.error("No se pudo preparar la imagen", { description: signError.message });
+      return;
+    }
     setForm((current) => ({ ...current, [kind]: signed.signedUrl }));
     toast.success("Imagen subida");
   };
@@ -143,7 +151,10 @@ function OnboardingPage() {
     if (step === 1) {
       if (form.displayName.trim().length < 2 || !form.email.includes("@")) {
         setSaving(false);
-        { toast.error("Completa el nombre y un email válido"); return; }
+        {
+          toast.error("Completa el nombre y un email válido");
+          return;
+        }
       }
       const response = await supabase
         .from("organizations")
@@ -216,7 +227,10 @@ function OnboardingPage() {
       error = responses.find((response) => response.error)?.error ?? null;
     }
     setSaving(false);
-    if (error) { toast.error("No se pudo guardar", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo guardar", { description: error.message });
+      return;
+    }
     toast.success(step === 5 ? "Programa publicado" : "Borrador guardado");
     if (next && step < 5) setStep(step + 1);
   };

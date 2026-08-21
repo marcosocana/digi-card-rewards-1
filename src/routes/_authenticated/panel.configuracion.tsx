@@ -109,8 +109,10 @@ function ConfiguracionPage() {
   }, [data]);
 
   const save = async () => {
-    if (!orgId || form.display_name.trim().length < 2)
-      { toast.error("Indica el nombre comercial"); return; }
+    if (!orgId || form.display_name.trim().length < 2) {
+      toast.error("Indica el nombre comercial");
+      return;
+    }
     setSaving(true);
     const [org, branding] = await Promise.all([
       supabase
@@ -145,7 +147,10 @@ function ConfiguracionPage() {
     ]);
     setSaving(false);
     const error = org.error ?? branding.error;
-    if (error) { toast.error("No se pudo guardar", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo guardar", { description: error.message });
+      return;
+    }
     toast.success("Configuración actualizada");
     void refetch();
   };
@@ -158,9 +163,15 @@ function ConfiguracionPage() {
       _name: `POS ${new Date().toLocaleDateString("es-ES")}`,
     });
     setIssuingKey(false);
-    if (error) { toast.error("No se pudo crear la clave", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo crear la clave", { description: error.message });
+      return;
+    }
     const value = result as { api_key?: string } | null;
-    if (!value?.api_key) { toast.error("Supabase no devolvió la clave"); return; }
+    if (!value?.api_key) {
+      toast.error("Supabase no devolvió la clave");
+      return;
+    }
     setNewApiKey(value.api_key);
     toast.success("Clave creada. Cópiala ahora; no volverá a mostrarse completa.");
     void refetch();
@@ -169,7 +180,10 @@ function ConfiguracionPage() {
   const revokeApiKey = async (id: string) => {
     if (!window.confirm("¿Revocar esta clave? El TPV dejará de poder enviar operaciones.")) return;
     const { error } = await supabase.rpc("revoke_integration_api_key", { _key_id: id });
-    if (error) { toast.error("No se pudo revocar", { description: error.message }); return; }
+    if (error) {
+      toast.error("No se pudo revocar", { description: error.message });
+      return;
+    }
     toast.success("Clave revocada");
     void refetch();
   };
