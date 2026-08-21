@@ -19,6 +19,9 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import isotipo from "@/assets/isotipo.svg.asset.json";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
