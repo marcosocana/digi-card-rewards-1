@@ -88,16 +88,21 @@ const steps = [
   ],
 ];
 
-function BrandMark() {
+function BrandMark({ onDark = false }: { onDark?: boolean }) {
   return (
-    <span className="flex items-center gap-2 text-lg font-bold tracking-[-0.04em]">
-      <span className="grid size-8 place-items-center rounded-full bg-black text-white">
-        <Sparkles className="size-4" />
-      </span>
+    <span className="flex items-center gap-2.5 text-lg font-bold tracking-[-0.04em]">
+      <img
+        src={isotipo.url}
+        alt="Isotipo de Fideleo"
+        width={32}
+        height={32}
+        className={cn("size-8 rounded-full", onDark && "ring-1 ring-white/25")}
+      />
       Fideleo
     </span>
   );
 }
+
 
 function HomePage() {
   const [mobileMenu, setMobileMenu] = useState(false);
