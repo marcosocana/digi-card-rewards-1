@@ -458,6 +458,7 @@ export type Database = {
           id: string
           organization_id: string
           policy_version: string
+          revoked_at: string | null
           source: string | null
         }
         Insert: {
@@ -468,6 +469,7 @@ export type Database = {
           id?: string
           organization_id: string
           policy_version?: string
+          revoked_at?: string | null
           source?: string | null
         }
         Update: {
@@ -478,6 +480,7 @@ export type Database = {
           id?: string
           organization_id?: string
           policy_version?: string
+          revoked_at?: string | null
           source?: string | null
         }
         Relationships: [
@@ -1450,6 +1453,7 @@ export type Database = {
           expires_at: string | null
           id: string
           membership_id: string
+          revoked_at: string | null
           rotated_at: string | null
           short_code: string
           status: string
@@ -1460,6 +1464,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           membership_id: string
+          revoked_at?: string | null
           rotated_at?: string | null
           short_code: string
           status?: string
@@ -1470,6 +1475,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           membership_id?: string
+          revoked_at?: string | null
           rotated_at?: string | null
           short_code?: string
           status?: string
@@ -2582,6 +2588,10 @@ export type Database = {
         }
         Returns: Json
       }
+      anonymize_customer: {
+        Args: { _membership_id: string; _reason: string }
+        Returns: undefined
+      }
       can_access_location: {
         Args: { _loc: string; _uid?: string }
         Returns: boolean
@@ -2622,6 +2632,7 @@ export type Database = {
         Args: { _organization_id: string }
         Returns: number
       }
+      export_customer_data: { Args: { _membership_id: string }; Returns: Json }
       get_membership_portal: { Args: { _public_id: string }; Returns: Json }
       get_wallet_install_state: {
         Args: {
@@ -2759,6 +2770,10 @@ export type Database = {
       reverse_transaction: {
         Args: { _reason: string; _transaction_id: string }
         Returns: Json
+      }
+      revoke_integration_api_key: {
+        Args: { _key_id: string }
+        Returns: undefined
       }
       search_memberships: {
         Args: { _location_id: string; _query: string }
