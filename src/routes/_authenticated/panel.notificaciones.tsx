@@ -140,8 +140,8 @@ function NotificacionesPage() {
       _segment_id: form.segmentId,
       _title: form.title.trim(),
       _message: form.message.trim(),
-      _destination_url: form.url.trim() || undefined,
-      _scheduled_for: form.scheduled ? new Date(form.scheduled).toISOString() : undefined,
+      ...(form.url.trim() ? { _destination_url: form.url.trim() } : {}),
+      ...(form.scheduled ? { _scheduled_for: new Date(form.scheduled).toISOString() } : {}),
       _idempotency_key: crypto.randomUUID(),
     });
     setBusy(false);
@@ -170,17 +170,17 @@ function NotificacionesPage() {
     }
     const numeric = Math.max(0, Number(segmentForm.value) || 0);
     const definition: Record<string, string | number> = { type: segmentForm.type };
-    if (["new", "inactive"].includes(segmentForm.type)) definition.days = numeric || 30;
-    if (segmentForm.type === "recurrent") definition.visits = numeric || 3;
-    if (segmentForm.type === "near_reward") definition.distance = numeric || 20;
+    if (["new", "inactive"].includes(segmentForm.type)) definition["days"] = numeric || 30;
+    if (segmentForm.type === "recurrent") definition["visits"] = numeric || 3;
+    if (segmentForm.type === "near_reward") definition["distance"] = numeric || 20;
     if (["spend", "vip"].includes(segmentForm.type))
-      definition.minimum_cents = Math.round((numeric || 100) * 100);
+      definition["minimum_cents"] = Math.round((numeric || 100) * 100);
     if (segmentForm.type === "location") {
       if (!segmentForm.value) {
         toast.error("Selecciona una ubicación");
         return;
       }
-      definition.location_id = segmentForm.value;
+      definition["location_id"] = segmentForm.value;
     }
     const { error } = await supabase.from("customer_segments").insert({
       organization_id: orgId,

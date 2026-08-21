@@ -98,8 +98,8 @@ function BeneficiosPage() {
     const { data: result, error } = await supabase.rpc("issue_gift_card", {
       _organization_id: orgId,
       _initial_balance_cents: cents,
-      _recipient_name: gift.recipient_name || undefined,
-      _recipient_email: gift.recipient_email || undefined,
+      ...(gift.recipient_name ? { _recipient_name: gift.recipient_name } : {}),
+      ...(gift.recipient_email ? { _recipient_email: gift.recipient_email } : {}),
     });
     if (error) {
       toast.error("No se pudo emitir", { description: error.message });
