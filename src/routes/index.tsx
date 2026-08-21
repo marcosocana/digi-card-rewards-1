@@ -107,13 +107,32 @@ function BrandMark({ onDark = false }: { onDark?: boolean }) {
   );
 }
 
-
 function HomePage() {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <main className="min-h-screen overflow-hidden bg-white text-[#111111]">
-      <header className="absolute inset-x-0 top-0 z-30">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-5 lg:px-10">
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 transition-all duration-300",
+          scrolled ? "border-b border-black/10 bg-white/85 backdrop-blur-xl" : "bg-transparent",
+        )}
+      >
+        <div
+          className={cn(
+            "mx-auto flex max-w-[1440px] items-center justify-between px-5 transition-all duration-300 lg:px-10",
+            scrolled ? "py-3" : "py-5",
+          )}
+        >
+
           <Link to="/" aria-label="Fideleo, inicio">
             <BrandMark />
           </Link>
