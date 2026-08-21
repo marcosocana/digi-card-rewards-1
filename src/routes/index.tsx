@@ -458,7 +458,8 @@ function HomePage() {
       <footer className="bg-[#111] px-5 py-12 text-white lg:px-10">
         <div className="mx-auto grid max-w-[1440px] gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2">
-            <BrandMark />
+            <BrandMark onDark />
+
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">
               La plataforma para captar, conocer y fidelizar clientes desde una tarjeta digital.
             </p>
