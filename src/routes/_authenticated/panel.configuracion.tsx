@@ -52,7 +52,7 @@ function ConfiguracionPage() {
     enabled: Boolean(orgId),
     queryFn: async () => {
       const [org, branding, wallet, integrations, apiKeys] = await Promise.all([
-        supabase.from("organizations").select("*").eq("id", orgId).single(),
+        supabase.from("organizations").select("*").eq("id", orgId!).single(),
         supabase
           .from("organization_branding")
           .select("*")

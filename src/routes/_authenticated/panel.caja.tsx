@@ -121,9 +121,20 @@ function CajaPage() {
   const preview =
     scan && cents !== null
       ? mechanic === "stamps"
-        ? Number((scan.program.mechanic_config as Record<string, number> | null)?.["stamps_per_purchase"] ?? 1)
+        ? Number(
+            (scan.program.mechanic_config as Record<string, number> | null)?.[
+              "stamps_per_purchase"
+            ] ?? 1,
+          )
         : mechanic === "cashback"
-          ? Math.floor((cents * Number((scan.program.mechanic_config as Record<string, number> | null)?.["percentage"] ?? 5)) / 100)
+          ? Math.floor(
+              (cents *
+                Number(
+                  (scan.program.mechanic_config as Record<string, number> | null)?.["percentage"] ??
+                    5,
+                )) /
+                100,
+            )
           : mechanic === "membership"
             ? 0
             : computePoints(

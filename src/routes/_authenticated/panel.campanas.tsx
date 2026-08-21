@@ -73,7 +73,7 @@ function CampanasPage() {
         supabase
           .from("campaigns")
           .select("*")
-          .eq("organization_id", orgId)
+          .eq("organization_id", orgId!)
           .is("archived_at", null)
           .order("created_at", { ascending: false }),
         supabase
@@ -136,7 +136,7 @@ function CampanasPage() {
   const duplicate = async (campaign: Campaign) => {
     const { error } = await supabase.from("campaigns").insert({
       organization_id: orgId,
-      program_id: data?.programId,
+      program_id: data?.programId ?? "",
       internal_name: `${campaign.internal_name} (copia)`,
       public_name: campaign.public_name,
       description: campaign.description,
