@@ -957,6 +957,69 @@ export type Database = {
           },
         ]
       }
+      integration_api_keys: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          organization_id: string
+          revoked_at: string | null
+          scopes: string[]
+          status: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          organization_id: string
+          revoked_at?: string | null
+          scopes?: string[]
+          status?: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          organization_id?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_api_keys_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_connections: {
         Row: {
           configuration: Json
@@ -2568,6 +2631,15 @@ export type Database = {
         Returns: Json
       }
       hash_token: { Args: { _t: string }; Returns: string }
+      ingest_pos_operation: {
+        Args: {
+          _api_key: string
+          _external_id: string
+          _operation_type: string
+          _payload: Json
+        }
+        Returns: Json
+      }
       is_org_admin: { Args: { _org: string; _uid?: string }; Returns: boolean }
       is_org_member: { Args: { _org: string; _uid?: string }; Returns: boolean }
       is_superadmin: { Args: { _uid?: string }; Returns: boolean }
@@ -2579,6 +2651,15 @@ export type Database = {
           _organization_id: string
           _recipient_email?: string
           _recipient_name?: string
+        }
+        Returns: Json
+      }
+      issue_integration_api_key: {
+        Args: {
+          _connection_id?: string
+          _expires_at?: string
+          _name: string
+          _organization_id: string
         }
         Returns: Json
       }
