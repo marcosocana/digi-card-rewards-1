@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Coins, Gift, Lightbulb, Receipt, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/app/metric-card";
 import { EmptyState } from "@/components/app/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSession, fetchSessionInfo, sessionQueryKey } from "@/lib/session";
+import {
+  fetchSessionInfo,
+  getSelectedLocationIds,
+  locationFilterEvent,
+  sessionQueryKey,
+  useSession,
+} from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/panel/")({
@@ -35,39 +40,61 @@ function ResumenPage() {
   const today = localDate();
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedLocations(getSelectedLocationIds());
+    const update = (event: Event) => {
+      const locations = (event as CustomEvent<string[]>).detail;
+      setSelectedLocations(locations);
+    };
+    window.addEventListener(locationFilterEvent, update);
+    return () => window.removeEventListener(locationFilterEvent, update);
+  }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["overview", orgId, fromDate, toDate],
+    queryKey: ["overview", orgId, fromDate, toDate, selectedLocations],
     enabled: Boolean(orgId),
     queryFn: async () => {
       const from = new Date(`${fromDate}T00:00:00`).toISOString();
       const to = new Date(`${toDate}T23:59:59.999`).toISOString();
+      let membersQuery = supabase
+        .from("memberships")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId!)
+        .lte("joined_at", to);
+      let newMembersQuery = supabase
+        .from("memberships")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId!)
+        .gte("joined_at", from)
+        .lte("joined_at", to);
+      let transactionsQuery = supabase
+        .from("point_transactions")
+        .select("id, type, points_delta, amount_cents, created_at, membership_id, location_id")
+        .eq("organization_id", orgId!)
+        .gte("created_at", from)
+        .lte("created_at", to)
+        .order("created_at", { ascending: false })
+        .limit(400);
+
+      if (selectedLocations.length) {
+        membersQuery = membersQuery.in("acquisition_location_id", selectedLocations);
+        newMembersQuery = newMembersQuery.in("acquisition_location_id", selectedLocations);
+        transactionsQuery = transactionsQuery.in("location_id", selectedLocations);
+      }
+
       const [members, newMembers, txns, locations] = await Promise.all([
-        supabase
-          .from("memberships")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId!)
-          .lte("joined_at", to),
-        supabase
-          .from("memberships")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId!)
-          .gte("joined_at", from)
-          .lte("joined_at", to),
-        supabase
-          .from("point_transactions")
-          .select("id, type, points_delta, amount_cents, created_at, membership_id, location_id")
-          .eq("organization_id", orgId!)
-          .gte("created_at", from)
-          .lte("created_at", to)
-          .order("created_at", { ascending: false })
-          .limit(400),
+        membersQuery,
+        newMembersQuery,
+        transactionsQuery,
         supabase.from("locations").select("id, name").eq("organization_id", orgId!),
       ]);
       const rows = txns.data ?? [];
       const purchases = rows.filter((r) => r.type === "purchase");
       const locName = new Map((locations.data ?? []).map((l) => [l.id, l.name]));
       const locationRows = (locations.data ?? [])
+        .filter((location) => !selectedLocations.length || selectedLocations.includes(location.id))
         .map((location) => {
           const locationPurchases = purchases.filter((row) => row.location_id === location.id);
           return {
@@ -112,41 +139,30 @@ function ResumenPage() {
 
   return (
     <>
-      <PageHeader
-        title={`Hola, ${(session.fullName ?? "equipo").split(" ")[0]}`}
-        description={`${new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" }).format(new Date())} · ${session.organizationName}`}
-      />
-
-      <div className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold">Periodo de los indicadores</p>
-          <p className="text-xs text-muted-foreground">Selecciona un día o un rango de fechas.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="space-y-1">
+          <Label htmlFor="from-date" className="text-xs">
+            Desde
+          </Label>
+          <Input
+            id="from-date"
+            type="date"
+            value={fromDate}
+            max={toDate}
+            onChange={(event) => setFromDate(event.target.value)}
+          />
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="space-y-1">
-            <Label htmlFor="from-date" className="text-xs">
-              Desde
-            </Label>
-            <Input
-              id="from-date"
-              type="date"
-              value={fromDate}
-              max={toDate}
-              onChange={(event) => setFromDate(event.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="to-date" className="text-xs">
-              Hasta
-            </Label>
-            <Input
-              id="to-date"
-              type="date"
-              value={toDate}
-              min={fromDate}
-              onChange={(event) => setToDate(event.target.value)}
-            />
-          </div>
+        <div className="space-y-1">
+          <Label htmlFor="to-date" className="text-xs">
+            Hasta
+          </Label>
+          <Input
+            id="to-date"
+            type="date"
+            value={toDate}
+            min={fromDate}
+            onChange={(event) => setToDate(event.target.value)}
+          />
         </div>
       </div>
 
@@ -184,7 +200,7 @@ function ResumenPage() {
               label="Ventas asociadas"
               value={eur(data?.sales)}
               icon={<TrendingUp className="size-4" />}
-              className="bg-[#f4efff]"
+              className="bg-[#f4efff] dark:bg-card"
               to="/panel/estadisticas"
             />
             <MetricCard
@@ -201,8 +217,8 @@ function ResumenPage() {
             />
           </div>
 
-          <div className="flex items-start gap-3 rounded-2xl bg-[#d9f4ff] p-5 sm:p-6">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-primary">
+          <div className="flex items-start gap-3 rounded-2xl bg-[#d9f4ff] p-5 sm:p-6 dark:border dark:bg-card">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-primary dark:bg-muted">
               <Lightbulb className="size-5" />
             </span>
             <div>

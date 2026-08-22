@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,13 +12,20 @@ import {
   Bell,
   Bot,
   ChartNoAxesCombined,
+  ChevronDown,
+  CircleHelp,
   TicketPercent,
   ScanLine,
   Settings2,
   ShieldCheck,
   Sparkles,
   ShoppingBag,
-  UserRound,
+  Languages,
+  MapPin,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Sun,
   Users,
   Wallet,
   X,
@@ -26,8 +33,34 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useSession, type OrgRole } from "@/lib/session";
+import {
+  getSelectedLocationIds,
+  setSelectedLocationIds,
+  useSession,
+  type OrgRole,
+} from "@/lib/session";
 
 interface NavItem {
   to: string;
@@ -160,11 +193,67 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [language, setLanguage] = useState("es");
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(window.localStorage.getItem("fideleo:sidebar-collapsed") === "true");
+    setSelectedLocations(getSelectedLocationIds());
+    setLanguage(window.localStorage.getItem("fideleo:language") ?? "es");
+    const dark = window.localStorage.getItem("fideleo:theme") === "dark";
+    setDarkMode(dark);
+    document.documentElement.classList.toggle("dark", dark);
+  }, []);
+
+  useEffect(() => {
+    if (!session?.locations.length || !selectedLocations.length) return;
+    const allowed = new Set(session.locations.map((location) => location.id));
+    const valid = selectedLocations.filter((id) => allowed.has(id));
+    if (valid.length !== selectedLocations.length) {
+      setSelectedLocations(valid);
+      setSelectedLocationIds(valid);
+    }
+  }, [selectedLocations, session?.locations]);
 
   const role = session?.org?.role ?? "staff";
   const items =
     session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
   const roleName = session?.isSuperadmin ? "Superadmin" : role;
+
+  const updateLocations = (ids: string[]) => {
+    setSelectedLocations(ids);
+    setSelectedLocationIds(ids);
+  };
+
+  const toggleLocation = (id: string) => {
+    updateLocations(
+      selectedLocations.includes(id)
+        ? selectedLocations.filter((locationId) => locationId !== id)
+        : [...selectedLocations, id],
+    );
+  };
+
+  const selectedLocationLabel = !selectedLocations.length
+    ? "Todos los locales"
+    : selectedLocations.length === 1
+      ? (session?.locations.find((location) => location.id === selectedLocations[0])?.name ??
+        "1 local")
+      : `${selectedLocations.length} locales`;
+
+  const toggleSidebar = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    window.localStorage.setItem("fideleo:sidebar-collapsed", String(next));
+  };
+
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle("dark", next);
+    window.localStorage.setItem("fideleo:theme", next ? "dark" : "light");
+  };
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -185,21 +274,100 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const sidebar = (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-5">
-        <div>
+      <div className="relative border-b border-sidebar-border px-3 py-4">
+        <div className="flex items-center gap-2">
           <Link
-            to="/panel"
-            className="flex items-center gap-2.5"
-            aria-label="Fideleo, inicio del panel"
+            to="/panel/perfil"
+            onClick={() => setOpen(false)}
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent",
+              collapsed && "lg:justify-center",
+            )}
           >
-            <img src="/isotipo.svg" alt="" width={30} height={30} className="size-7" />
-            <img src="/logo.svg" alt="Fideleo" width={210} height={47} className="h-6 w-auto" />
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
+              {(session?.fullName ?? session?.email ?? "F").slice(0, 2).toUpperCase()}
+            </span>
+            <span className={cn("min-w-0", collapsed && "lg:hidden")}>
+              <span className="block truncate text-sm font-semibold">
+                {session?.fullName ?? session?.email ?? "Mi perfil"}
+              </span>
+              <span className="block truncate text-xs capitalize text-sidebar-foreground/55">
+                {roleName}
+              </span>
+            </span>
           </Link>
-          <p className="mt-1 text-xs text-sidebar-foreground/55">
-            {session?.organizationName ?? "Sin organización"}
-          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="hidden shrink-0 text-sidebar-foreground/65 hover:bg-sidebar-accent lg:inline-flex"
+            onClick={toggleSidebar}
+            aria-label={collapsed ? "Mostrar textos del menú" : "Ocultar textos del menú"}
+            title={collapsed ? "Mostrar menú" : "Contraer menú"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
+          </Button>
         </div>
-        <button className="lg:hidden" onClick={() => setOpen(false)} aria-label="Cerrar menú">
+
+        {session?.locations.length && session.locations.length > 1 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "mt-3 w-full justify-between border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent",
+                  collapsed && "lg:justify-center lg:px-2",
+                )}
+              >
+                <MapPin className="size-4 shrink-0" />
+                <span className={cn("truncate", collapsed && "lg:hidden")}>
+                  {selectedLocationLabel}
+                </span>
+                <ChevronDown className={cn("size-4 opacity-55", collapsed && "lg:hidden")} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-60">
+              <DropdownMenuCheckboxItem
+                checked={!selectedLocations.length}
+                onSelect={(event) => event.preventDefault()}
+                onCheckedChange={() => updateLocations([])}
+              >
+                Todos los locales
+              </DropdownMenuCheckboxItem>
+              {session.locations.map((location) => (
+                <DropdownMenuCheckboxItem
+                  key={location.id}
+                  checked={selectedLocations.includes(location.id)}
+                  onSelect={(event) => event.preventDefault()}
+                  onCheckedChange={() => toggleLocation(location.id)}
+                >
+                  {location.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : session?.locations.length === 1 ? (
+          <p
+            className={cn(
+              "mt-3 flex items-center gap-2 px-2 text-xs text-sidebar-foreground/55",
+              collapsed && "lg:justify-center",
+            )}
+          >
+            <MapPin className="size-4 shrink-0" />
+            <span className={cn("truncate", collapsed && "lg:hidden")}>
+              {session.locations[0].name}
+            </span>
+          </p>
+        ) : null}
+        <button
+          className="absolute right-3 top-3 lg:hidden"
+          onClick={() => setOpen(false)}
+          aria-label="Cerrar menú"
+        >
           <X className="size-5" />
         </button>
       </div>
@@ -209,7 +377,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           if (!groupItems.length) return null;
           return (
             <div key={group} className="mb-5">
-              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/40">
+              <p
+                className={cn(
+                  "mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/40",
+                  collapsed && "lg:hidden",
+                )}
+              >
                 {group}
               </p>
               <div className="space-y-1">
@@ -218,15 +391,17 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={item.to}
                     to={item.to}
                     onClick={() => setOpen(false)}
+                    title={collapsed ? item.label : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      collapsed && "lg:justify-center lg:px-2",
                       isActive(item.to)
                         ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/65 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
                     )}
                   >
                     <item.icon aria-hidden className="size-4 shrink-0" />
-                    {item.label}
+                    <span className={cn(collapsed && "lg:hidden")}>{item.label}</span>
                   </Link>
                 ))}
               </div>
@@ -239,54 +414,54 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={() => setOpen(false)}
             className={cn(
               "mt-3 flex items-center gap-3 rounded-lg border border-sidebar-border px-3 py-2.5 text-sm",
+              collapsed && "lg:justify-center lg:px-2",
               pathname.startsWith("/plataforma")
                 ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
             )}
           >
             <ShieldCheck aria-hidden className="size-4 shrink-0" />
-            Plataforma
+            <span className={cn(collapsed && "lg:hidden")}>Plataforma</span>
           </Link>
         ) : null}
       </nav>
       <div className="border-t border-sidebar-border px-4 py-4">
-        <Link
-          to="/panel/perfil"
-          onClick={() => setOpen(false)}
-          className="block rounded-lg px-2 py-1 hover:bg-sidebar-accent"
-        >
-          <p className="truncate text-sm font-medium">{session?.fullName ?? session?.email}</p>
-          <p className="text-xs capitalize text-sidebar-foreground/70">Ver perfil · {roleName}</p>
-        </Link>
         <Button
           variant="ghost"
           size="sm"
-          className="mt-2 w-full justify-start px-2 text-sidebar-foreground/80 hover:bg-sidebar-accent"
+          className={cn(
+            "w-full justify-start px-2 text-sidebar-foreground/80 hover:bg-sidebar-accent",
+            collapsed && "lg:justify-center",
+          )}
           onClick={signOut}
+          title="Cerrar sesión"
         >
-          <LogOut aria-hidden className="size-4" /> Cerrar sesión
+          <LogOut aria-hidden className="size-4" />
+          <span className={cn(collapsed && "lg:hidden")}>Cerrar sesión</span>
         </Button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[15rem_1fr]">
+    <div
+      className={cn(
+        "min-h-screen bg-background lg:grid",
+        collapsed ? "lg:grid-cols-[4.75rem_1fr]" : "lg:grid-cols-[15rem_1fr]",
+      )}
+    >
       <aside className="hidden lg:block lg:h-screen lg:sticky lg:top-0">{sidebar}</aside>
 
       <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b bg-card px-4 py-3">
         <button onClick={() => setOpen(true)} aria-label="Abrir menú">
           <Menu className="size-5" />
         </button>
-        <Link
-          to="/panel"
-          className="flex items-center gap-2"
-          aria-label="Fideleo, inicio del panel"
-        >
-          <img src="/isotipo.svg" alt="" width={26} height={26} className="size-6" />
-          <img src="/logo.svg" alt="Fideleo" width={210} height={47} className="h-5 w-auto" />
-        </Link>
-        <span className="w-5" />
+        <span className="truncate px-3 text-sm font-semibold">
+          {session?.fullName ?? session?.email ?? "Mi perfil"}
+        </span>
+        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Cambiar tema">
+          {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        </Button>
       </div>
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -303,7 +478,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar una sección de Fideleo"
-              className="h-10 w-full rounded-xl border bg-muted/50 pl-10 pr-4 text-sm outline-none transition focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10"
+              className="h-10 w-full rounded-xl border bg-muted/50 pl-10 pr-4 text-sm outline-none transition focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-primary/10"
             />
             {searchResults.length ? (
               <div className="absolute inset-x-0 top-12 overflow-hidden rounded-xl border bg-popover p-1 shadow-xl">
@@ -322,19 +497,66 @@ export function AppShell({ children }: { children: ReactNode }) {
             ) : null}
           </div>
           <div className="ml-6 flex items-center gap-2">
-            <Button asChild variant="ghost" className="h-auto gap-3 rounded-full py-1 pl-2 pr-3">
-              <Link to="/panel/perfil" aria-label="Abrir perfil">
-                <span className="grid size-9 place-items-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
-                  {(session?.fullName ?? session?.email ?? "F").slice(0, 2).toUpperCase()}
-                </span>
-                <span className="hidden text-left xl:block">
-                  <span className="block text-sm font-semibold leading-tight">
-                    {session?.fullName ?? "Mi perfil"}
-                  </span>
-                  <span className="block text-xs capitalize text-muted-foreground">{roleName}</span>
-                </span>
-                <UserRound className="size-4 text-muted-foreground" />
-              </Link>
+            <Select
+              value={language}
+              onValueChange={(value) => {
+                setLanguage(value);
+                window.localStorage.setItem("fideleo:language", value);
+              }}
+            >
+              <SelectTrigger className="w-[8.5rem]" aria-label="Seleccionar idioma">
+                <Languages className="size-4" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="es">Español</SelectItem>
+                <SelectItem value="ca">Català</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Ayuda">
+                  <CircleHelp className="size-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>¿Necesitas ayuda?</DialogTitle>
+                  <DialogDescription>
+                    Ponte en contacto con el equipo de Fideleo y te ayudaremos con tu cuenta.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button asChild variant="outline" className="h-auto justify-start py-4">
+                    <a href="mailto:fideleo.app@gmail.com">
+                      <span className="text-left">
+                        <span className="block text-xs text-muted-foreground">Email</span>
+                        <span className="block">fideleo.app@gmail.com</span>
+                      </span>
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" className="h-auto justify-start py-4">
+                    <a href="https://wa.me/34695834018" target="_blank" rel="noopener noreferrer">
+                      <span className="text-left">
+                        <span className="block text-xs text-muted-foreground">WhatsApp</span>
+                        <span className="block">695 83 40 18</span>
+                      </span>
+                    </a>
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={darkMode ? "Activar modo claro" : "Activar modo oscuro"}
+              title={darkMode ? "Modo claro" : "Modo oscuro"}
+            >
+              {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </Button>
           </div>
         </header>

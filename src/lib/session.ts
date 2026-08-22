@@ -88,3 +88,21 @@ const LOCATION_KEY = "puntia:active-location";
 export const getActiveLocation = () =>
   typeof window === "undefined" ? null : window.localStorage.getItem(LOCATION_KEY);
 export const setActiveLocation = (id: string) => window.localStorage.setItem(LOCATION_KEY, id);
+
+const LOCATION_FILTER_KEY = "fideleo:selected-locations";
+export const locationFilterEvent = "fideleo:location-filter-changed";
+
+export const getSelectedLocationIds = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const value = JSON.parse(window.localStorage.getItem(LOCATION_FILTER_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setSelectedLocationIds = (ids: string[]) => {
+  window.localStorage.setItem(LOCATION_FILTER_KEY, JSON.stringify(ids));
+  window.dispatchEvent(new CustomEvent(locationFilterEvent, { detail: ids }));
+};
