@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Ban, Copy, KeyRound, Save } from "lucide-react";
+import {
+  Ban,
+  Copy,
+  ExternalLink,
+  ImagePlus,
+  KeyRound,
+  LoaderCircle,
+  Rocket,
+  Save,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -19,6 +29,9 @@ export const Route = createFileRoute("/_authenticated/panel/configuracion")({
 
 const empty = {
   display_name: "",
+  legal_name: "",
+  tax_id: "",
+  registry_details: "",
   category: "",
   contact_email: "",
   contact_phone: "",
@@ -37,6 +50,9 @@ const empty = {
   cover_url: "",
   welcome_message: "",
   program_description: "",
+  legal_notice: "",
+  privacy_policy: "",
+  cookie_policy: "",
 };
 
 function ConfiguracionPage() {
@@ -44,6 +60,7 @@ function ConfiguracionPage() {
   const orgId = session?.org?.organization_id;
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [uploadingAsset, setUploadingAsset] = useState<"logo_url" | "cover_url" | null>(null);
   const [issuingKey, setIssuingKey] = useState(false);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
 
@@ -87,6 +104,9 @@ function ConfiguracionPage() {
     if (!data) return;
     setForm({
       display_name: data.org.display_name ?? "",
+      legal_name: data.org.legal_name ?? "",
+      tax_id: data.org.tax_id ?? "",
+      registry_details: data.org.registry_details ?? "",
       category: data.org.category ?? "",
       contact_email: data.org.contact_email ?? "",
       contact_phone: data.org.contact_phone ?? "",
@@ -105,6 +125,9 @@ function ConfiguracionPage() {
       cover_url: data.branding?.cover_url ?? "",
       welcome_message: data.branding?.welcome_message ?? "",
       program_description: data.branding?.program_description ?? "",
+      legal_notice: data.branding?.legal_notice ?? "",
+      privacy_policy: data.branding?.privacy_policy ?? "",
+      cookie_policy: data.branding?.cookie_policy ?? "",
     });
   }, [data]);
 
@@ -119,6 +142,9 @@ function ConfiguracionPage() {
         .from("organizations")
         .update({
           display_name: form.display_name.trim(),
+          legal_name: form.legal_name || null,
+          tax_id: form.tax_id || null,
+          registry_details: form.registry_details || null,
           category: form.category || null,
           contact_email: form.contact_email || null,
           contact_phone: form.contact_phone || null,
@@ -143,6 +169,9 @@ function ConfiguracionPage() {
         cover_url: form.cover_url || null,
         welcome_message: form.welcome_message || null,
         program_description: form.program_description || null,
+        legal_notice: form.legal_notice || null,
+        privacy_policy: form.privacy_policy || null,
+        cookie_policy: form.cookie_policy || null,
       }),
     ]);
     setSaving(false);
@@ -153,6 +182,44 @@ function ConfiguracionPage() {
     }
     toast.success("Configuración actualizada");
     void refetch();
+  };
+
+  const uploadBrandAsset = async (file: File, kind: "logo_url" | "cover_url") => {
+    if (!orgId) return;
+    const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+    if (!allowedTypes.has(file.type)) {
+      toast.error("Formato no compatible", { description: "Utiliza una imagen PNG, JPG o WebP." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 5 MB");
+      return;
+    }
+
+    setUploadingAsset(kind);
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const assetName = kind === "logo_url" ? "logo" : "cover";
+    const path = `${orgId}/${assetName}-${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("brand-assets").upload(path, file, {
+      contentType: file.type,
+    });
+    if (uploadError) {
+      setUploadingAsset(null);
+      toast.error("No se pudo subir la imagen", { description: uploadError.message });
+      return;
+    }
+
+    const { data: signed, error: signError } = await supabase.storage
+      .from("brand-assets")
+      .createSignedUrl(path, 31_536_000);
+    setUploadingAsset(null);
+    if (signError) {
+      toast.error("No se pudo preparar la imagen", { description: signError.message });
+      return;
+    }
+
+    setForm((current) => ({ ...current, [kind]: signed.signedUrl }));
+    toast.success("Imagen subida", { description: "Pulsa Guardar para publicar el cambio." });
   };
 
   const issueApiKey = async () => {
@@ -207,7 +274,7 @@ function ConfiguracionPage() {
         title="Configuración"
         description="Datos, identidad y presencia pública del negocio."
         actions={
-          <Button disabled={saving} onClick={() => void save()}>
+          <Button disabled={saving || uploadingAsset !== null} onClick={() => void save()}>
             <Save className="size-4" /> {saving ? "Guardando…" : "Guardar"}
           </Button>
         }
@@ -216,12 +283,16 @@ function ConfiguracionPage() {
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="business">Negocio</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="publish">Publicar club</TabsTrigger>
           <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="integrations">Integraciones</TabsTrigger>
           <TabsTrigger value="privacy">Privacidad</TabsTrigger>
         </TabsList>
         <TabsContent value="business" className="surface grid gap-4 p-5 sm:grid-cols-2">
           {field("display_name", "Nombre comercial")}
+          {field("legal_name", "Razón social")}
+          {field("tax_id", "NIF / CIF")}
+          {field("registry_details", "Datos registrales")}
           {field("category", "Categoría")}
           {field("contact_email", "Email", "email")}
           {field("contact_phone", "Teléfono", "tel")}
@@ -239,10 +310,63 @@ function ConfiguracionPage() {
             {field("secondary_color", "Color secundario", "color")}
             {field("background_color", "Color de fondo", "color")}
             {field("text_color", "Color de texto", "color")}
-            <div className="sm:col-span-2">{field("logo_url", "URL del logo", "url")}</div>
-            <div className="sm:col-span-2">
-              {field("cover_url", "URL de imagen principal", "url")}
-            </div>
+            {(
+              [
+                ["logo_url", "Logo", "Se mostrará sobre la portada"],
+                ["cover_url", "Imagen de portada", "Recomendado: formato horizontal"],
+              ] as const
+            ).map(([kind, label, help]) => (
+              <div key={kind} className="space-y-2 sm:col-span-2">
+                <Label htmlFor={`branding-${kind}`}>{label}</Label>
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed p-3">
+                  <Input
+                    id={`branding-${kind}`}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    disabled={uploadingAsset !== null}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) void uploadBrandAsset(file, kind);
+                    }}
+                  />
+                  <Button
+                    asChild
+                    type="button"
+                    variant="outline"
+                    disabled={uploadingAsset !== null}
+                  >
+                    <label htmlFor={`branding-${kind}`} className="cursor-pointer">
+                      {uploadingAsset === kind ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <ImagePlus className="size-4" />
+                      )}
+                      {uploadingAsset === kind
+                        ? "Subiendo…"
+                        : form[kind]
+                          ? `Cambiar ${label.toLowerCase()}`
+                          : `Seleccionar ${label.toLowerCase()}`}
+                    </label>
+                  </Button>
+                  {form[kind] ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={uploadingAsset !== null}
+                      onClick={() => setForm((current) => ({ ...current, [kind]: "" }))}
+                    >
+                      <X className="size-4" /> Quitar
+                    </Button>
+                  ) : null}
+                  <p className="basis-full text-xs text-muted-foreground">
+                    {help}. PNG, JPG o WebP · máximo 5 MB.
+                  </p>
+                </div>
+              </div>
+            ))}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="welcome">Mensaje de bienvenida</Label>
               <Textarea
@@ -251,26 +375,88 @@ function ConfiguracionPage() {
                 onChange={(e) => setForm({ ...form, welcome_message: e.target.value })}
               />
             </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="program-description">Descripción pública del club</Label>
+              <Textarea
+                id="program-description"
+                value={form.program_description}
+                onChange={(e) => setForm({ ...form, program_description: e.target.value })}
+              />
+            </div>
           </div>
           <div
-            className="surface overflow-hidden p-6"
+            className="surface overflow-hidden"
             style={{ backgroundColor: form.background_color, color: form.text_color }}
           >
-            <div
-              className="rounded-xl p-6"
-              style={{ backgroundColor: form.primary_color, color: form.background_color }}
-            >
-              <p className="text-sm opacity-80">Vista previa</p>
-              <h2 className="mt-1 font-display text-2xl font-semibold">
-                {form.welcome_message || `Bienvenido a ${form.display_name}`}
-              </h2>
-              <p className="mt-8 text-sm">Tu programa de fidelización, siempre contigo.</p>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/25">
-                <div
-                  className="h-full w-2/3 rounded-full"
-                  style={{ backgroundColor: form.secondary_color }}
+            <div className="relative h-64 overflow-hidden">
+              {form.cover_url ? (
+                <img
+                  src={form.cover_url}
+                  alt="Vista previa de portada"
+                  className="absolute inset-0 size-full object-cover"
                 />
+              ) : (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${form.primary_color}, ${form.secondary_color})`,
+                  }}
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/70" />
+              <div className="absolute inset-x-0 bottom-0 p-6 text-center text-white">
+                {form.logo_url ? (
+                  <img
+                    src={form.logo_url}
+                    alt="Vista previa del logo"
+                    className="mx-auto mb-4 max-h-16 max-w-36 rounded-xl bg-white p-2 object-contain"
+                  />
+                ) : null}
+                <p className="text-xs font-semibold uppercase tracking-widest">Vista previa</p>
+                <h2 className="mt-2 font-display text-2xl font-semibold">
+                  {form.welcome_message || `Bienvenido a ${form.display_name}`}
+                </h2>
               </div>
+            </div>
+            <div className="p-6">
+              <p className="text-sm leading-relaxed opacity-70">
+                {form.program_description || "Tu programa de fidelización, siempre contigo."}
+              </p>
+              <div
+                className="mt-5 h-11 rounded-full"
+                style={{ backgroundColor: form.primary_color }}
+              />
+              {data?.org.slug ? (
+                <Button asChild variant="outline" className="mt-5 w-full">
+                  <Link
+                    to="/club/$businessSlug"
+                    params={{ businessSlug: data.org.slug }}
+                    target="_blank"
+                  >
+                    Abrir página pública
+                    <ExternalLink className="size-4" />
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="publish" className="surface p-5 sm:p-7">
+          <div className="flex max-w-3xl flex-col gap-5 sm:flex-row sm:items-start">
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+              <Rocket className="size-5" />
+            </span>
+            <div>
+              <h2 className="font-display text-xl font-bold">
+                Configuración y publicación del club
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Completa la identidad, la mecánica de puntos, las recompensas y los establecimientos
+                antes de publicar la experiencia para tus clientes.
+              </p>
+              <Button asChild className="mt-5">
+                <Link to="/panel/onboarding">Abrir configuración guiada</Link>
+              </Button>
             </div>
           </div>
         </TabsContent>
@@ -378,13 +564,45 @@ function ConfiguracionPage() {
             </div>
           </section>
         </TabsContent>
-        <TabsContent value="privacy" className="surface p-5">
+        <TabsContent value="privacy" className="surface p-5 sm:p-7">
           <h2 className="font-display text-lg font-semibold">Privacidad y consentimientos</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             El alta exige aceptación expresa de términos y guarda el consentimiento comercial de
-            forma independiente. Los textos legales específicos pueden mantenerse en la
-            configuración del programa.
+            forma independiente. Si dejas un texto vacío, se mostrará la plantilla legal de Fideleo
+            con los datos del negocio.
           </p>
+          <div className="mt-6 grid gap-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="legal-notice">Aviso legal personalizado</Label>
+              <Textarea
+                id="legal-notice"
+                rows={8}
+                value={form.legal_notice}
+                onChange={(event) => setForm({ ...form, legal_notice: event.target.value })}
+                placeholder="Opcional: sustituye por completo la plantilla de aviso legal."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="privacy-policy">Política de privacidad personalizada</Label>
+              <Textarea
+                id="privacy-policy"
+                rows={10}
+                value={form.privacy_policy}
+                onChange={(event) => setForm({ ...form, privacy_policy: event.target.value })}
+                placeholder="Opcional: sustituye por completo la plantilla de privacidad."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cookie-policy">Política de cookies personalizada</Label>
+              <Textarea
+                id="cookie-policy"
+                rows={8}
+                value={form.cookie_policy}
+                onChange={(event) => setForm({ ...form, cookie_policy: event.target.value })}
+                placeholder="Opcional: sustituye por completo la plantilla de cookies."
+              />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </>

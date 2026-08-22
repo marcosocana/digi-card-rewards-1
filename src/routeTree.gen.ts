@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as SolicitarDemoRouteImport } from './routes/solicitar-demo'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPlataformaRouteImport } from './routes/_authenticated/plataforma'
 import { Route as ClubBusinessSlugRouteImport } from './routes/club.$businessSlug'
+import { Route as LegalDocumentRouteImport } from './routes/legal.$document'
 import { Route as MiTarjetaPublicIdRouteImport } from './routes/mi-tarjeta.$publicId'
 import { Route as AuthenticatedPanelIndexRouteImport } from './routes/_authenticated/panel.index'
 import { Route as AuthenticatedPanelActividadRouteImport } from './routes/_authenticated/panel.actividad'
@@ -29,13 +31,16 @@ import { Route as AuthenticatedPanelEstablecimientosRouteImport } from './routes
 import { Route as AuthenticatedPanelEstadisticasRouteImport } from './routes/_authenticated/panel.estadisticas'
 import { Route as AuthenticatedPanelNotificacionesRouteImport } from './routes/_authenticated/panel.notificaciones'
 import { Route as AuthenticatedPanelOnboardingRouteImport } from './routes/_authenticated/panel.onboarding'
+import { Route as AuthenticatedPanelPerfilRouteImport } from './routes/_authenticated/panel.perfil'
 import { Route as AuthenticatedPanelProgramaRouteImport } from './routes/_authenticated/panel.programa'
 import { Route as AuthenticatedPanelRecompensasRouteImport } from './routes/_authenticated/panel.recompensas'
+import { Route as AuthenticatedPanelTiendaRouteImport } from './routes/_authenticated/panel.tienda'
 import { Route as AuthenticatedPanelWalletRouteImport } from './routes/_authenticated/panel.wallet'
 import { Route as UnirmeOrganizationSlugIndexRouteImport } from './routes/unirme.$organizationSlug.index'
 import { Route as UnirmeOrganizationSlugLocationSlugRouteImport } from './routes/unirme.$organizationSlug.$locationSlug'
 import { Route as AuthenticatedPanelClientesIndexRouteImport } from './routes/_authenticated/panel.clientes.index'
 import { Route as AuthenticatedPanelClientesMembershipIdRouteImport } from './routes/_authenticated/panel.clientes.$membershipId'
+import { Route as ClubBusinessSlugLegalDocumentRouteImport } from './routes/club.$businessSlug.legal.$document'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +56,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SolicitarDemoRoute = SolicitarDemoRouteImport.update({
+  id: '/solicitar-demo',
+  path: '/solicitar-demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
   id: '/panel',
   path: '/panel',
@@ -64,6 +74,11 @@ const AuthenticatedPlataformaRoute = AuthenticatedPlataformaRouteImport.update({
 const ClubBusinessSlugRoute = ClubBusinessSlugRouteImport.update({
   id: '/club/$businessSlug',
   path: '/club/$businessSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalDocumentRoute = LegalDocumentRouteImport.update({
+  id: '/legal/$document',
+  path: '/legal/$document',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MiTarjetaPublicIdRoute = MiTarjetaPublicIdRouteImport.update({
@@ -147,6 +162,12 @@ const AuthenticatedPanelOnboardingRoute =
     path: '/onboarding',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
+const AuthenticatedPanelPerfilRoute =
+  AuthenticatedPanelPerfilRouteImport.update({
+    id: '/perfil',
+    path: '/perfil',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 const AuthenticatedPanelProgramaRoute =
   AuthenticatedPanelProgramaRouteImport.update({
     id: '/programa',
@@ -157,6 +178,12 @@ const AuthenticatedPanelRecompensasRoute =
   AuthenticatedPanelRecompensasRouteImport.update({
     id: '/recompensas',
     path: '/recompensas',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
+const AuthenticatedPanelTiendaRoute =
+  AuthenticatedPanelTiendaRouteImport.update({
+    id: '/tienda',
+    path: '/tienda',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
 const AuthenticatedPanelWalletRoute =
@@ -189,13 +216,21 @@ const AuthenticatedPanelClientesMembershipIdRoute =
     path: '/clientes/$membershipId',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
+const ClubBusinessSlugLegalDocumentRoute =
+  ClubBusinessSlugLegalDocumentRouteImport.update({
+    id: '/legal/$document',
+    path: '/legal/$document',
+    getParentRoute: () => ClubBusinessSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/solicitar-demo': typeof SolicitarDemoRoute
   '/panel': typeof AuthenticatedPanelRouteWithChildren
   '/plataforma': typeof AuthenticatedPlataformaRoute
-  '/club/$businessSlug': typeof ClubBusinessSlugRoute
+  '/club/$businessSlug': typeof ClubBusinessSlugRouteWithChildren
+  '/legal/$document': typeof LegalDocumentRoute
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/automatizaciones': typeof AuthenticatedPanelAutomatizacionesRoute
@@ -209,20 +244,25 @@ export interface FileRoutesByFullPath {
   '/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
   '/panel/notificaciones': typeof AuthenticatedPanelNotificacionesRoute
   '/panel/onboarding': typeof AuthenticatedPanelOnboardingRoute
+  '/panel/perfil': typeof AuthenticatedPanelPerfilRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/panel/tienda': typeof AuthenticatedPanelTiendaRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
   '/panel/': typeof AuthenticatedPanelIndexRoute
   '/unirme/$organizationSlug/': typeof UnirmeOrganizationSlugIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
+  '/club/$businessSlug/legal/$document': typeof ClubBusinessSlugLegalDocumentRoute
   '/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/solicitar-demo': typeof SolicitarDemoRoute
   '/plataforma': typeof AuthenticatedPlataformaRoute
-  '/club/$businessSlug': typeof ClubBusinessSlugRoute
+  '/club/$businessSlug': typeof ClubBusinessSlugRouteWithChildren
+  '/legal/$document': typeof LegalDocumentRoute
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/panel/automatizaciones': typeof AuthenticatedPanelAutomatizacionesRoute
@@ -236,13 +276,16 @@ export interface FileRoutesByTo {
   '/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
   '/panel/notificaciones': typeof AuthenticatedPanelNotificacionesRoute
   '/panel/onboarding': typeof AuthenticatedPanelOnboardingRoute
+  '/panel/perfil': typeof AuthenticatedPanelPerfilRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/panel/tienda': typeof AuthenticatedPanelTiendaRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
   '/panel': typeof AuthenticatedPanelIndexRoute
   '/unirme/$organizationSlug': typeof UnirmeOrganizationSlugIndexRoute
   '/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
+  '/club/$businessSlug/legal/$document': typeof ClubBusinessSlugLegalDocumentRoute
   '/panel/clientes': typeof AuthenticatedPanelClientesIndexRoute
 }
 export interface FileRoutesById {
@@ -250,9 +293,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/solicitar-demo': typeof SolicitarDemoRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRouteWithChildren
   '/_authenticated/plataforma': typeof AuthenticatedPlataformaRoute
-  '/club/$businessSlug': typeof ClubBusinessSlugRoute
+  '/club/$businessSlug': typeof ClubBusinessSlugRouteWithChildren
+  '/legal/$document': typeof LegalDocumentRoute
   '/mi-tarjeta/$publicId': typeof MiTarjetaPublicIdRoute
   '/_authenticated/panel/actividad': typeof AuthenticatedPanelActividadRoute
   '/_authenticated/panel/automatizaciones': typeof AuthenticatedPanelAutomatizacionesRoute
@@ -266,13 +311,16 @@ export interface FileRoutesById {
   '/_authenticated/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
   '/_authenticated/panel/notificaciones': typeof AuthenticatedPanelNotificacionesRoute
   '/_authenticated/panel/onboarding': typeof AuthenticatedPanelOnboardingRoute
+  '/_authenticated/panel/perfil': typeof AuthenticatedPanelPerfilRoute
   '/_authenticated/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/_authenticated/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/_authenticated/panel/tienda': typeof AuthenticatedPanelTiendaRoute
   '/_authenticated/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
   '/_authenticated/panel/': typeof AuthenticatedPanelIndexRoute
   '/unirme/$organizationSlug/': typeof UnirmeOrganizationSlugIndexRoute
   '/_authenticated/panel/clientes/$membershipId': typeof AuthenticatedPanelClientesMembershipIdRoute
+  '/club/$businessSlug/legal/$document': typeof ClubBusinessSlugLegalDocumentRoute
   '/_authenticated/panel/clientes/': typeof AuthenticatedPanelClientesIndexRoute
 }
 export interface FileRouteTypes {
@@ -280,9 +328,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/solicitar-demo'
     | '/panel'
     | '/plataforma'
     | '/club/$businessSlug'
+    | '/legal/$document'
     | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
     | '/panel/automatizaciones'
@@ -296,20 +346,25 @@ export interface FileRouteTypes {
     | '/panel/estadisticas'
     | '/panel/notificaciones'
     | '/panel/onboarding'
+    | '/panel/perfil'
     | '/panel/programa'
     | '/panel/recompensas'
+    | '/panel/tienda'
     | '/panel/wallet'
     | '/unirme/$organizationSlug/$locationSlug'
     | '/panel/'
     | '/unirme/$organizationSlug/'
     | '/panel/clientes/$membershipId'
+    | '/club/$businessSlug/legal/$document'
     | '/panel/clientes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/solicitar-demo'
     | '/plataforma'
     | '/club/$businessSlug'
+    | '/legal/$document'
     | '/mi-tarjeta/$publicId'
     | '/panel/actividad'
     | '/panel/automatizaciones'
@@ -323,22 +378,27 @@ export interface FileRouteTypes {
     | '/panel/estadisticas'
     | '/panel/notificaciones'
     | '/panel/onboarding'
+    | '/panel/perfil'
     | '/panel/programa'
     | '/panel/recompensas'
+    | '/panel/tienda'
     | '/panel/wallet'
     | '/unirme/$organizationSlug/$locationSlug'
     | '/panel'
     | '/unirme/$organizationSlug'
     | '/panel/clientes/$membershipId'
+    | '/club/$businessSlug/legal/$document'
     | '/panel/clientes'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/solicitar-demo'
     | '/_authenticated/panel'
     | '/_authenticated/plataforma'
     | '/club/$businessSlug'
+    | '/legal/$document'
     | '/mi-tarjeta/$publicId'
     | '/_authenticated/panel/actividad'
     | '/_authenticated/panel/automatizaciones'
@@ -352,13 +412,16 @@ export interface FileRouteTypes {
     | '/_authenticated/panel/estadisticas'
     | '/_authenticated/panel/notificaciones'
     | '/_authenticated/panel/onboarding'
+    | '/_authenticated/panel/perfil'
     | '/_authenticated/panel/programa'
     | '/_authenticated/panel/recompensas'
+    | '/_authenticated/panel/tienda'
     | '/_authenticated/panel/wallet'
     | '/unirme/$organizationSlug/$locationSlug'
     | '/_authenticated/panel/'
     | '/unirme/$organizationSlug/'
     | '/_authenticated/panel/clientes/$membershipId'
+    | '/club/$businessSlug/legal/$document'
     | '/_authenticated/panel/clientes/'
   fileRoutesById: FileRoutesById
 }
@@ -366,7 +429,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  ClubBusinessSlugRoute: typeof ClubBusinessSlugRoute
+  SolicitarDemoRoute: typeof SolicitarDemoRoute
+  ClubBusinessSlugRoute: typeof ClubBusinessSlugRouteWithChildren
+  LegalDocumentRoute: typeof LegalDocumentRoute
   MiTarjetaPublicIdRoute: typeof MiTarjetaPublicIdRoute
   UnirmeOrganizationSlugLocationSlugRoute: typeof UnirmeOrganizationSlugLocationSlugRoute
   UnirmeOrganizationSlugIndexRoute: typeof UnirmeOrganizationSlugIndexRoute
@@ -395,6 +460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/solicitar-demo': {
+      id: '/solicitar-demo'
+      path: '/solicitar-demo'
+      fullPath: '/solicitar-demo'
+      preLoaderRoute: typeof SolicitarDemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/panel': {
       id: '/_authenticated/panel'
       path: '/panel'
@@ -414,6 +486,13 @@ declare module '@tanstack/react-router' {
       path: '/club/$businessSlug'
       fullPath: '/club/$businessSlug'
       preLoaderRoute: typeof ClubBusinessSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/$document': {
+      id: '/legal/$document'
+      path: '/legal/$document'
+      fullPath: '/legal/$document'
+      preLoaderRoute: typeof LegalDocumentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mi-tarjeta/$publicId': {
@@ -514,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelOnboardingRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/_authenticated/panel/perfil': {
+      id: '/_authenticated/panel/perfil'
+      path: '/perfil'
+      fullPath: '/panel/perfil'
+      preLoaderRoute: typeof AuthenticatedPanelPerfilRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
     '/_authenticated/panel/programa': {
       id: '/_authenticated/panel/programa'
       path: '/programa'
@@ -526,6 +612,13 @@ declare module '@tanstack/react-router' {
       path: '/recompensas'
       fullPath: '/panel/recompensas'
       preLoaderRoute: typeof AuthenticatedPanelRecompensasRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
+    '/_authenticated/panel/tienda': {
+      id: '/_authenticated/panel/tienda'
+      path: '/tienda'
+      fullPath: '/panel/tienda'
+      preLoaderRoute: typeof AuthenticatedPanelTiendaRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
     '/_authenticated/panel/wallet': {
@@ -563,6 +656,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelClientesMembershipIdRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/club/$businessSlug/legal/$document': {
+      id: '/club/$businessSlug/legal/$document'
+      path: '/legal/$document'
+      fullPath: '/club/$businessSlug/legal/$document'
+      preLoaderRoute: typeof ClubBusinessSlugLegalDocumentRouteImport
+      parentRoute: typeof ClubBusinessSlugRoute
+    }
   }
 }
 
@@ -579,8 +679,10 @@ interface AuthenticatedPanelRouteChildren {
   AuthenticatedPanelEstadisticasRoute: typeof AuthenticatedPanelEstadisticasRoute
   AuthenticatedPanelNotificacionesRoute: typeof AuthenticatedPanelNotificacionesRoute
   AuthenticatedPanelOnboardingRoute: typeof AuthenticatedPanelOnboardingRoute
+  AuthenticatedPanelPerfilRoute: typeof AuthenticatedPanelPerfilRoute
   AuthenticatedPanelProgramaRoute: typeof AuthenticatedPanelProgramaRoute
   AuthenticatedPanelRecompensasRoute: typeof AuthenticatedPanelRecompensasRoute
+  AuthenticatedPanelTiendaRoute: typeof AuthenticatedPanelTiendaRoute
   AuthenticatedPanelWalletRoute: typeof AuthenticatedPanelWalletRoute
   AuthenticatedPanelIndexRoute: typeof AuthenticatedPanelIndexRoute
   AuthenticatedPanelClientesMembershipIdRoute: typeof AuthenticatedPanelClientesMembershipIdRoute
@@ -602,8 +704,10 @@ const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelEstadisticasRoute: AuthenticatedPanelEstadisticasRoute,
   AuthenticatedPanelNotificacionesRoute: AuthenticatedPanelNotificacionesRoute,
   AuthenticatedPanelOnboardingRoute: AuthenticatedPanelOnboardingRoute,
+  AuthenticatedPanelPerfilRoute: AuthenticatedPanelPerfilRoute,
   AuthenticatedPanelProgramaRoute: AuthenticatedPanelProgramaRoute,
   AuthenticatedPanelRecompensasRoute: AuthenticatedPanelRecompensasRoute,
+  AuthenticatedPanelTiendaRoute: AuthenticatedPanelTiendaRoute,
   AuthenticatedPanelWalletRoute: AuthenticatedPanelWalletRoute,
   AuthenticatedPanelIndexRoute: AuthenticatedPanelIndexRoute,
   AuthenticatedPanelClientesMembershipIdRoute:
@@ -627,11 +731,24 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ClubBusinessSlugRouteChildren {
+  ClubBusinessSlugLegalDocumentRoute: typeof ClubBusinessSlugLegalDocumentRoute
+}
+
+const ClubBusinessSlugRouteChildren: ClubBusinessSlugRouteChildren = {
+  ClubBusinessSlugLegalDocumentRoute: ClubBusinessSlugLegalDocumentRoute,
+}
+
+const ClubBusinessSlugRouteWithChildren =
+  ClubBusinessSlugRoute._addFileChildren(ClubBusinessSlugRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  ClubBusinessSlugRoute: ClubBusinessSlugRoute,
+  SolicitarDemoRoute: SolicitarDemoRoute,
+  ClubBusinessSlugRoute: ClubBusinessSlugRouteWithChildren,
+  LegalDocumentRoute: LegalDocumentRoute,
   MiTarjetaPublicIdRoute: MiTarjetaPublicIdRoute,
   UnirmeOrganizationSlugLocationSlugRoute:
     UnirmeOrganizationSlugLocationSlugRoute,

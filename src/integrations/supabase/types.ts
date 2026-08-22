@@ -708,10 +708,14 @@ export type Database = {
       }
       customers: {
         Row: {
+          address_line: string | null
           birth_date: string | null
+          city: string | null
+          country: string | null
           created_at: string
           email: string
           first_name: string
+          gender: string | null
           id: string
           internal_notes: string | null
           last_activity_at: string | null
@@ -720,14 +724,19 @@ export type Database = {
           normalized_phone: string | null
           organization_id: string | null
           phone: string | null
+          postal_code: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          address_line?: string | null
           birth_date?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           email: string
           first_name: string
+          gender?: string | null
           id?: string
           internal_notes?: string | null
           last_activity_at?: string | null
@@ -736,14 +745,19 @@ export type Database = {
           normalized_phone?: string | null
           organization_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          address_line?: string | null
           birth_date?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           email?: string
           first_name?: string
+          gender?: string | null
           id?: string
           internal_notes?: string | null
           last_activity_at?: string | null
@@ -752,6 +766,7 @@ export type Database = {
           normalized_phone?: string | null
           organization_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           status?: string
           updated_at?: string
         }
@@ -1799,10 +1814,13 @@ export type Database = {
           font_family: string
           instagram: string | null
           logo_url: string | null
+          legal_notice: string | null
           organization_id: string
           primary_color: string
+          privacy_policy: string | null
           program_description: string | null
           secondary_color: string
+          cookie_policy: string | null
           text_color: string
           updated_at: string
           website: string | null
@@ -1817,10 +1835,13 @@ export type Database = {
           font_family?: string
           instagram?: string | null
           logo_url?: string | null
+          legal_notice?: string | null
           organization_id: string
           primary_color?: string
+          privacy_policy?: string | null
           program_description?: string | null
           secondary_color?: string
+          cookie_policy?: string | null
           text_color?: string
           updated_at?: string
           website?: string | null
@@ -1835,10 +1856,13 @@ export type Database = {
           font_family?: string
           instagram?: string | null
           logo_url?: string | null
+          legal_notice?: string | null
           organization_id?: string
           primary_color?: string
+          privacy_policy?: string | null
           program_description?: string | null
           secondary_color?: string
+          cookie_policy?: string | null
           text_color?: string
           updated_at?: string
           website?: string | null
@@ -1916,6 +1940,8 @@ export type Database = {
           instagram: string | null
           latitude: number | null
           legal_name: string | null
+          tax_id: string | null
+          registry_details: string | null
           longitude: number | null
           menu_url: string | null
           notification_daily_limit: number
@@ -1943,6 +1969,8 @@ export type Database = {
           instagram?: string | null
           latitude?: number | null
           legal_name?: string | null
+          tax_id?: string | null
+          registry_details?: string | null
           longitude?: number | null
           menu_url?: string | null
           notification_daily_limit?: number
@@ -1970,6 +1998,8 @@ export type Database = {
           instagram?: string | null
           latitude?: number | null
           legal_name?: string | null
+          tax_id?: string | null
+          registry_details?: string | null
           longitude?: number | null
           menu_url?: string | null
           notification_daily_limit?: number
@@ -2762,6 +2792,26 @@ export type Database = {
             }
             Returns: Json
           }
+      register_verified_customer_and_membership: {
+        Args: {
+          _address_line?: string
+          _birth_date?: string
+          _city?: string
+          _country?: string
+          _email: string
+          _first_name: string
+          _gender?: string
+          _last_name?: string
+          _location_id?: string
+          _marketing?: boolean
+          _phone?: string
+          _postal_code?: string
+          _program_id: string
+          _source_id?: string
+          _terms_accepted?: boolean
+        }
+        Returns: Json
+      }
       request_wallet_update: { Args: { _membership_id: string }; Returns: Json }
       resolve_membership_qr: {
         Args: { _location_id: string; _token: string }

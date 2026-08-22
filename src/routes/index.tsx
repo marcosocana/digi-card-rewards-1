@@ -4,10 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   BadgeCheck,
-  BarChart3,
-  BellRing,
   Check,
-  ChevronRight,
   CircleDollarSign,
   Gift,
   Menu,
@@ -15,13 +12,11 @@ import {
   ScanLine,
   Sparkles,
   Users,
+  Store,
   WalletCards,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import isotipo from "@/assets/isotipo.svg.asset.json";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,68 +37,93 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-const capabilities = [
+const howItWorks = [
   {
+    number: "01",
     icon: QrCode,
-    eyebrow: "CAPTACIÓN",
-    title: "De un QR a un cliente identificado",
-    text: "Publica una landing con tu marca, registra al cliente en segundos y entrégale su tarjeta digital sin descargar ninguna app.",
+    title: "El cliente conoce Fideleo",
+    text: "El cliente llega a tu local y conoce Fideleo a través de carteles, soportes, la carta o por el camarero. Lo importante es que nos conozca.",
     color: "bg-[#dff7ff]",
   },
   {
-    icon: ScanLine,
-    eyebrow: "OPERACIONES",
-    title: "Una experiencia de caja realmente rápida",
-    text: "Escanea, registra la compra y actualiza puntos, sellos o cashback desde cualquier móvil o tablet detrás de la barra.",
+    number: "02",
+    icon: Users,
+    title: "Se registra en un minuto",
+    text: "Al escanear el QR accede a un espacio con el logo y los colores del local, donde completa un breve registro que tarda solo un minuto.",
     color: "bg-[#f3e9ff]",
   },
   {
-    icon: BellRing,
-    eyebrow: "RETENCIÓN",
-    title: "El mensaje adecuado, en el momento adecuado",
-    text: "Segmenta tu base y activa comunicaciones por bienvenida, recompensa, cumpleaños o inactividad.",
+    number: "03",
+    icon: WalletCards,
+    title: "Añade su tarjeta al móvil",
+    text: "Puede añadir directamente la tarjeta de Fideleo a su móvil para tenerla siempre a mano y enseñarla cada vez que consuma.",
     color: "bg-[#fff0d8]",
   },
   {
-    icon: BarChart3,
-    eyebrow: "INTELIGENCIA",
-    title: "Decisiones basadas en visitas reales",
-    text: "Sigue altas, frecuencia, ventas asociadas, canjes y rendimiento por ubicación desde un único panel.",
+    number: "04",
+    icon: ScanLine,
+    title: "El equipo suma los puntos",
+    text: "El camarero escanea la tarjeta con nuestro sistema y contabiliza los puntos de forma rápida y segura.",
     color: "bg-[#e7f8ed]",
+  },
+  {
+    number: "05",
+    icon: Gift,
+    title: "Los puntos se convierten en premios",
+    text: "El cliente acumula puntos y puede convertirlos en productos gratis cuando alcance el volumen de puntos que tú decidas.",
+    color: "bg-[#ffd9ee]",
   },
 ];
 
-const steps = [
-  [
-    "01",
-    "Diseña tu club",
-    "Elige mecánica, recompensa, colores y condiciones desde un onboarding guiado.",
-  ],
-  ["02", "Publica tu QR", "Colócalo en barra, mesas, tickets, redes o web y empieza a captar."],
-  [
-    "03",
-    "Reconoce cada visita",
-    "Tu equipo escanea la tarjeta y Fideleo actualiza el progreso de forma segura.",
-  ],
-  [
-    "04",
-    "Haz que vuelvan",
-    "Activa recompensas, segmentos y automatizaciones basadas en comportamiento real.",
-  ],
+const plans = [
+  {
+    name: "Essential",
+    price: "49 €",
+    checkoutUrl: import.meta.env.VITE_STRIPE_ESSENTIAL_CHECKOUT_URL as string | undefined,
+    color: "bg-[#dff7ff]",
+    features: [
+      "1 establecimiento",
+      "Hasta 1.000 clientes",
+      "Tarjeta digital y QR",
+      "Panel de métricas",
+    ],
+  },
+  {
+    name: "Growth",
+    price: "89 €",
+    checkoutUrl: import.meta.env.VITE_STRIPE_GROWTH_CHECKOUT_URL as string | undefined,
+    color: "bg-[#f8b9e7]",
+    featured: true,
+    features: [
+      "Hasta 3 establecimientos",
+      "Hasta 5.000 clientes",
+      "Campañas y automatizaciones",
+      "Soporte prioritario",
+    ],
+  },
+  {
+    name: "Scale",
+    price: "A medida",
+    checkoutUrl: import.meta.env.VITE_STRIPE_SCALE_CHECKOUT_URL as string | undefined,
+    color: "bg-[#ffe65c]",
+    features: [
+      "Establecimientos ilimitados",
+      "Clientes ilimitados",
+      "Integraciones a medida",
+      "Acompañamiento dedicado",
+    ],
+  },
 ];
 
 function BrandMark({ onDark = false }: { onDark?: boolean }) {
   return (
-    <span className="flex items-center gap-2.5 text-lg font-bold tracking-[-0.04em]">
-      <img
-        src={isotipo.url}
-        alt="Isotipo de Fideleo"
-        width={32}
-        height={32}
-        className={cn("size-8 rounded-full", onDark && "ring-1 ring-white/25")}
-      />
-      Fideleo
-    </span>
+    <img
+      src="/logo.svg"
+      alt="Fideleo"
+      width={210}
+      height={47}
+      className={cn("h-8 w-auto", onDark && "invert")}
+    />
   );
 }
 
@@ -132,7 +152,6 @@ function HomePage() {
             scrolled ? "py-3" : "py-5",
           )}
         >
-
           <Link to="/" aria-label="Fideleo, inicio">
             <BrandMark />
           </Link>
@@ -140,11 +159,11 @@ function HomePage() {
             className="hidden items-center gap-8 text-sm font-medium lg:flex"
             aria-label="Navegación principal"
           >
-            <a href="#plataforma" className="hover:opacity-55">
-              Plataforma
-            </a>
             <a href="#como-funciona" className="hover:opacity-55">
               Cómo funciona
+            </a>
+            <a href="#precios" className="hover:opacity-55">
+              Precios
             </a>
             <a href="#negocios" className="hover:opacity-55">
               Para tu negocio
@@ -158,7 +177,7 @@ function HomePage() {
               <Link to="/auth">Iniciar sesión</Link>
             </Button>
             <Button asChild className="rounded-full bg-black px-6 text-white hover:bg-black/75">
-              <a href="#demo">Solicitar demo</a>
+              <Link to="/solicitar-demo">Solicitar demo</Link>
             </Button>
           </div>
           <Button
@@ -178,8 +197,8 @@ function HomePage() {
             aria-label="Navegación móvil"
           >
             {[
-              ["#plataforma", "Plataforma"],
               ["#como-funciona", "Cómo funciona"],
+              ["#precios", "Precios"],
               ["#negocios", "Para tu negocio"],
               ["#preguntas", "Preguntas"],
             ].map(([href, label]) => (
@@ -193,7 +212,7 @@ function HomePage() {
               </a>
             ))}
             <Button asChild className="mt-2 w-full rounded-xl bg-black text-white">
-              <Link to="/auth">Entrar al backoffice</Link>
+              <Link to="/solicitar-demo">Solicitar demo</Link>
             </Button>
           </nav>
         ) : null}
@@ -204,15 +223,12 @@ function HomePage() {
         <div className="relative mx-auto max-w-[1440px]">
           <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr]">
             <div className="relative z-10 max-w-3xl">
-              <p className="mb-5 text-xs font-bold uppercase tracking-[0.18em]">
-                Fidelización para hostelería y retail
-              </p>
               <h1 className="text-[clamp(3.4rem,7vw,7.5rem)] font-semibold leading-[.88] tracking-[-.07em]">
-                Haz que cada visita cuente.
+                Fideliza a tu cliente para que siempre vuelva
               </h1>
               <p className="mt-7 max-w-xl text-lg leading-relaxed sm:text-xl">
-                Capta clientes, premia su fidelidad y consigue que vuelvan con una tarjeta digital
-                que vive en su móvil.
+                Capta clientes, premia su fidelidad y consigue que repitan gracias a la tarjeta
+                digital que vive en su móvil.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Button
@@ -220,28 +236,10 @@ function HomePage() {
                   size="lg"
                   className="h-13 rounded-full bg-black px-7 text-white hover:bg-black/75"
                 >
-                  <a href="#demo">
-                    Quiero ver Fideleo <ArrowRight />
+                  <a href="#como-funciona">
+                    Ver cómo funciona <ArrowRight />
                   </a>
                 </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="h-13 rounded-full border-black bg-transparent px-7 hover:bg-white/40"
-                >
-                  <Link to="/club/$businessSlug" params={{ businessSlug: "cafe-norte" }}>
-                    Ver experiencia cliente
-                  </Link>
-                </Button>
-              </div>
-              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                {["Sin app", "Listo para Wallet", "Multiubicación"].map((item) => (
-                  <span key={item} className="flex items-center gap-1.5">
-                    <Check className="size-4" />
-                    {item}
-                  </span>
-                ))}
               </div>
             </div>
             <ProductPreview />
@@ -264,28 +262,31 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="plataforma" className="px-5 py-24 lg:px-10 lg:py-32">
+      <section id="como-funciona" className="px-5 py-24 lg:px-10 lg:py-32">
         <div className="mx-auto max-w-[1440px]">
           <div className="max-w-4xl">
             <p className="text-xs font-bold uppercase tracking-[.18em] text-[#c93c9f]">
-              Una sola plataforma
+              Del primer contacto a la recompensa
             </p>
             <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">
-              Todo lo que necesitas para convertir visitas en relaciones.
+              Cómo funciona Fideleo
             </h2>
           </div>
-          <div className="mt-14 grid gap-4 md:grid-cols-2">
-            {capabilities.map((item) => (
+          <div className="-mx-5 mt-14 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 lg:-mx-10 lg:px-10">
+            {howItWorks.map((item) => (
               <article
                 key={item.title}
-                className={`${item.color} group min-h-80 rounded-[2rem] p-7 sm:p-10`}
+                className={`${item.color} group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10`}
               >
                 <div className="flex items-start justify-between">
                   <item.icon className="size-8" />
-                  <ChevronRight className="size-6 transition-transform group-hover:translate-x-1" />
+                  <span className="text-sm font-bold">{item.number} / 05</span>
                 </div>
-                <p className="mt-14 text-xs font-bold tracking-[.15em]">{item.eyebrow}</p>
-                <h3 className="mt-3 max-w-lg text-3xl font-semibold leading-tight tracking-[-.04em]">
+                <div
+                  className="mt-8 flex-1 rounded-[1.5rem] border border-black/10 bg-white/35"
+                  aria-label="Espacio reservado para imagen"
+                />
+                <h3 className="mt-8 max-w-lg text-3xl font-semibold leading-tight tracking-[-.04em]">
                   {item.title}
                 </h3>
                 <p className="mt-4 max-w-xl leading-relaxed text-black/65">{item.text}</p>
@@ -295,31 +296,53 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="como-funciona" className="bg-[#111111] px-5 py-24 text-white lg:px-10 lg:py-32">
-        <div className="mx-auto grid max-w-[1440px] gap-16 lg:grid-cols-[.75fr_1.25fr]">
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#f8b9e7]">
-              Del primer escaneo a la próxima visita
-            </p>
-            <h2 className="mt-4 text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
-              Tu club activo en cuatro pasos.
-            </h2>
-            <p className="mt-6 max-w-md text-lg leading-relaxed text-white/60">
-              Fideleo conecta captación, operación y retención para que el equipo pueda centrarse en
-              atender.
-            </p>
-          </div>
-          <ol className="divide-y divide-white/15 border-y border-white/15">
-            {steps.map(([number, title, text]) => (
-              <li key={number} className="grid gap-5 py-8 sm:grid-cols-[5rem_1fr] sm:py-10">
-                <span className="text-sm font-semibold text-[#f8b9e7]">{number}</span>
-                <div>
-                  <h3 className="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">{title}</h3>
-                  <p className="mt-3 max-w-xl leading-relaxed text-white/60">{text}</p>
-                </div>
-              </li>
+      <section id="precios" className="bg-[#111] px-5 py-24 text-white lg:px-10 lg:py-32">
+        <div className="mx-auto max-w-[1440px]">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#f8b9e7]">Precios</p>
+          <h2 className="mt-4 max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
+            Un plan para cada etapa de tu negocio.
+          </h2>
+          <div className="mt-14 grid gap-5 lg:grid-cols-3">
+            {plans.map((plan) => (
+              <article
+                key={plan.name}
+                className={cn(
+                  plan.color,
+                  "flex min-h-[31rem] flex-col rounded-[2rem] p-7 text-black sm:p-9",
+                  plan.featured && "ring-4 ring-white",
+                )}
+              >
+                {plan.featured ? (
+                  <span className="mb-5 w-fit rounded-full bg-black px-3 py-1 text-xs font-bold text-white">
+                    Más elegido
+                  </span>
+                ) : null}
+                <h3 className="text-3xl font-semibold">{plan.name}</h3>
+                <p className="mt-5 text-5xl font-semibold tracking-[-.06em]">{plan.price}</p>
+                <p className="mt-1 text-sm text-black/55">al mes · IVA no incluido</p>
+                <ul className="mt-8 space-y-4">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex gap-3">
+                      <Check className="mt-0.5 size-5 shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  asChild
+                  className="mt-auto rounded-full bg-black text-white hover:bg-black/75"
+                >
+                  {plan.checkoutUrl ? (
+                    <a href={plan.checkoutUrl}>Comprar</a>
+                  ) : (
+                    <Link to="/solicitar-demo" search={{ plan: plan.name }}>
+                      Comprar
+                    </Link>
+                  )}
+                </Button>
+              </article>
             ))}
-          </ol>
+          </div>
         </div>
       </section>
 
@@ -360,19 +383,19 @@ function HomePage() {
         <div className="mx-auto max-w-[1440px]">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-[2rem] bg-[#f4efff] p-8">
-              <WalletCards className="size-8" />
-              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">0</p>
-              <p className="mt-2 text-lg">apps que descargar para el cliente</p>
+              <Users className="size-8" />
+              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">12.500+</p>
+              <p className="mt-2 text-lg">clientes ya forman parte de clubes Fideleo</p>
             </div>
             <div className="rounded-[2rem] bg-[#ffe65c] p-8">
-              <Zap className="size-8" />
-              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">1</p>
-              <p className="mt-2 text-lg">flujo para captar, premiar y recuperar</p>
+              <Store className="size-8" />
+              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">48</p>
+              <p className="mt-2 text-lg">locales fidelizan a sus clientes cada día</p>
             </div>
             <div className="rounded-[2rem] bg-[#ffd9ee] p-8">
-              <Users className="size-8" />
-              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">5</p>
-              <p className="mt-2 text-lg">ubicaciones activas en la demo de Café Norte</p>
+              <Gift className="size-8" />
+              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">31.800</p>
+              <p className="mt-2 text-lg">premios y productos canjeados</p>
             </div>
           </div>
         </div>
@@ -456,7 +479,7 @@ function HomePage() {
       </section>
 
       <footer className="bg-[#111] px-5 py-12 text-white lg:px-10">
-        <div className="mx-auto grid max-w-[1440px] gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto grid max-w-[1440px] gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2">
             <BrandMark onDark />
 
@@ -468,10 +491,10 @@ function HomePage() {
             <p className="text-sm font-semibold">Producto</p>
             <ul className="mt-4 space-y-2 text-sm text-white/55">
               <li>
-                <a href="#plataforma">Plataforma</a>
+                <a href="#como-funciona">Cómo funciona</a>
               </li>
               <li>
-                <a href="#como-funciona">Cómo funciona</a>
+                <a href="#precios">Precios</a>
               </li>
               <li>
                 <Link to="/auth">Acceso</Link>
@@ -488,6 +511,31 @@ function HomePage() {
               </li>
               <li>
                 <Link to="/auth">Cuentas demo</Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Legal</p>
+            <ul className="mt-4 space-y-2 text-sm text-white/55">
+              <li>
+                <Link to="/legal/$document" params={{ document: "terminos" }}>
+                  Términos y condiciones
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal/$document" params={{ document: "privacidad" }}>
+                  Privacidad
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal/$document" params={{ document: "aviso-legal" }}>
+                  Aviso legal
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal/$document" params={{ document: "cookies" }}>
+                  Cookies
+                </Link>
               </li>
             </ul>
           </div>

@@ -17,7 +17,8 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
-  Rocket,
+  ShoppingBag,
+  UserRound,
   Users,
   Wallet,
   X,
@@ -115,18 +116,18 @@ const nav: NavItem[] = [
     group: "Analítica",
   },
   {
+    to: "/panel/tienda",
+    label: "Tienda",
+    icon: ShoppingBag,
+    roles: ["admin", "manager"],
+    group: "Analítica",
+  },
+  {
     to: "/panel/actividad",
     label: "Actividad",
     icon: Settings2,
     roles: ["admin"],
     group: "Analítica",
-  },
-  {
-    to: "/panel/onboarding",
-    label: "Publicar club",
-    icon: Rocket,
-    roles: ["admin"],
-    group: "Administración",
   },
   {
     to: "/panel/establecimientos",
@@ -186,12 +187,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-5">
         <div>
-          <p className="flex items-center gap-2 font-display text-lg font-extrabold tracking-tight">
-            <span className="grid size-7 place-items-center rounded-full bg-foreground text-background">
-              <Sparkles className="size-3.5" />
-            </span>
-            Fideleo
-          </p>
+          <Link
+            to="/panel"
+            className="flex items-center gap-2.5"
+            aria-label="Fideleo, inicio del panel"
+          >
+            <img src="/isotipo.svg" alt="" width={30} height={30} className="size-7" />
+            <img src="/logo.svg" alt="Fideleo" width={210} height={47} className="h-6 w-auto" />
+          </Link>
           <p className="mt-1 text-xs text-sidebar-foreground/55">
             {session?.organizationName ?? "Sin organización"}
           </p>
@@ -247,8 +250,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         ) : null}
       </nav>
       <div className="border-t border-sidebar-border px-4 py-4">
-        <p className="truncate text-sm font-medium">{session?.fullName ?? session?.email}</p>
-        <p className="text-xs capitalize text-sidebar-foreground/70">{roleName}</p>
+        <Link
+          to="/panel/perfil"
+          onClick={() => setOpen(false)}
+          className="block rounded-lg px-2 py-1 hover:bg-sidebar-accent"
+        >
+          <p className="truncate text-sm font-medium">{session?.fullName ?? session?.email}</p>
+          <p className="text-xs capitalize text-sidebar-foreground/70">Ver perfil · {roleName}</p>
+        </Link>
         <Button
           variant="ghost"
           size="sm"
@@ -269,7 +278,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         <button onClick={() => setOpen(true)} aria-label="Abrir menú">
           <Menu className="size-5" />
         </button>
-        <span className="font-display font-bold">Fideleo</span>
+        <Link
+          to="/panel"
+          className="flex items-center gap-2"
+          aria-label="Fideleo, inicio del panel"
+        >
+          <img src="/isotipo.svg" alt="" width={26} height={26} className="size-6" />
+          <img src="/logo.svg" alt="Fideleo" width={210} height={47} className="h-5 w-auto" />
+        </Link>
         <span className="w-5" />
       </div>
       {open ? (
@@ -306,16 +322,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             ) : null}
           </div>
           <div className="ml-6 flex items-center gap-2">
-            {role === "admin" ? (
-              <Button asChild variant="ghost" size="icon">
-                <Link to="/panel/notificaciones" aria-label="Notificaciones">
-                  <Bell />
-                </Link>
-              </Button>
-            ) : null}
-            <div className="ml-2 grid size-9 place-items-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
-              {(session?.fullName ?? session?.email ?? "F").slice(0, 2).toUpperCase()}
-            </div>
+            <Button asChild variant="ghost" className="h-auto gap-3 rounded-full py-1 pl-2 pr-3">
+              <Link to="/panel/perfil" aria-label="Abrir perfil">
+                <span className="grid size-9 place-items-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
+                  {(session?.fullName ?? session?.email ?? "F").slice(0, 2).toUpperCase()}
+                </span>
+                <span className="hidden text-left xl:block">
+                  <span className="block text-sm font-semibold leading-tight">
+                    {session?.fullName ?? "Mi perfil"}
+                  </span>
+                  <span className="block text-xs capitalize text-muted-foreground">{roleName}</span>
+                </span>
+                <UserRound className="size-4 text-muted-foreground" />
+              </Link>
+            </Button>
           </div>
         </header>
         <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

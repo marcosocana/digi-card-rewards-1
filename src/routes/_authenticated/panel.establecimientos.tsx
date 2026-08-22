@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Pencil, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/empty-state";
@@ -38,6 +38,13 @@ function EstablecimientosPage() {
   const orgId = session?.org?.organization_id;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", address_line: "", city: "", postal_code: "" });
+  const [editing, setEditing] = useState<{
+    id: string;
+    name: string;
+    address_line: string;
+    city: string;
+    postal_code: string;
+  } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["locations", orgId],
@@ -89,6 +96,23 @@ function EstablecimientosPage() {
     toast.success("Establecimiento creado");
     setOpen(false);
     setForm({ name: "", address_line: "", city: "", postal_code: "" });
+    void refetch();
+  };
+
+  const updateLocation = async () => {
+    if (!editing || editing.name.trim().length < 2) return toast.error("Indica un nombre válido");
+    const { error } = await supabase
+      .from("locations")
+      .update({
+        name: editing.name.trim(),
+        address_line: editing.address_line || null,
+        city: editing.city || null,
+        postal_code: editing.postal_code || null,
+      })
+      .eq("id", editing.id);
+    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    toast.success("Establecimiento actualizado");
+    setEditing(null);
     void refetch();
   };
 
@@ -148,7 +172,25 @@ function EstablecimientosPage() {
                     "Sin dirección"}
                 </p>
               </div>
-              <Badge variant={l.status === "active" ? "secondary" : "outline"}>{l.status}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={l.status === "active" ? "secondary" : "outline"}>{l.status}</Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`Editar ${l.name}`}
+                  onClick={() =>
+                    setEditing({
+                      id: l.id,
+                      name: l.name,
+                      address_line: l.address_line ?? "",
+                      city: l.city ?? "",
+                      postal_code: l.postal_code ?? "",
+                    })
+                  }
+                >
+                  <Pencil className="size-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -159,6 +201,43 @@ function EstablecimientosPage() {
           description="Crea el primero para empezar a operar."
         />
       )}
+
+      <Dialog
+        open={Boolean(editing)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setEditing(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar establecimiento</DialogTitle>
+          </DialogHeader>
+          {editing ? (
+            <div className="space-y-3">
+              {(
+                [
+                  ["name", "Nombre"],
+                  ["address_line", "Dirección"],
+                  ["city", "Ciudad"],
+                  ["postal_code", "Código postal"],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key} className="space-y-1.5">
+                  <Label htmlFor={`edit-${key}`}>{label}</Label>
+                  <Input
+                    id={`edit-${key}`}
+                    value={editing[key]}
+                    onChange={(event) => setEditing({ ...editing, [key]: event.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button onClick={() => void updateLocation()}>Guardar cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

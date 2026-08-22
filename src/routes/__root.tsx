@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Puntia — Fidelización en Apple Wallet y Google Wallet" },
+      { title: "Fideleo — Fidelización digital para negocios" },
       {
         name: "description",
         content:
           "Plataforma de fidelización para cafeterías, bares y restaurantes: puntos por gasto, recompensas y tarjeta digital en Wallet.",
       },
-      { property: "og:title", content: "Puntia — Fidelización en Wallet" },
+      { property: "og:title", content: "Fideleo — Fidelización digital" },
       {
         property: "og:description",
         content: "Programas de puntos con tarjeta en Apple Wallet y Google Wallet, sin app.",
@@ -104,7 +104,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/isotipo.svg", type: "image/svg+xml" },
     ],
   }),
   shellComponent: RootShell,

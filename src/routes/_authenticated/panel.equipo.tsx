@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,13 @@ function EquipoPage() {
   const orgId = session?.org?.organization_id;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", full_name: "", role: "staff", location_id: "" });
+  const [editing, setEditing] = useState<{
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+    location_id: string;
+  } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["team", orgId],
@@ -45,7 +52,9 @@ function EquipoPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("organization_users")
-        .select("id, full_name, invited_email, role, status, user_id, can_adjust_points")
+        .select(
+          "id, full_name, invited_email, role, status, user_id, can_adjust_points, user_location_assignments(location_id)",
+        )
         .eq("organization_id", orgId!)
         .order("role");
       if (error) throw error;
@@ -109,6 +118,42 @@ function EquipoPage() {
     });
     setOpen(false);
     setForm({ email: "", full_name: "", role: "staff", location_id: "" });
+    void refetch();
+  };
+
+  const updateMember = async () => {
+    if (!editing || !editing.email.includes("@")) return toast.error("Introduce un email válido");
+    if (editing.role !== "admin" && !editing.location_id)
+      return toast.error("Asigna un establecimiento");
+    const { error } = await supabase
+      .from("organization_users")
+      .update({
+        invited_email: editing.email.trim().toLowerCase(),
+        full_name: editing.full_name.trim() || null,
+        role: editing.role as "staff",
+        can_adjust_points: editing.role === "manager",
+      })
+      .eq("id", editing.id);
+    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    const { error: clearError } = await supabase
+      .from("user_location_assignments")
+      .delete()
+      .eq("organization_user_id", editing.id);
+    if (clearError)
+      return toast.error("No se pudieron actualizar los establecimientos", {
+        description: clearError.message,
+      });
+    if (editing.role !== "admin") {
+      const { error: assignmentError } = await supabase
+        .from("user_location_assignments")
+        .insert({ organization_user_id: editing.id, location_id: editing.location_id });
+      if (assignmentError)
+        return toast.error("No se pudo asignar el establecimiento", {
+          description: assignmentError.message,
+        });
+    }
+    toast.success("Perfil del equipo actualizado");
+    setEditing(null);
     void refetch();
   };
 
@@ -203,11 +248,111 @@ function EquipoPage() {
                   {u.invited_email} · {u.user_id ? "cuenta activa" : "pendiente de registro"}
                 </p>
               </div>
-              <Badge variant="secondary">{roleLabel[u.role] ?? u.role}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{roleLabel[u.role] ?? u.role}</Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`Editar ${u.full_name ?? u.invited_email}`}
+                  onClick={() =>
+                    setEditing({
+                      id: u.id,
+                      email: u.invited_email ?? "",
+                      full_name: u.full_name ?? "",
+                      role: u.role,
+                      location_id: u.user_location_assignments?.[0]?.location_id ?? "",
+                    })
+                  }
+                >
+                  <Pencil className="size-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      <Dialog
+        open={Boolean(editing)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setEditing(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar perfil del equipo</DialogTitle>
+            <DialogDescription>
+              Actualiza sus datos, rol y establecimiento asignado.
+            </DialogDescription>
+          </DialogHeader>
+          {editing ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-team-name">Nombre</Label>
+                <Input
+                  id="edit-team-name"
+                  value={editing.full_name}
+                  onChange={(event) => setEditing({ ...editing, full_name: event.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-team-email">Email</Label>
+                <Input
+                  id="edit-team-email"
+                  type="email"
+                  value={editing.email}
+                  onChange={(event) => setEditing({ ...editing, email: event.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Rol</Label>
+                <Select
+                  value={editing.role}
+                  onValueChange={(role) =>
+                    setEditing({
+                      ...editing,
+                      role,
+                      location_id: role === "admin" ? "" : editing.location_id,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="staff">Empleado</SelectItem>
+                    <SelectItem value="manager">Responsable</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editing.role !== "admin" ? (
+                <div className="space-y-1.5">
+                  <Label>Establecimiento asignado</Label>
+                  <Select
+                    value={editing.location_id}
+                    onValueChange={(location_id) => setEditing({ ...editing, location_id })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un establecimiento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(locations ?? []).map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button onClick={() => void updateMember()}>Guardar cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

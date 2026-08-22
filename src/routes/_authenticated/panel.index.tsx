@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Coins, Gift, Lightbulb, Receipt, TrendingUp, Users } from "lucide-react";
@@ -7,6 +8,8 @@ import { MetricCard } from "@/components/app/metric-card";
 import { EmptyState } from "@/components/app/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useSession, fetchSessionInfo, sessionQueryKey } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
 
@@ -21,32 +24,42 @@ export const Route = createFileRoute("/_authenticated/panel/")({
   component: ResumenPage,
 });
 
-const since = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+const localDate = (date = new Date()) => {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+};
 
 function ResumenPage() {
   const { data: session } = useSession();
   const orgId = session?.org?.organization_id;
+  const today = localDate();
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["overview", orgId],
+    queryKey: ["overview", orgId, fromDate, toDate],
     enabled: Boolean(orgId),
     queryFn: async () => {
-      const from = since(30);
+      const from = new Date(`${fromDate}T00:00:00`).toISOString();
+      const to = new Date(`${toDate}T23:59:59.999`).toISOString();
       const [members, newMembers, txns, locations] = await Promise.all([
         supabase
           .from("memberships")
           .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId!),
+          .eq("organization_id", orgId!)
+          .lte("joined_at", to),
         supabase
           .from("memberships")
           .select("id", { count: "exact", head: true })
           .eq("organization_id", orgId!)
-          .gte("joined_at", from),
+          .gte("joined_at", from)
+          .lte("joined_at", to),
         supabase
           .from("point_transactions")
           .select("id, type, points_delta, amount_cents, created_at, membership_id, location_id")
           .eq("organization_id", orgId!)
           .gte("created_at", from)
+          .lte("created_at", to)
           .order("created_at", { ascending: false })
           .limit(400),
         supabase.from("locations").select("id, name").eq("organization_id", orgId!),
@@ -104,6 +117,39 @@ function ResumenPage() {
         description={`${new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" }).format(new Date())} · ${session.organizationName}`}
       />
 
+      <div className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold">Periodo de los indicadores</p>
+          <p className="text-xs text-muted-foreground">Selecciona un día o un rango de fechas.</p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="space-y-1">
+            <Label htmlFor="from-date" className="text-xs">
+              Desde
+            </Label>
+            <Input
+              id="from-date"
+              type="date"
+              value={fromDate}
+              max={toDate}
+              onChange={(event) => setFromDate(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="to-date" className="text-xs">
+              Hasta
+            </Label>
+            <Input
+              id="to-date"
+              type="date"
+              value={toDate}
+              min={fromDate}
+              onChange={(event) => setToDate(event.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -114,38 +160,44 @@ function ResumenPage() {
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <MetricCard
-              label="Miembros"
+              label="Clientes"
               value={num(data?.members)}
               hint={`+${num(data?.newMembers)} nuevos`}
               icon={<Users className="size-4" />}
               className="border-pink-200/70"
+              to="/panel/clientes"
             />
             <MetricCard
               label="Puntos emitidos"
               value={num(data?.pointsIssued)}
               icon={<Coins className="size-4" />}
+              to="/panel/estadisticas"
             />
             <MetricCard
               label="Puntos canjeados"
               value={num(data?.pointsRedeemed)}
               hint={`${num(data?.redemptions)} canjes`}
               icon={<Gift className="size-4" />}
+              to="/panel/recompensas"
             />
             <MetricCard
               label="Ventas asociadas"
               value={eur(data?.sales)}
               icon={<TrendingUp className="size-4" />}
               className="bg-[#f4efff]"
+              to="/panel/estadisticas"
             />
             <MetricCard
               label="Compras registradas"
               value={num(data?.purchases)}
               icon={<Receipt className="size-4" />}
+              to="/panel/actividad"
             />
             <MetricCard
               label="Ticket medio"
               value={eur(data?.averageTicket)}
               icon={<Receipt className="size-4" />}
+              to="/panel/estadisticas"
             />
           </div>
 
@@ -157,7 +209,7 @@ function ResumenPage() {
               <p className="font-semibold">Oportunidad del mes</p>
               <p className="mt-1 text-sm leading-relaxed text-foreground/65">
                 Has registrado {num(data?.newMembers)} nuevas altas y {num(data?.redemptions)}{" "}
-                canjes en los últimos 30 días. Revisa los clientes próximos a recompensa para
+                canjes en el periodo seleccionado. Revisa los clientes próximos a recompensa para
                 impulsar su próxima visita.
               </p>
               <Link
@@ -210,7 +262,9 @@ function ResumenPage() {
             <aside className="surface overflow-hidden">
               <div className="border-b px-5 py-4">
                 <h2 className="font-display text-lg font-bold">Por establecimiento</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Ventas asociadas · 30 días</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Ventas asociadas · periodo seleccionado
+                </p>
               </div>
               <div className="divide-y">
                 {data?.locationRows.map((location, index) => (
