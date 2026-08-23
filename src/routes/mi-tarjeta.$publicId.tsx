@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import { getMembershipPortal, getWalletInstallState } from "@/lib/operations";
 import { Button } from "@/components/ui/button";
 import { qrPngDataUrl } from "@/lib/qr";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/mi-tarjeta/$publicId")({
 function PortalPage() {
   const { publicId } = Route.useParams();
   const [qr, setQr] = useState<string | null>(null);
+  const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["portal", publicId],
@@ -46,6 +48,48 @@ function PortalPage() {
       else toast.info("Wallet en modo demo", { description: state.message });
     } catch (error) {
       toast.error("No se pudo preparar la tarjeta", { description: (error as Error).message });
+    }
+  };
+
+  const addToGoogleWallet = async () => {
+    if (!data || googleWalletLoading) return;
+
+    const walletWindow = window.open("about:blank", "_blank");
+    if (walletWindow) walletWindow.opener = null;
+    setGoogleWalletLoading(true);
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const userUuid = sessionData.session?.user.id;
+      if (sessionError || !userUuid)
+        throw new Error("Tu sesión ha caducado. Verifica de nuevo tu email.");
+
+      const customerName = [data.customer.first_name, data.customer.last_name]
+        .filter(Boolean)
+        .join(" ");
+      const { data: walletData, error } = await supabase.functions.invoke<{
+        url?: string;
+        error?: string;
+      }>("generate-google-wallet", {
+        body: {
+          userUuid,
+          customerName,
+          currentPoints: data.membership.balance,
+        },
+      });
+
+      if (error) throw error;
+      if (!walletData?.url) throw new Error(walletData?.error ?? "La función no devolvió una URL.");
+
+      if (walletWindow) walletWindow.location.href = walletData.url;
+      else window.open(walletData.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      walletWindow?.close();
+      toast.error("No se pudo añadir la tarjeta a Google Wallet", {
+        description: error instanceof Error ? error.message : "Inténtalo de nuevo más tarde.",
+      });
+    } finally {
+      setGoogleWalletLoading(false);
     }
   };
 
@@ -104,11 +148,26 @@ function PortalPage() {
 
         <section className="surface space-y-3 p-5">
           <h2 className="font-display text-lg font-semibold">Guardar tarjeta</h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button onClick={() => void addToWallet("apple")}>Añadir a Apple Wallet</Button>
-            <Button variant="outline" onClick={() => void addToWallet("google")}>
-              Añadir a Google Wallet
+          <div className="grid justify-items-center gap-2">
+            <Button className="h-12 w-full" onClick={() => void addToWallet("apple")}>
+              Añadir a Apple Wallet
             </Button>
+            <button
+              type="button"
+              className="rounded-full p-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+              onClick={() => void addToGoogleWallet()}
+              disabled={googleWalletLoading}
+              aria-label={
+                googleWalletLoading ? "Preparando Google Wallet" : "Añadir a Google Wallet"
+              }
+            >
+              <img
+                src="/assets/google-wallet/esES_add_to_google_wallet_add-wallet-badge.svg"
+                width="199"
+                height="55"
+                alt="Añadir a Google Wallet"
+              />
+            </button>
           </div>
           <p className="text-xs text-muted-foreground">
             Si el proveedor todavía no está conectado, mantendremos esta tarjeta web y mostraremos
