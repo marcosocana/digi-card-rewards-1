@@ -35,6 +35,7 @@ import {
 import { useSession } from "@/lib/session";
 import { roleLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { sendTransactionalEmail } from "@/lib/transactional-email";
 
 export const Route = createFileRoute("/_authenticated/panel/equipo")({
   component: EquipoPage,
@@ -129,8 +130,21 @@ function EquipoPage() {
         return;
       }
     }
+    try {
+      if (invited) {
+        await sendTransactionalEmail({ kind: "team_invitation", invitationId: invited.id });
+      }
+    } catch (emailError) {
+      toast.warning(t("Invitación guardada, pero el email no pudo enviarse"), {
+        description: emailError instanceof Error ? emailError.message : undefined,
+      });
+      setOpen(false);
+      setForm({ email: "", full_name: "", role: "staff", location_ids: [] });
+      void refetch();
+      return;
+    }
     toast.success(t("Invitación creada"), {
-      description: t("Al registrarse con ese email heredará el rol."),
+      description: t("Hemos enviado un email para que cree su cuenta."),
     });
     setOpen(false);
     setForm({ email: "", full_name: "", role: "staff", location_ids: [] });

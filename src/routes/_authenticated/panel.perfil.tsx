@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSession, sessionQueryKey } from "@/lib/session";
 import { roleLabel } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
+import { sendTransactionalEmail } from "@/lib/transactional-email";
 
 export const Route = createFileRoute("/_authenticated/panel/perfil")({ component: PerfilPage });
 
@@ -76,7 +77,15 @@ function PerfilPage() {
     if (error)
       return toast.error("No se pudo cambiar la contraseña", { description: error.message });
     setPassword("");
-    toast.success("Contraseña actualizada");
+    try {
+      await sendTransactionalEmail({ kind: "password_changed", eventId: crypto.randomUUID() });
+      toast.success("Contraseña actualizada", {
+        description: "Te hemos enviado un email de confirmación.",
+      });
+    } catch (emailError) {
+      console.error("No se pudo enviar el aviso de cambio de contraseña", emailError);
+      toast.success("Contraseña actualizada");
+    }
   };
 
   return (

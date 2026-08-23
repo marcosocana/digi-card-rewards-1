@@ -26,3 +26,8 @@ entrypoint = "./functions/send-google-wallet-notification/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/send-demo-request/index.ts"
+
+[functions.send-transactional-email]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/send-transactional-email/index.ts"

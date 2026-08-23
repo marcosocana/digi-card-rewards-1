@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { MailCheck } from "lucide-react";
+import { ArrowRight, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ruleText } from "@/lib/format";
+import { sendTransactionalEmail } from "@/lib/transactional-email";
 
 export interface JoinContext {
   organization: { display_name: string; slug?: string };
@@ -88,6 +89,14 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
     if (error)
       return toast.error("No hemos podido completar el alta", { description: error.message });
     const membershipPublicId = (data as { membership_public_id: string }).membership_public_id;
+    try {
+      await sendTransactionalEmail({ kind: "membership_welcome", membershipPublicId });
+    } catch (emailError) {
+      console.error("No se pudo enviar la confirmación de alta", emailError);
+      toast.warning("Tu tarjeta está creada", {
+        description: "No hemos podido enviar el email de confirmación, pero puedes continuar.",
+      });
+    }
     await navigate({
       to: "/mi-tarjeta/$publicId",
       params: { publicId: membershipPublicId },
