@@ -1825,6 +1825,12 @@ export type Database = {
           updated_at: string
           website: string | null
           welcome_message: string | null
+          wallet_background_color: string
+          wallet_hero_url: string | null
+          wallet_logo_url: string | null
+          wallet_points_label: string
+          wallet_program_name: string | null
+          wallet_text_color: string
         }
         Insert: {
           background_color?: string
@@ -1846,6 +1852,12 @@ export type Database = {
           updated_at?: string
           website?: string | null
           welcome_message?: string | null
+          wallet_background_color?: string
+          wallet_hero_url?: string | null
+          wallet_logo_url?: string | null
+          wallet_points_label?: string
+          wallet_program_name?: string | null
+          wallet_text_color?: string
         }
         Update: {
           background_color?: string
@@ -1867,6 +1879,12 @@ export type Database = {
           updated_at?: string
           website?: string | null
           welcome_message?: string | null
+          wallet_background_color?: string
+          wallet_hero_url?: string | null
+          wallet_logo_url?: string | null
+          wallet_points_label?: string
+          wallet_program_name?: string | null
+          wallet_text_color?: string
         }
         Relationships: [
           {

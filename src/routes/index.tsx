@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Crea un club de fidelización con Wallet, QR, recompensas, campañas y métricas. Sin app y preparado para uno o varios establecimientos.",
+          "Crea un club de fidelización con Wallet, QR, recompensas y métricas. Sin app y preparado para uno o varios establecimientos.",
       },
       { property: "og:title", content: "Fideleo — Convierte cada visita en una relación" },
       {
@@ -97,7 +97,7 @@ const plans = [
     features: [
       "Hasta 3 establecimientos",
       "Hasta 5.000 clientes",
-      "Campañas y automatizaciones",
+      "Notificaciones y automatizaciones",
       "Soporte prioritario",
     ],
   },
@@ -564,14 +564,16 @@ function ProductPreview() {
         </div>
         <div className="grid gap-3 pt-4 sm:grid-cols-[8rem_1fr]">
           <aside className="hidden space-y-2 text-xs sm:block">
-            {["Resumen", "Escáner", "Clientes", "Campañas", "Estadísticas"].map((item, index) => (
-              <div
-                key={item}
-                className={`rounded-lg px-3 py-2.5 ${index === 0 ? "bg-[#f8d9ef] font-semibold" : "text-black/45"}`}
-              >
-                {item}
-              </div>
-            ))}
+            {["Resumen", "Escáner", "Clientes", "Notificaciones", "Estadísticas"].map(
+              (item, index) => (
+                <div
+                  key={item}
+                  className={`rounded-lg px-3 py-2.5 ${index === 0 ? "bg-[#f8d9ef] font-semibold" : "text-black/45"}`}
+                >
+                  {item}
+                </div>
+              ),
+            )}
           </aside>
           <div>
             <div className="flex items-end justify-between">

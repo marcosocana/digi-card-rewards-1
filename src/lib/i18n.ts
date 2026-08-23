@@ -156,6 +156,46 @@ const ca: Dictionary = {
     "Missatges de Wallet segmentats, amb límit diari validat al servidor.",
   "Estado de las tarjetas digitales. El proveedor está en modo simulación hasta cargar los certificados.":
     "Estat de les targetes digitals. El proveïdor està en mode simulació fins que es carreguin els certificats.",
+  "Enviar mensaje de retorno": "Envia un missatge de retorn",
+  "Gestiona las tarjetas digitales y personaliza su aspecto visual.":
+    "Gestiona les targetes digitals i personalitza'n l'aspecte visual.",
+  Resumen: "Resum",
+  "Personalizar tarjeta": "Personalitza la targeta",
+  "Tarjetas totales": "Targetes totals",
+  "Pendientes de actualizar": "Pendents d'actualitzar",
+  "Proveedor de emisión": "Proveïdor d'emissió",
+  "Google Wallet está conectado. Las tarjetas se generan desde el perfil de cada cliente y conservan su saldo actualizado.":
+    "Google Wallet està connectat. Les targetes es generen des del perfil de cada client i mantenen el saldo actualitzat.",
+  "Aspecto de la tarjeta": "Aspecte de la targeta",
+  "Los cambios aparecen al instante en la vista previa.":
+    "Els canvis apareixen a l'instant a la vista prèvia.",
+  "Nombre del programa": "Nom del programa",
+  "Color de la tarjeta": "Color de la targeta",
+  "Color del texto": "Color del text",
+  "Etiqueta del saldo": "Etiqueta del saldo",
+  "Logo de la tarjeta": "Logotip de la targeta",
+  "Imagen destacada": "Imatge destacada",
+  "Recomendado: imagen horizontal de al menos 1032 × 336 px.":
+    "Recomanat: imatge horitzontal d'almenys 1032 × 336 px.",
+  "Guardar diseño": "Desa el disseny",
+  "Diseño de Wallet actualizado": "Disseny de Wallet actualitzat",
+  "En tiempo real": "En temps real",
+  "Tarjeta de fidelidad": "Targeta de fidelitat",
+  "Vista previa del logo": "Vista prèvia del logotip",
+  "Vista previa de la imagen destacada": "Vista prèvia de la imatge destacada",
+  "La posición final puede variar ligeramente según el dispositivo y la versión de Wallet.":
+    "La posició final pot variar lleugerament segons el dispositiu i la versió de Wallet.",
+  "Formato no compatible": "Format no compatible",
+  "Utiliza PNG, JPG o WebP.": "Utilitza PNG, JPG o WebP.",
+  "La imagen no puede superar 5 MB": "La imatge no pot superar els 5 MB",
+  "No se pudo subir la imagen": "No s'ha pogut pujar la imatge",
+  "No se pudo preparar la imagen": "No s'ha pogut preparar la imatge",
+  "Imagen preparada": "Imatge preparada",
+  "Completa el nombre del programa y la etiqueta de puntos":
+    "Completa el nom del programa i l'etiqueta de punts",
+  Seleccionar: "Selecciona",
+  Cambiar: "Canvia",
+  Quitar: "Treu",
   "Gestiona tus datos personales y el acceso a tu cuenta.":
     "Gestiona les teves dades personals i l'accés al teu compte.",
   "Catálogo canjeable por puntos en tus establecimientos.":
@@ -328,6 +368,46 @@ const en: Dictionary = {
     "Segmented Wallet messages with a server-enforced daily limit.",
   "Estado de las tarjetas digitales. El proveedor está en modo simulación hasta cargar los certificados.":
     "Digital card status. The provider remains in simulation mode until certificates are uploaded.",
+  "Enviar mensaje de retorno": "Send a return message",
+  "Gestiona las tarjetas digitales y personaliza su aspecto visual.":
+    "Manage digital cards and customize their visual appearance.",
+  Resumen: "Overview",
+  "Personalizar tarjeta": "Customize card",
+  "Tarjetas totales": "Total cards",
+  "Pendientes de actualizar": "Pending updates",
+  "Proveedor de emisión": "Issuing provider",
+  "Google Wallet está conectado. Las tarjetas se generan desde el perfil de cada cliente y conservan su saldo actualizado.":
+    "Google Wallet is connected. Cards are generated from each customer profile and keep their balance updated.",
+  "Aspecto de la tarjeta": "Card appearance",
+  "Los cambios aparecen al instante en la vista previa.":
+    "Changes appear instantly in the preview.",
+  "Nombre del programa": "Program name",
+  "Color de la tarjeta": "Card color",
+  "Color del texto": "Text color",
+  "Etiqueta del saldo": "Balance label",
+  "Logo de la tarjeta": "Card logo",
+  "Imagen destacada": "Hero image",
+  "Recomendado: imagen horizontal de al menos 1032 × 336 px.":
+    "Recommended: a landscape image of at least 1032 × 336 px.",
+  "Guardar diseño": "Save design",
+  "Diseño de Wallet actualizado": "Wallet design updated",
+  "En tiempo real": "Live",
+  "Tarjeta de fidelidad": "Loyalty card",
+  "Vista previa del logo": "Logo preview",
+  "Vista previa de la imagen destacada": "Hero image preview",
+  "La posición final puede variar ligeramente según el dispositivo y la versión de Wallet.":
+    "The final layout may vary slightly depending on the device and Wallet version.",
+  "Formato no compatible": "Unsupported format",
+  "Utiliza PNG, JPG o WebP.": "Use PNG, JPG or WebP.",
+  "La imagen no puede superar 5 MB": "The image cannot exceed 5 MB",
+  "No se pudo subir la imagen": "The image could not be uploaded",
+  "No se pudo preparar la imagen": "The image could not be prepared",
+  "Imagen preparada": "Image ready",
+  "Completa el nombre del programa y la etiqueta de puntos":
+    "Complete the program name and points label",
+  Seleccionar: "Select",
+  Cambiar: "Change",
+  Quitar: "Remove",
   "Gestiona tus datos personales y el acceso a tu cuenta.":
     "Manage your personal details and account access.",
   "Catálogo canjeable por puntos en tus establecimientos.":

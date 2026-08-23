@@ -304,7 +304,7 @@ function ResumenPage() {
                 to="/panel/notificaciones"
                 className="mt-3 inline-flex items-center gap-1 text-sm font-semibold"
               >
-                {t("Crear campaña de retorno")} <ArrowUpRight className="size-4" />
+                {t("Enviar mensaje de retorno")} <ArrowUpRight className="size-4" />
               </Link>
             </div>
           </div>

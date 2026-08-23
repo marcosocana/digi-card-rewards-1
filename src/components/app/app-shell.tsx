@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Megaphone,
   Bell,
   Bot,
   ChartNoAxesCombined,
@@ -92,13 +91,6 @@ const nav: NavItem[] = [
     icon: Users,
     roles: ["admin", "manager"],
     group: "Operaciones",
-  },
-  {
-    to: "/panel/campanas",
-    label: "Campañas",
-    icon: Megaphone,
-    roles: ["admin"],
-    group: "Fidelización",
   },
   {
     to: "/panel/programa",
