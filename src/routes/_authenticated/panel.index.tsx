@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   fetchSessionInfo,
   getSelectedLocationIds,
   locationFilterEvent,
@@ -17,6 +24,7 @@ import {
   useSession,
 } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/panel/")({
   beforeLoad: async ({ context }) => {
@@ -34,10 +42,40 @@ const localDate = (date = new Date()) => {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 };
 
+type PeriodPreset = "today" | "yesterday" | "last_week" | "last_month" | "current_year" | "custom";
+
+const getPresetRange = (preset: Exclude<PeriodPreset, "custom">) => {
+  const now = new Date();
+  if (preset === "today") return { from: localDate(now), to: localDate(now) };
+  if (preset === "yesterday") {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    return { from: localDate(yesterday), to: localDate(yesterday) };
+  }
+  if (preset === "last_week") {
+    const currentMonday = new Date(now);
+    currentMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const previousMonday = new Date(currentMonday);
+    previousMonday.setDate(currentMonday.getDate() - 7);
+    const previousSunday = new Date(previousMonday);
+    previousSunday.setDate(previousMonday.getDate() + 6);
+    return { from: localDate(previousMonday), to: localDate(previousSunday) };
+  }
+  if (preset === "last_month") {
+    return {
+      from: localDate(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+      to: localDate(new Date(now.getFullYear(), now.getMonth(), 0)),
+    };
+  }
+  return { from: localDate(new Date(now.getFullYear(), 0, 1)), to: localDate(now) };
+};
+
 function ResumenPage() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const orgId = session?.org?.organization_id;
   const today = localDate();
+  const [period, setPeriod] = useState<PeriodPreset>("today");
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -140,30 +178,60 @@ function ResumenPage() {
   return (
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="space-y-1">
-          <Label htmlFor="from-date" className="text-xs">
-            Desde
-          </Label>
-          <Input
-            id="from-date"
-            type="date"
-            value={fromDate}
-            max={toDate}
-            onChange={(event) => setFromDate(event.target.value)}
-          />
+        <div className="w-full space-y-1 sm:w-52">
+          <Label className="text-xs">{t("Periodo")}</Label>
+          <Select
+            value={period}
+            onValueChange={(value: PeriodPreset) => {
+              setPeriod(value);
+              if (value !== "custom") {
+                const range = getPresetRange(value);
+                setFromDate(range.from);
+                setToDate(range.to);
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">{t("Hoy")}</SelectItem>
+              <SelectItem value="yesterday">{t("Ayer")}</SelectItem>
+              <SelectItem value="last_week">{t("Semana pasada")}</SelectItem>
+              <SelectItem value="last_month">{t("Mes pasado")}</SelectItem>
+              <SelectItem value="current_year">{t("Año actual")}</SelectItem>
+              <SelectItem value="custom">{t("Rango personalizado")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="to-date" className="text-xs">
-            Hasta
-          </Label>
-          <Input
-            id="to-date"
-            type="date"
-            value={toDate}
-            min={fromDate}
-            onChange={(event) => setToDate(event.target.value)}
-          />
-        </div>
+        {period === "custom" ? (
+          <>
+            <div className="space-y-1">
+              <Label htmlFor="from-date" className="text-xs">
+                {t("Desde")}
+              </Label>
+              <Input
+                id="from-date"
+                type="date"
+                value={fromDate}
+                max={toDate}
+                onChange={(event) => setFromDate(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="to-date" className="text-xs">
+                {t("Hasta")}
+              </Label>
+              <Input
+                id="to-date"
+                type="date"
+                value={toDate}
+                min={fromDate}
+                onChange={(event) => setToDate(event.target.value)}
+              />
+            </div>
+          </>
+        ) : null}
       </div>
 
       {isLoading ? (
@@ -178,7 +246,7 @@ function ResumenPage() {
             <MetricCard
               label="Clientes"
               value={num(data?.members)}
-              hint={`+${num(data?.newMembers)} nuevos`}
+              hint={t("+{count} nuevos", { count: num(data?.newMembers) })}
               icon={<Users className="size-4" />}
               className="border-pink-200/70"
               to="/panel/clientes"
@@ -192,7 +260,7 @@ function ResumenPage() {
             <MetricCard
               label="Puntos canjeados"
               value={num(data?.pointsRedeemed)}
-              hint={`${num(data?.redemptions)} canjes`}
+              hint={t("{count} canjes", { count: num(data?.redemptions) })}
               icon={<Gift className="size-4" />}
               to="/panel/recompensas"
             />
@@ -222,17 +290,21 @@ function ResumenPage() {
               <Lightbulb className="size-5" />
             </span>
             <div>
-              <p className="font-semibold">Oportunidad del mes</p>
+              <p className="font-semibold">{t("Oportunidad del mes")}</p>
               <p className="mt-1 text-sm leading-relaxed text-foreground/65">
-                Has registrado {num(data?.newMembers)} nuevas altas y {num(data?.redemptions)}{" "}
-                canjes en el periodo seleccionado. Revisa los clientes próximos a recompensa para
-                impulsar su próxima visita.
+                {t(
+                  "Has registrado {members} nuevas altas y {redemptions} canjes en el periodo seleccionado. Revisa los clientes próximos a recompensa para impulsar su próxima visita.",
+                  {
+                    members: num(data?.newMembers),
+                    redemptions: num(data?.redemptions),
+                  },
+                )}
               </p>
               <Link
                 to="/panel/notificaciones"
                 className="mt-3 inline-flex items-center gap-1 text-sm font-semibold"
               >
-                Crear campaña de retorno <ArrowUpRight className="size-4" />
+                {t("Crear campaña de retorno")} <ArrowUpRight className="size-4" />
               </Link>
             </div>
           </div>
@@ -240,12 +312,12 @@ function ResumenPage() {
           <div className="grid gap-4 xl:grid-cols-[1.55fr_.45fr]">
             <div className="surface overflow-hidden">
               <div className="flex items-center justify-between border-b px-5 py-4">
-                <h2 className="font-display text-lg font-semibold">Actividad reciente</h2>
+                <h2 className="font-display text-lg font-semibold">{t("Actividad reciente")}</h2>
                 <Link
                   to="/panel/clientes"
                   className="text-sm text-primary underline-offset-2 hover:underline"
                 >
-                  Ver clientes
+                  {t("Ver clientes")}
                 </Link>
               </div>
               {data?.recent.length ? (
@@ -253,7 +325,7 @@ function ResumenPage() {
                   {data.recent.map((t) => (
                     <li key={t.id} className="flex items-center justify-between gap-3 px-5 py-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{txnLabel[t.type] ?? t.type}</p>
+                        <p className="text-sm font-medium">{t(txnLabel[t.type] ?? t.type)}</p>
                         <p className="truncate text-xs text-muted-foreground">
                           {t.locationName} · {dateTime(t.created_at)}
                           {t.amount_cents ? ` · ${eur(t.amount_cents)}` : ""}
@@ -271,15 +343,15 @@ function ResumenPage() {
                 </ul>
               ) : (
                 <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                  Todavía no hay movimientos.
+                  {t("Todavía no hay movimientos.")}
                 </p>
               )}
             </div>
             <aside className="surface overflow-hidden">
               <div className="border-b px-5 py-4">
-                <h2 className="font-display text-lg font-bold">Por establecimiento</h2>
+                <h2 className="font-display text-lg font-bold">{t("Por establecimiento")}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Ventas asociadas · periodo seleccionado
+                  {t("Ventas asociadas · periodo seleccionado")}
                 </p>
               </div>
               <div className="divide-y">
@@ -289,7 +361,7 @@ function ResumenPage() {
                       <div>
                         <p className="text-sm font-semibold">{location.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {num(location.purchases)} compras
+                          {t("{count} compras", { count: num(location.purchases) })}
                         </p>
                       </div>
                       <span className="text-sm font-bold">{eur(location.sales)}</span>

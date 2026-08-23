@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Plus } from "lucide-react";
+import { Building2, ChevronDown, Pencil, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSession } from "@/lib/session";
 import { roleLabel } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/panel/equipo")({
   component: EquipoPage,
@@ -35,15 +42,21 @@ export const Route = createFileRoute("/_authenticated/panel/equipo")({
 
 function EquipoPage() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const orgId = session?.org?.organization_id;
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ email: "", full_name: "", role: "staff", location_id: "" });
+  const [form, setForm] = useState({
+    email: "",
+    full_name: "",
+    role: "staff",
+    location_ids: [] as string[],
+  });
   const [editing, setEditing] = useState<{
     id: string;
     email: string;
     full_name: string;
     role: string;
-    location_id: string;
+    location_ids: string[];
   } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
@@ -79,11 +92,11 @@ function EquipoPage() {
 
   const invite = async () => {
     if (!orgId || !form.email.includes("@")) {
-      toast.error("Introduce un email válido");
+      toast.error(t("Introduce un email válido"));
       return;
     }
-    if (form.role !== "admin" && !form.location_id) {
-      toast.error("Asigna un establecimiento");
+    if (form.role !== "admin" && !form.location_ids.length) {
+      toast.error(t("Asigna al menos un establecimiento"));
       return;
     }
     const { data: invited, error } = await supabase
@@ -99,32 +112,36 @@ function EquipoPage() {
       .select("id")
       .single();
     if (error) {
-      toast.error("No se pudo invitar", { description: error.message });
+      toast.error(t("No se pudo invitar"), { description: error.message });
       return;
     }
-    if (form.role !== "admin" && form.location_id && invited) {
-      const { error: assignmentError } = await supabase
-        .from("user_location_assignments")
-        .insert({ organization_user_id: invited.id, location_id: form.location_id });
+    if (form.role !== "admin" && form.location_ids.length && invited) {
+      const { error: assignmentError } = await supabase.from("user_location_assignments").insert(
+        form.location_ids.map((locationId) => ({
+          organization_user_id: invited.id,
+          location_id: locationId,
+        })),
+      );
       if (assignmentError) {
-        toast.error("Usuario creado, pero no se pudo asignar el establecimiento", {
+        toast.error(t("Usuario creado, pero no se pudo asignar el establecimiento"), {
           description: assignmentError.message,
         });
         return;
       }
     }
-    toast.success("Invitación creada", {
-      description: "Al registrarse con ese email heredará el rol.",
+    toast.success(t("Invitación creada"), {
+      description: t("Al registrarse con ese email heredará el rol."),
     });
     setOpen(false);
-    setForm({ email: "", full_name: "", role: "staff", location_id: "" });
+    setForm({ email: "", full_name: "", role: "staff", location_ids: [] });
     void refetch();
   };
 
   const updateMember = async () => {
-    if (!editing || !editing.email.includes("@")) return toast.error("Introduce un email válido");
-    if (editing.role !== "admin" && !editing.location_id)
-      return toast.error("Asigna un establecimiento");
+    if (!editing || !editing.email.includes("@"))
+      return toast.error(t("Introduce un email válido"));
+    if (editing.role !== "admin" && !editing.location_ids.length)
+      return toast.error(t("Asigna al menos un establecimiento"));
     const { error } = await supabase
       .from("organization_users")
       .update({
@@ -134,27 +151,82 @@ function EquipoPage() {
         can_adjust_points: editing.role === "manager",
       })
       .eq("id", editing.id);
-    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    if (error) return toast.error(t("No se pudo actualizar"), { description: error.message });
     const { error: clearError } = await supabase
       .from("user_location_assignments")
       .delete()
       .eq("organization_user_id", editing.id);
     if (clearError)
-      return toast.error("No se pudieron actualizar los establecimientos", {
+      return toast.error(t("No se pudieron actualizar los establecimientos"), {
         description: clearError.message,
       });
     if (editing.role !== "admin") {
-      const { error: assignmentError } = await supabase
-        .from("user_location_assignments")
-        .insert({ organization_user_id: editing.id, location_id: editing.location_id });
+      const { error: assignmentError } = await supabase.from("user_location_assignments").insert(
+        editing.location_ids.map((locationId) => ({
+          organization_user_id: editing.id,
+          location_id: locationId,
+        })),
+      );
       if (assignmentError)
-        return toast.error("No se pudo asignar el establecimiento", {
+        return toast.error(t("No se pudo asignar el establecimiento"), {
           description: assignmentError.message,
         });
     }
-    toast.success("Perfil del equipo actualizado");
+    toast.success(t("Perfil del equipo actualizado"));
     setEditing(null);
     void refetch();
+  };
+
+  const locationPicker = (selected: string[], onChange: (ids: string[]) => void) => {
+    const allIds = (locations ?? []).map((location) => location.id);
+    const allSelected = allIds.length > 0 && selected.length === allIds.length;
+    const label = allSelected
+      ? t("Todos los establecimientos")
+      : selected.length === 1
+        ? (locations?.find((location) => location.id === selected[0])?.name ??
+          t("1 establecimiento"))
+        : selected.length > 1
+          ? t("{count} establecimientos", { count: selected.length })
+          : t("Selecciona establecimientos");
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full justify-between font-normal">
+            <span className="flex min-w-0 items-center gap-2">
+              <Building2 className="size-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{label}</span>
+            </span>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+          <DropdownMenuCheckboxItem
+            checked={allSelected}
+            onSelect={(event) => event.preventDefault()}
+            onCheckedChange={() => onChange(allSelected ? [] : allIds)}
+          >
+            {t("Todos los establecimientos")}
+          </DropdownMenuCheckboxItem>
+          {(locations ?? []).map((location) => (
+            <DropdownMenuCheckboxItem
+              key={location.id}
+              checked={selected.includes(location.id)}
+              onSelect={(event) => event.preventDefault()}
+              onCheckedChange={() =>
+                onChange(
+                  selected.includes(location.id)
+                    ? selected.filter((id) => id !== location.id)
+                    : [...selected, location.id],
+                )
+              }
+            >
+              {location.name}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   };
 
   return (
@@ -166,14 +238,14 @@ function EquipoPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus aria-hidden className="size-4" /> Invitar
+                <Plus aria-hidden className="size-4" /> {t("Invitar")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Invitar a una persona</DialogTitle>
+                <DialogTitle>{t("Invitar a una persona")}</DialogTitle>
                 <DialogDescription>
-                  Recibirá el rol al crear su cuenta con este email.
+                  {t("Recibirá el rol al crear su cuenta con este email.")}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
@@ -188,26 +260,14 @@ function EquipoPage() {
                 </div>
                 {form.role !== "admin" ? (
                   <div className="space-y-1.5">
-                    <Label>Establecimiento asignado</Label>
-                    <Select
-                      value={form.location_id}
-                      onValueChange={(v) => setForm({ ...form, location_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un establecimiento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(locations ?? []).map((location) => (
-                          <SelectItem key={location.id} value={location.id}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>{t("Establecimientos asignados")}</Label>
+                    {locationPicker(form.location_ids, (location_ids) =>
+                      setForm({ ...form, location_ids }),
+                    )}
                   </div>
                 ) : null}
                 <div className="space-y-1.5">
-                  <Label htmlFor="iname">Nombre</Label>
+                  <Label htmlFor="iname">{t("Nombre")}</Label>
                   <Input
                     id="iname"
                     value={form.full_name}
@@ -215,21 +275,30 @@ function EquipoPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Rol</Label>
-                  <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+                  <Label>{t("Rol")}</Label>
+                  <Select
+                    value={form.role}
+                    onValueChange={(role) =>
+                      setForm({
+                        ...form,
+                        role,
+                        location_ids: role === "admin" ? [] : form.location_ids,
+                      })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="staff">Empleado</SelectItem>
-                      <SelectItem value="manager">Responsable</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="staff">{t("Empleado")}</SelectItem>
+                      <SelectItem value="manager">{t("Responsable")}</SelectItem>
+                      <SelectItem value="admin">{t("Administrador")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={() => void invite()}>Enviar invitación</Button>
+                <Button onClick={() => void invite()}>{t("Enviar invitación")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -245,22 +314,42 @@ function EquipoPage() {
               <div className="min-w-0">
                 <p className="text-sm font-medium">{u.full_name ?? u.invited_email}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {u.invited_email} · {u.user_id ? "cuenta activa" : "pendiente de registro"}
+                  {u.invited_email} · {t(u.user_id ? "cuenta activa" : "pendiente de registro")}
+                </p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {u.role === "admin"
+                    ? t("Todos los establecimientos")
+                    : u.user_location_assignments?.length === (locations ?? []).length &&
+                        (locations ?? []).length > 0
+                      ? t("Todos los establecimientos")
+                      : u.user_location_assignments?.length
+                        ? u.user_location_assignments
+                            .map(
+                              (assignment) =>
+                                locations?.find(
+                                  (location) => location.id === assignment.location_id,
+                                )?.name,
+                            )
+                            .filter(Boolean)
+                            .join(", ")
+                        : t("Sin establecimientos")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">{roleLabel[u.role] ?? u.role}</Badge>
+                <Badge variant="secondary">{t(roleLabel[u.role] ?? u.role)}</Badge>
                 <Button
                   size="icon"
                   variant="ghost"
-                  aria-label={`Editar ${u.full_name ?? u.invited_email}`}
+                  aria-label={t("Editar {name}", { name: u.full_name ?? u.invited_email ?? "" })}
                   onClick={() =>
                     setEditing({
                       id: u.id,
                       email: u.invited_email ?? "",
                       full_name: u.full_name ?? "",
                       role: u.role,
-                      location_id: u.user_location_assignments?.[0]?.location_id ?? "",
+                      location_ids:
+                        u.user_location_assignments?.map((assignment) => assignment.location_id) ??
+                        [],
                     })
                   }
                 >
@@ -280,15 +369,15 @@ function EquipoPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar perfil del equipo</DialogTitle>
+            <DialogTitle>{t("Editar perfil del equipo")}</DialogTitle>
             <DialogDescription>
-              Actualiza sus datos, rol y establecimiento asignado.
+              {t("Actualiza sus datos, rol y establecimientos asignados.")}
             </DialogDescription>
           </DialogHeader>
           {editing ? (
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-team-name">Nombre</Label>
+                <Label htmlFor="edit-team-name">{t("Nombre")}</Label>
                 <Input
                   id="edit-team-name"
                   value={editing.full_name}
@@ -305,14 +394,14 @@ function EquipoPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Rol</Label>
+                <Label>{t("Rol")}</Label>
                 <Select
                   value={editing.role}
                   onValueChange={(role) =>
                     setEditing({
                       ...editing,
                       role,
-                      location_id: role === "admin" ? "" : editing.location_id,
+                      location_ids: role === "admin" ? [] : editing.location_ids,
                     })
                   }
                 >
@@ -320,36 +409,24 @@ function EquipoPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="staff">Empleado</SelectItem>
-                    <SelectItem value="manager">Responsable</SelectItem>
-                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="staff">{t("Empleado")}</SelectItem>
+                    <SelectItem value="manager">{t("Responsable")}</SelectItem>
+                    <SelectItem value="admin">{t("Administrador")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {editing.role !== "admin" ? (
                 <div className="space-y-1.5">
-                  <Label>Establecimiento asignado</Label>
-                  <Select
-                    value={editing.location_id}
-                    onValueChange={(location_id) => setEditing({ ...editing, location_id })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un establecimiento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(locations ?? []).map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>{t("Establecimientos asignados")}</Label>
+                  {locationPicker(editing.location_ids, (location_ids) =>
+                    setEditing({ ...editing, location_ids }),
+                  )}
                 </div>
               ) : null}
             </div>
           ) : null}
           <DialogFooter>
-            <Button onClick={() => void updateMember()}>Guardar cambios</Button>
+            <Button onClick={() => void updateMember()}>{t("Guardar cambios")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

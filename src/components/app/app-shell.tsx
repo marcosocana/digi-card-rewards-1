@@ -55,6 +55,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useI18n, type Language } from "@/lib/i18n";
 import {
   getSelectedLocationIds,
   setSelectedLocationIds,
@@ -195,13 +196,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [language, setLanguage] = useState("es");
   const [darkMode, setDarkMode] = useState(false);
+  const { language, setLanguage, t } = useI18n();
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("fideleo:sidebar-collapsed") === "true");
     setSelectedLocations(getSelectedLocationIds());
-    setLanguage(window.localStorage.getItem("fideleo:language") ?? "es");
     const dark = window.localStorage.getItem("fideleo:theme") === "dark";
     setDarkMode(dark);
     document.documentElement.classList.toggle("dark", dark);
@@ -220,7 +220,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const role = session?.org?.role ?? "staff";
   const items =
     session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
-  const roleName = session?.isSuperadmin ? "Superadmin" : role;
+  const roleName = t(session?.isSuperadmin ? "Superadmin" : role);
 
   const updateLocations = (ids: string[]) => {
     setSelectedLocations(ids);
@@ -236,11 +236,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   const selectedLocationLabel = !selectedLocations.length
-    ? "Todos los locales"
+    ? t("Todos los locales")
     : selectedLocations.length === 1
       ? (session?.locations.find((location) => location.id === selectedLocations[0])?.name ??
-        "1 local")
-      : `${selectedLocations.length} locales`;
+        t("1 local"))
+      : t("{count} locales", { count: selectedLocations.length });
 
   const toggleSidebar = () => {
     const next = !collapsed;
@@ -268,7 +268,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const groups = ["Operaciones", "Fidelización", "Analítica", "Administración"] as const;
   const searchResults = search.trim()
     ? items
-        .filter((item) => item.label.toLowerCase().includes(search.trim().toLowerCase()))
+        .filter((item) =>
+          `${item.label} ${t(item.label)}`.toLowerCase().includes(search.trim().toLowerCase()),
+        )
         .slice(0, 6)
     : [];
 
@@ -289,28 +291,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
             <span className={cn("min-w-0", collapsed && "lg:hidden")}>
               <span className="block truncate text-sm font-semibold">
-                {session?.fullName ?? session?.email ?? "Mi perfil"}
+                {session?.fullName ?? session?.email ?? t("Mi perfil")}
               </span>
               <span className="block truncate text-xs capitalize text-sidebar-foreground/55">
                 {roleName}
               </span>
             </span>
           </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="hidden shrink-0 text-sidebar-foreground/65 hover:bg-sidebar-accent lg:inline-flex"
-            onClick={toggleSidebar}
-            aria-label={collapsed ? "Mostrar textos del menú" : "Ocultar textos del menú"}
-            title={collapsed ? "Mostrar menú" : "Contraer menú"}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="size-4" />
-            ) : (
-              <PanelLeftClose className="size-4" />
-            )}
-          </Button>
         </div>
 
         {session?.locations.length && session.locations.length > 1 ? (
@@ -336,7 +323,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onSelect={(event) => event.preventDefault()}
                 onCheckedChange={() => updateLocations([])}
               >
-                Todos los locales
+                {t("Todos los locales")}
               </DropdownMenuCheckboxItem>
               {session.locations.map((location) => (
                 <DropdownMenuCheckboxItem
@@ -366,7 +353,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <button
           className="absolute right-3 top-3 lg:hidden"
           onClick={() => setOpen(false)}
-          aria-label="Cerrar menú"
+          aria-label={t("Cerrar menú")}
         >
           <X className="size-5" />
         </button>
@@ -383,7 +370,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   collapsed && "lg:hidden",
                 )}
               >
-                {group}
+                {t(group)}
               </p>
               <div className="space-y-1">
                 {groupItems.map((item) => (
@@ -391,7 +378,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={item.to}
                     to={item.to}
                     onClick={() => setOpen(false)}
-                    title={collapsed ? item.label : undefined}
+                    title={collapsed ? t(item.label) : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                       collapsed && "lg:justify-center lg:px-2",
@@ -401,7 +388,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     )}
                   >
                     <item.icon aria-hidden className="size-4 shrink-0" />
-                    <span className={cn(collapsed && "lg:hidden")}>{item.label}</span>
+                    <span className={cn(collapsed && "lg:hidden")}>{t(item.label)}</span>
                   </Link>
                 ))}
               </div>
@@ -421,7 +408,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           >
             <ShieldCheck aria-hidden className="size-4 shrink-0" />
-            <span className={cn(collapsed && "lg:hidden")}>Plataforma</span>
+            <span className={cn(collapsed && "lg:hidden")}>{t("Plataforma")}</span>
           </Link>
         ) : null}
       </nav>
@@ -434,10 +421,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             collapsed && "lg:justify-center",
           )}
           onClick={signOut}
-          title="Cerrar sesión"
+          title={t("Cerrar sesión")}
         >
           <LogOut aria-hidden className="size-4" />
-          <span className={cn(collapsed && "lg:hidden")}>Cerrar sesión</span>
+          <span className={cn(collapsed && "lg:hidden")}>{t("Cerrar sesión")}</span>
         </Button>
       </div>
     </div>
@@ -453,13 +440,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="hidden lg:block lg:h-screen lg:sticky lg:top-0">{sidebar}</aside>
 
       <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b bg-card px-4 py-3">
-        <button onClick={() => setOpen(true)} aria-label="Abrir menú">
+        <button onClick={() => setOpen(true)} aria-label={t("Abrir menú")}>
           <Menu className="size-5" />
         </button>
         <span className="truncate px-3 text-sm font-semibold">
-          {session?.fullName ?? session?.email ?? "Mi perfil"}
+          {session?.fullName ?? session?.email ?? t("Mi perfil")}
         </span>
-        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Cambiar tema">
+        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={t("Cambiar tema")}>
           {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </Button>
       </div>
@@ -472,39 +459,50 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 hidden h-18 items-center justify-between border-b bg-card/95 px-8 backdrop-blur lg:flex">
-          <div className="relative w-full max-w-xl">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar una sección de Fideleo"
-              className="h-10 w-full rounded-xl border bg-muted/50 pl-10 pr-4 text-sm outline-none transition focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-primary/10"
-            />
-            {searchResults.length ? (
-              <div className="absolute inset-x-0 top-12 overflow-hidden rounded-xl border bg-popover p-1 shadow-xl">
-                {searchResults.map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setSearch("")}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent"
-                  >
-                    <item.icon className="size-4 text-muted-foreground" />
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            ) : null}
+          <div className="flex w-full max-w-2xl items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              onClick={toggleSidebar}
+              aria-label={t(collapsed ? "Mostrar textos del menú" : "Ocultar textos del menú")}
+              title={t(collapsed ? "Mostrar menú" : "Contraer menú")}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="size-4" />
+              ) : (
+                <PanelLeftClose className="size-4" />
+              )}
+            </Button>
+            <div className="relative w-full max-w-xl">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={t("Buscar una sección de Fideleo")}
+                className="h-10 w-full rounded-xl border bg-muted/50 pl-10 pr-4 text-sm outline-none transition focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-primary/10"
+              />
+              {searchResults.length ? (
+                <div className="absolute inset-x-0 top-12 overflow-hidden rounded-xl border bg-popover p-1 shadow-xl">
+                  {searchResults.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setSearch("")}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent"
+                    >
+                      <item.icon className="size-4 text-muted-foreground" />
+                      {t(item.label)}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
           <div className="ml-6 flex items-center gap-2">
-            <Select
-              value={language}
-              onValueChange={(value) => {
-                setLanguage(value);
-                window.localStorage.setItem("fideleo:language", value);
-              }}
-            >
-              <SelectTrigger className="w-[8.5rem]" aria-label="Seleccionar idioma">
+            <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+              <SelectTrigger className="w-[8.5rem]" aria-label={t("Seleccionar idioma")}>
                 <Languages className="size-4" />
                 <SelectValue />
               </SelectTrigger>
@@ -517,15 +515,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Ayuda">
+                <Button variant="outline" size="icon" aria-label={t("Ayuda")}>
                   <CircleHelp className="size-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>¿Necesitas ayuda?</DialogTitle>
+                  <DialogTitle>{t("¿Necesitas ayuda?")}</DialogTitle>
                   <DialogDescription>
-                    Ponte en contacto con el equipo de Fideleo y te ayudaremos con tu cuenta.
+                    {t("Ponte en contacto con el equipo de Fideleo y te ayudaremos con tu cuenta.")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -553,8 +551,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               variant="outline"
               size="icon"
               onClick={toggleTheme}
-              aria-label={darkMode ? "Activar modo claro" : "Activar modo oscuro"}
-              title={darkMode ? "Modo claro" : "Modo oscuro"}
+              aria-label={t(darkMode ? "Activar modo claro" : "Activar modo oscuro")}
+              title={t(darkMode ? "Modo claro" : "Modo oscuro")}
             >
               {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </Button>
