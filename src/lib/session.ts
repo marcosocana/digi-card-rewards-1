@@ -18,6 +18,9 @@ export interface SessionInfo {
   isSuperadmin: boolean;
   org: Membership | null;
   organizationName: string | null;
+  planCode: string | null;
+  subscriptionStatus: string | null;
+  hasActivePlan: boolean;
   locations: { id: string; name: string; slug: string }[];
 }
 
@@ -36,12 +39,19 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
 
   const { data: ou } = await supabase
     .from("organization_users")
-    .select("id, organization_id, role, can_adjust_points, full_name, organizations(display_name)")
+    .select(
+      "id, organization_id, role, can_adjust_points, full_name, organizations(display_name, plan_code, subscription_status)",
+    )
     .eq("user_id", user.id)
     .eq("status", "active")
     .maybeSingle();
 
   const isSuperadmin = profile?.platform_role === "superadmin";
+  const organization = ou?.organizations as {
+    display_name: string;
+    plan_code: string | null;
+    subscription_status: string;
+  } | null;
   let locations: { id: string; name: string; slug: string }[] = [];
 
   if (ou) {
@@ -76,7 +86,11 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
           full_name: ou.full_name,
         }
       : null,
-    organizationName: (ou?.organizations as { display_name: string } | null)?.display_name ?? null,
+    organizationName: organization?.display_name ?? null,
+    planCode: organization?.plan_code ?? null,
+    subscriptionStatus: organization?.subscription_status ?? null,
+    hasActivePlan:
+      isSuperadmin || ["active", "trialing"].includes(organization?.subscription_status ?? ""),
     locations,
   };
 }

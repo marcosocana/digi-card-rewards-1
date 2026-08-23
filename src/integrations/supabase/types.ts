@@ -1965,8 +1965,13 @@ export type Database = {
           notification_daily_limit: number
           onboarding_completed_at: string | null
           onboarding_step: number
-          plan_code: string
+          plan_code: string | null
           postal_code: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_current_period_end: string | null
+          subscription_status: string
+          subscription_updated_at: string | null
           slug: string
           status: Database["public"]["Enums"]["entity_status"]
           timezone: string
@@ -1994,8 +1999,13 @@ export type Database = {
           notification_daily_limit?: number
           onboarding_completed_at?: string | null
           onboarding_step?: number
-          plan_code?: string
+          plan_code?: string | null
           postal_code?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_current_period_end?: string | null
+          subscription_status?: string
+          subscription_updated_at?: string | null
           slug: string
           status?: Database["public"]["Enums"]["entity_status"]
           timezone?: string
@@ -2023,8 +2033,13 @@ export type Database = {
           notification_daily_limit?: number
           onboarding_completed_at?: string | null
           onboarding_step?: number
-          plan_code?: string
+          plan_code?: string | null
           postal_code?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_current_period_end?: string | null
+          subscription_status?: string
+          subscription_updated_at?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["entity_status"]
           timezone?: string

@@ -221,6 +221,33 @@ const ca: Dictionary = {
   "Aún no hay recompensas": "Encara no hi ha recompenses",
   "Crea la primera para que tus clientes tengan un objetivo.":
     "Crea la primera perquè els teus clients tinguin un objectiu.",
+  "Elige un plan para acceder a Fideleo": "Tria un pla per accedir a Fideleo",
+  "Tu cuenta ya está creada. Activa uno de los planes para desbloquear el panel de gestión.":
+    "El teu compte ja està creat. Activa un dels plans per desbloquejar el panell de gestió.",
+  "Plan activado": "Pla activat",
+  "Estamos confirmando el pago con Stripe…": "Estem confirmant el pagament amb Stripe…",
+  "El pago todavía se está validando. Puedes volver a comprobarlo.":
+    "El pagament encara s'està validant. Pots tornar a comprovar-lo.",
+  "Más elegido": "Més escollit",
+  "al mes · IVA no incluido": "al mes · IVA no inclòs",
+  "Hasta 1.000 clientes": "Fins a 1.000 clients",
+  "Tarjeta digital y QR": "Targeta digital i QR",
+  "Panel de métricas": "Panell de mètriques",
+  "Hasta 3 establecimientos": "Fins a 3 establiments",
+  "Hasta 5.000 clientes": "Fins a 5.000 clients",
+  "Notificaciones y automatizaciones": "Notificacions i automatitzacions",
+  "Soporte prioritario": "Suport prioritari",
+  "Establecimientos ilimitados": "Establiments il·limitats",
+  "Clientes ilimitados": "Clients il·limitats",
+  "Integraciones a medida": "Integracions a mida",
+  "Acompañamiento dedicado": "Acompanyament dedicat",
+  "Elegir plan": "Triar pla",
+  "Solicitar plan": "Sol·licitar pla",
+  "Comprobar acceso": "Comprovar l'accés",
+  "Solo un administrador puede contratar el plan": "Només un administrador pot contractar el pla",
+  "No se pudo iniciar el pago": "No s'ha pogut iniciar el pagament",
+  "Pide a un administrador de la cuenta que seleccione el plan.":
+    "Demana a un administrador del compte que seleccioni el pla.",
 };
 
 const en: Dictionary = {
@@ -437,6 +464,33 @@ const en: Dictionary = {
   "Aún no hay recompensas": "No rewards yet",
   "Crea la primera para que tus clientes tengan un objetivo.":
     "Create the first one so your customers have a goal.",
+  "Elige un plan para acceder a Fideleo": "Choose a plan to access Fideleo",
+  "Tu cuenta ya está creada. Activa uno de los planes para desbloquear el panel de gestión.":
+    "Your account is ready. Activate a plan to unlock the management dashboard.",
+  "Plan activado": "Plan activated",
+  "Estamos confirmando el pago con Stripe…": "We are confirming your payment with Stripe…",
+  "El pago todavía se está validando. Puedes volver a comprobarlo.":
+    "Your payment is still being validated. You can check again.",
+  "Más elegido": "Most popular",
+  "al mes · IVA no incluido": "per month · VAT not included",
+  "Hasta 1.000 clientes": "Up to 1,000 customers",
+  "Tarjeta digital y QR": "Digital card and QR",
+  "Panel de métricas": "Metrics dashboard",
+  "Hasta 3 establecimientos": "Up to 3 locations",
+  "Hasta 5.000 clientes": "Up to 5,000 customers",
+  "Notificaciones y automatizaciones": "Notifications and automations",
+  "Soporte prioritario": "Priority support",
+  "Establecimientos ilimitados": "Unlimited locations",
+  "Clientes ilimitados": "Unlimited customers",
+  "Integraciones a medida": "Custom integrations",
+  "Acompañamiento dedicado": "Dedicated support",
+  "Elegir plan": "Choose plan",
+  "Solicitar plan": "Request plan",
+  "Comprobar acceso": "Check access",
+  "Solo un administrador puede contratar el plan": "Only an administrator can purchase a plan",
+  "No se pudo iniciar el pago": "Could not start payment",
+  "Pide a un administrador de la cuenta que seleccione el plan.":
+    "Ask an account administrator to select the plan.",
 };
 
 const dictionaries: Record<Exclude<Language, "es">, Dictionary> = { ca, en };

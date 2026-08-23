@@ -59,6 +59,8 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [signupSent, setSignupSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -115,7 +117,7 @@ function AuthPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth?confirmed=1`,
-        data: { full_name: fullName.trim() },
+        data: { full_name: fullName.trim(), business_name: businessName.trim() },
       },
     });
     setLoading(false);
@@ -124,6 +126,7 @@ function AuthPage() {
       return;
     }
     if (!data.session) {
+      setSignupSent(true);
       toast.success("Revisa tu correo para confirmar la cuenta");
       return;
     }
@@ -250,44 +253,71 @@ function AuthPage() {
               </TabsContent>
 
               <TabsContent value="signup">
-                <form onSubmit={signUp} className="mt-5 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name">Nombre completo</Label>
-                    <Input
-                      id="name"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email2">Email</Label>
-                    <Input
-                      id="email2"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="password2">Contraseña</Label>
-                    <Input
-                      id="password2"
-                      type="password"
-                      required
-                      minLength={8}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Usa el email al que te invitaron para heredar tu rol automáticamente.
+                {signupSent ? (
+                  <div className="mt-5 rounded-2xl border bg-[#dff7ff] p-5 text-center">
+                    <h2 className="font-display text-xl font-bold">Revisa tu email</h2>
+                    <p className="mt-2 text-sm text-black/65">
+                      Te hemos enviado un enlace a <strong>{email}</strong> para verificar tu email
+                      y terminar de crear tu cuenta.
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => setSignupSent(false)}
+                    >
+                      Cambiar email
+                    </Button>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Creando…" : "Crear cuenta"}
-                  </Button>
-                </form>
+                ) : (
+                  <form onSubmit={signUp} className="mt-5 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name">Nombre completo</Label>
+                      <Input
+                        id="name"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="business-name">Nombre del negocio</Label>
+                      <Input
+                        id="business-name"
+                        required
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email2">Email</Label>
+                      <Input
+                        id="email2"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="password2">Contraseña</Label>
+                      <Input
+                        id="password2"
+                        type="password"
+                        required
+                        minLength={8}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Usa el email al que te invitaron para heredar tu rol automáticamente.
+                      </p>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? "Creando…" : "Crear cuenta"}
+                    </Button>
+                  </form>
+                )}
               </TabsContent>
             </Tabs>
           )}
