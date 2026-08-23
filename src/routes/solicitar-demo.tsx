@@ -1,10 +1,20 @@
 import { useState, type FormEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Clock3, Mail, MessageCircle, Phone } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Clock3,
+  LoaderCircle,
+  Mail,
+  MessageCircle,
+  Phone,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/solicitar-demo")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -31,22 +41,44 @@ function DemoPage() {
     email: "",
     phone: "",
     message: plan ? `Me interesa el plan ${plan}.` : "",
+    website: "",
   });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const subject = encodeURIComponent(`Solicitud de demo de ${form.business || form.name}`);
-    const body = encodeURIComponent(
-      [
-        `Nombre: ${form.name}`,
-        `Negocio: ${form.business}`,
-        `Email: ${form.email}`,
-        `Teléfono: ${form.phone || "No indicado"}`,
-        "",
-        form.message,
-      ].join("\n"),
-    );
-    window.location.href = `mailto:Fideleo.app@gmail.com?subject=${subject}&body=${body}`;
+    if (sending) return;
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>(
+        "send-demo-request",
+        { body: form },
+      );
+      if (error) {
+        let message = error.message;
+        const context = (error as { context?: unknown }).context;
+        if (context instanceof Response) {
+          const result = (await context
+            .clone()
+            .json()
+            .catch(() => null)) as {
+            error?: string;
+          } | null;
+          message = result?.error ?? message;
+        }
+        throw new Error(message);
+      }
+      if (!data?.ok) throw new Error(data?.error ?? "No se pudo enviar la solicitud");
+      setSent(true);
+      toast.success("Solicitud enviada", { description: "Te responderemos en horario laboral." });
+    } catch (error) {
+      toast.error("No se pudo enviar la solicitud", {
+        description: error instanceof Error ? error.message : "Inténtalo de nuevo más tarde.",
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -131,6 +163,17 @@ function DemoPage() {
             <h2 className="text-2xl font-semibold">Solicita tu demo</h2>
             <p className="mt-2 text-sm text-black/55">Te responderemos en horario laboral.</p>
             <div className="mt-7 grid gap-5 sm:grid-cols-2">
+              <div className="absolute -left-[10000px]" aria-hidden="true">
+                <Label htmlFor="website">Web</Label>
+                <Input
+                  id="website"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre *</Label>
                 <Input
@@ -181,12 +224,25 @@ function DemoPage() {
             <Button
               type="submit"
               size="lg"
+              disabled={sending || sent}
               className="mt-6 w-full rounded-full bg-black text-white hover:bg-black/75"
             >
-              Enviar solicitud <Mail />
+              {sending ? (
+                <>
+                  Enviando… <LoaderCircle className="animate-spin" />
+                </>
+              ) : sent ? (
+                <>
+                  Solicitud enviada <CheckCircle2 />
+                </>
+              ) : (
+                <>
+                  Enviar solicitud <Mail />
+                </>
+              )}
             </Button>
             <p className="mt-4 text-center text-xs text-black/45">
-              Al enviar se abrirá tu aplicación de correo con la solicitud preparada.
+              Recibiremos tu solicitud por email y te responderemos en horario laboral.
             </p>
           </form>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Coins, Gift, Lightbulb, Receipt, TrendingUp, Users } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/app/metric-card";
 import { EmptyState } from "@/components/app/empty-state";
@@ -90,8 +91,19 @@ function ResumenPage() {
     return () => window.removeEventListener(locationFilterEvent, update);
   }, []);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["overview", orgId, fromDate, toDate, selectedLocations],
+  const {
+    data,
+    isLoading,
+    error: overviewError,
+  } = useQuery({
+    queryKey: [
+      "overview",
+      orgId,
+      period,
+      fromDate,
+      toDate,
+      [...selectedLocations].sort().join(","),
+    ],
     enabled: Boolean(orgId),
     queryFn: async () => {
       const from = new Date(`${fromDate}T00:00:00`).toISOString();
@@ -107,28 +119,52 @@ function ResumenPage() {
         .eq("organization_id", orgId!)
         .gte("joined_at", from)
         .lte("joined_at", to);
-      let transactionsQuery = supabase
-        .from("point_transactions")
-        .select("id, type, points_delta, amount_cents, created_at, membership_id, location_id")
-        .eq("organization_id", orgId!)
-        .gte("created_at", from)
-        .lte("created_at", to)
-        .order("created_at", { ascending: false })
-        .limit(400);
 
       if (selectedLocations.length) {
         membersQuery = membersQuery.in("acquisition_location_id", selectedLocations);
         newMembersQuery = newMembersQuery.in("acquisition_location_id", selectedLocations);
-        transactionsQuery = transactionsQuery.in("location_id", selectedLocations);
       }
 
-      const [members, newMembers, txns, locations] = await Promise.all([
+      const fetchTransactions = async () => {
+        const pageSize = 1_000;
+        const allRows: Array<{
+          id: string;
+          type: string;
+          points_delta: number;
+          amount_cents: number | null;
+          created_at: string;
+          membership_id: string;
+          location_id: string | null;
+        }> = [];
+
+        for (let page = 0; ; page += 1) {
+          let query = supabase
+            .from("point_transactions")
+            .select("id, type, points_delta, amount_cents, created_at, membership_id, location_id")
+            .eq("organization_id", orgId!)
+            .gte("created_at", from)
+            .lte("created_at", to)
+            .order("created_at", { ascending: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+          if (selectedLocations.length) query = query.in("location_id", selectedLocations);
+
+          const response = await query;
+          if (response.error) throw response.error;
+          allRows.push(...(response.data ?? []));
+          if ((response.data?.length ?? 0) < pageSize) break;
+        }
+        return allRows;
+      };
+
+      const [members, newMembers, rows, locations] = await Promise.all([
         membersQuery,
         newMembersQuery,
-        transactionsQuery,
-        supabase.from("locations").select("id, name").eq("organization_id", orgId!),
+        fetchTransactions(),
+        supabase.from("locations").select("id, name").eq("organization_id", orgId!).order("name"),
       ]);
-      const rows = txns.data ?? [];
+      if (members.error) throw members.error;
+      if (newMembers.error) throw newMembers.error;
+      if (locations.error) throw locations.error;
       const purchases = rows.filter((r) => r.type === "purchase");
       const locName = new Map((locations.data ?? []).map((l) => [l.id, l.name]));
       const locationRows = (locations.data ?? [])
@@ -153,7 +189,7 @@ function ResumenPage() {
           .filter((r) => r.type === "redemption")
           .reduce((s, r) => s + Math.abs(r.points_delta), 0),
         redemptions: rows.filter((r) => r.type === "redemption").length,
-        sales: rows.reduce((s, r) => s + (r.amount_cents ?? 0), 0),
+        sales: purchases.reduce((s, r) => s + (r.amount_cents ?? 0), 0),
         purchases: purchases.length,
         averageTicket: purchases.length
           ? Math.round(purchases.reduce((s, r) => s + (r.amount_cents ?? 0), 0) / purchases.length)
@@ -178,8 +214,7 @@ function ResumenPage() {
   return (
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="w-full space-y-1 sm:w-52">
-          <Label className="text-xs">{t("Periodo")}</Label>
+        <div className="w-full sm:w-52">
           <Select
             value={period}
             onValueChange={(value: PeriodPreset) => {
@@ -191,7 +226,7 @@ function ResumenPage() {
               }
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger aria-label={t("Seleccionar periodo")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -215,7 +250,11 @@ function ResumenPage() {
                 type="date"
                 value={fromDate}
                 max={toDate}
-                onChange={(event) => setFromDate(event.target.value)}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setFromDate(next);
+                  if (next > toDate) setToDate(next);
+                }}
               />
             </div>
             <div className="space-y-1">
@@ -227,22 +266,31 @@ function ResumenPage() {
                 type="date"
                 value={toDate}
                 min={fromDate}
-                onChange={(event) => setToDate(event.target.value)}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setToDate(next);
+                  if (next < fromDate) setFromDate(next);
+                }}
               />
             </div>
           </>
         ) : null}
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+      {overviewError ? (
+        <div className="surface border-destructive/30 p-5 text-sm text-destructive">
+          <p className="font-semibold">{t("No se pudieron cargar los indicadores")}</p>
+          <p className="mt-1 text-xs opacity-80">{overviewError.message}</p>
+        </div>
+      ) : isLoading ? (
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-xl" />
           ))}
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
             <MetricCard
               label="Clientes"
               value={num(data?.members)}
@@ -309,7 +357,7 @@ function ResumenPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[1.55fr_.45fr]">
+          <div className="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
             <div className="surface overflow-hidden">
               <div className="flex items-center justify-between border-b px-5 py-4">
                 <h2 className="font-display text-lg font-semibold">{t("Actividad reciente")}</h2>
@@ -322,21 +370,26 @@ function ResumenPage() {
               </div>
               {data?.recent.length ? (
                 <ul className="divide-y">
-                  {data.recent.map((t) => (
-                    <li key={t.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  {data.recent.map((transaction) => (
+                    <li
+                      key={transaction.id}
+                      className="flex items-center justify-between gap-3 px-5 py-3"
+                    >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{t(txnLabel[t.type] ?? t.type)}</p>
+                        <p className="text-sm font-medium">
+                          {t(txnLabel[transaction.type] ?? transaction.type)}
+                        </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {t.locationName} · {dateTime(t.created_at)}
-                          {t.amount_cents ? ` · ${eur(t.amount_cents)}` : ""}
+                          {transaction.locationName} · {dateTime(transaction.created_at)}
+                          {transaction.amount_cents ? ` · ${eur(transaction.amount_cents)}` : ""}
                         </p>
                       </div>
                       <Badge
-                        variant={t.points_delta >= 0 ? "secondary" : "outline"}
+                        variant={transaction.points_delta >= 0 ? "secondary" : "outline"}
                         className="shrink-0 font-mono"
                       >
-                        {t.points_delta >= 0 ? "+" : ""}
-                        {num(t.points_delta)}
+                        {transaction.points_delta >= 0 ? "+" : ""}
+                        {num(transaction.points_delta)}
                       </Badge>
                     </li>
                   ))}
@@ -354,27 +407,57 @@ function ResumenPage() {
                   {t("Ventas asociadas · periodo seleccionado")}
                 </p>
               </div>
-              <div className="divide-y">
-                {data?.locationRows.map((location, index) => (
-                  <div key={location.id} className="px-5 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">{location.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {t("{count} compras", { count: num(location.purchases) })}
-                        </p>
-                      </div>
-                      <span className="text-sm font-bold">{eur(location.sales)}</span>
-                    </div>
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${Math.max(8, 100 - index * 15)}%` }}
+              {data?.locationRows.length ? (
+                <div
+                  className="h-[280px] px-2 pb-3 pt-5 sm:px-4"
+                  role="img"
+                  aria-label={t("Gráfica de ventas asociadas por establecimiento")}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={data.locationRows}
+                      layout="vertical"
+                      margin={{ top: 0, right: 12, bottom: 0, left: 0 }}
+                    >
+                      <CartesianGrid horizontal={false} strokeDasharray="3 3" opacity={0.35} />
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10 }}
+                        tickFormatter={(value) => eur(Number(value))}
                       />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={88}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(value: string) =>
+                          value.length > 13 ? `${value.slice(0, 12)}…` : value
+                        }
+                      />
+                      <Tooltip
+                        cursor={{ fill: "var(--muted)", opacity: 0.45 }}
+                        formatter={(value) => [eur(Number(value)), t("Ventas asociadas")]}
+                        labelFormatter={(label) => String(label)}
+                        contentStyle={{
+                          borderRadius: "0.75rem",
+                          borderColor: "var(--border)",
+                          background: "var(--background)",
+                          fontSize: "0.75rem",
+                        }}
+                      />
+                      <Bar dataKey="sales" fill="var(--primary)" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+                  {t("Todavía no hay ventas asociadas.")}
+                </p>
+              )}
             </aside>
           </div>
         </>

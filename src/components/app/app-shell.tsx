@@ -435,9 +435,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <button onClick={() => setOpen(true)} aria-label={t("Abrir menú")}>
           <Menu className="size-5" />
         </button>
-        <span className="truncate px-3 text-sm font-semibold">
-          {session?.fullName ?? session?.email ?? t("Mi perfil")}
-        </span>
+        <Link to="/panel" onClick={() => setOpen(false)} aria-label="Fideleo">
+          <img src="/logo.svg" alt="Fideleo" className="h-4 w-auto max-w-20 object-contain" />
+        </Link>
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={t("Cambiar tema")}>
           {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </Button>
