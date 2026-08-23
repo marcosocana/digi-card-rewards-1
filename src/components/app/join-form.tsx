@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, MailCheck } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,13 +31,13 @@ const emptyForm = {
 };
 
 export function JoinForm({ ctx }: { ctx: JoinContext }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState(emptyForm);
   const [terms, setTerms] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [code, setCode] = useState("");
-  const [publicId, setPublicId] = useState<string | null>(null);
 
   const sendVerification = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -87,32 +87,12 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
     setLoading(false);
     if (error)
       return toast.error("No hemos podido completar el alta", { description: error.message });
-    setPublicId((data as { membership_public_id: string }).membership_public_id);
+    const membershipPublicId = (data as { membership_public_id: string }).membership_public_id;
+    await navigate({
+      to: "/mi-tarjeta/$publicId",
+      params: { publicId: membershipPublicId },
+    });
   };
-
-  if (publicId) {
-    return (
-      <div className="rounded-[1.75rem] bg-white p-7 text-center text-[#111] shadow-xl">
-        <span className="mx-auto grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-700">
-          <CheckCircle2 className="size-7" />
-        </span>
-        <h2 className="mt-5 font-display text-2xl font-semibold">¡Ya formas parte del club!</h2>
-        <p className="mt-2 text-sm text-black/55">
-          Tu email ha sido verificado. Guarda ahora tu tarjeta para consultar puntos y recompensas.
-        </p>
-        <Button
-          asChild
-          className="mt-6 w-full rounded-full"
-          size="lg"
-          style={{ backgroundColor: ctx.primaryColor }}
-        >
-          <a href={`/mi-tarjeta/${publicId}`}>
-            Ver mi tarjeta <ArrowRight />
-          </a>
-        </Button>
-      </div>
-    );
-  }
 
   if (verificationSent) {
     return (

@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
 
   try {
     // 1. Datos que envía Lovable
-    const { userUuid, customerName, currentPoints } = await req.json();
+    const { userUuid, customerName, currentPoints, membershipPublicId } = await req.json();
 
     // 2. Leer la clave de Google desde el Vault de Supabase
     const googleCredentialsJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       classId: `${ISSUER_ID}.${CLASS_ID}`,
       accountName: customerName,
       accountId: userUuid,
-      status: "active",
+      state: "ACTIVE",
       barcode: {
         type: "QR_CODE",
         value: userUuid,
@@ -91,6 +91,40 @@ Deno.serve(async (req) => {
     );
     const jwt = `${unsignedToken}.${base64Url(new Uint8Array(signature))}`;
     const saveUrl = `https://pay.google.com/gp/v/save/${jwt}`;
+
+    if (membershipPublicId) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (supabaseUrl && serviceKey) {
+        const headers = {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        };
+        const membershipResponse = await fetch(
+          `${supabaseUrl}/rest/v1/memberships?public_id=eq.${encodeURIComponent(membershipPublicId)}&select=id&limit=1`,
+          { headers },
+        );
+        const memberships = (await membershipResponse.json()) as Array<{ id: string }>;
+        if (memberships[0]?.id) {
+          await fetch(
+            `${supabaseUrl}/rest/v1/wallet_passes?membership_id=eq.${memberships[0].id}&provider=eq.google`,
+            {
+              method: "PATCH",
+              headers,
+              body: JSON.stringify({
+                provider_object_id: loyaltyObject.id,
+                status: "active",
+                is_sandbox: false,
+                last_generated_at: new Date().toISOString(),
+                last_error_code: null,
+                last_error_message: null,
+              }),
+            },
+          );
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ url: saveUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

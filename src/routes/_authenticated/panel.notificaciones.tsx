@@ -144,8 +144,8 @@ function NotificacionesPage() {
       ...(form.scheduled ? { _scheduled_for: new Date(form.scheduled).toISOString() } : {}),
       _idempotency_key: crypto.randomUUID(),
     });
-    setBusy(false);
     if (error) {
+      setBusy(false);
       toast.error(
         error.message.includes("DAILY_NOTIFICATION_LIMIT")
           ? "Ya se alcanzó el límite diario de notificaciones"
@@ -154,9 +154,31 @@ function NotificacionesPage() {
       );
       return;
     }
-    const response = result as { recipient_count?: number; status?: string };
-    toast.success(form.scheduled ? "Notificación programada" : "Notificación añadida a la cola", {
-      description: `${num(response.recipient_count)} destinatarios. Los pases sandbox permanecen en modo demo.`,
+    const response = result as {
+      notification_id?: string;
+      recipient_count?: number;
+      status?: string;
+    };
+    let deliveryDescription = `${num(response.recipient_count)} destinatarios.`;
+    if (response.notification_id) {
+      const { data: delivery, error: deliveryError } = await supabase.functions.invoke<{
+        delivered?: number;
+        failed?: number;
+        error?: string;
+      }>("send-google-wallet-notification", {
+        body: { notificationId: response.notification_id },
+      });
+      if (deliveryError) {
+        deliveryDescription += " La notificación quedó en cola; Google Wallet no pudo procesarla.";
+      } else {
+        deliveryDescription += ` ${num(delivery?.delivered)} entregas en Google Wallet`;
+        if (delivery?.failed) deliveryDescription += ` y ${num(delivery.failed)} no entregadas`;
+        deliveryDescription += ".";
+      }
+    }
+    setBusy(false);
+    toast.success(form.scheduled ? "Notificación programada" : "Envío a Google Wallet procesado", {
+      description: deliveryDescription,
     });
     setOpen(false);
     setForm({ title: "", message: "", url: "", segmentId: "", scheduled: "" });
@@ -272,8 +294,9 @@ function NotificacionesPage() {
                   />
                 </div>
                 <p className="rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-                  Apple Wallet y Google Wallet admiten formatos visuales distintos. Los pases
-                  actuales son sandbox y sus entregas quedarán marcadas como “Demo”.
+                  En Google Wallet el mensaje se guarda en la tarjeta y se solicita una notificación
+                  de Android. La recepción depende de que el cliente haya añadido la tarjeta y tenga
+                  activadas las notificaciones de Wallet.
                 </p>
               </div>
               <DialogFooter>

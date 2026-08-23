@@ -75,6 +75,7 @@ function PortalPage() {
           userUuid,
           customerName,
           currentPoints: data.membership.balance,
+          membershipPublicId: data.membership.public_id,
         },
       });
 
@@ -85,8 +86,18 @@ function PortalPage() {
       else window.open(walletData.url, "_blank", "noopener,noreferrer");
     } catch (error) {
       walletWindow?.close();
+      let message = error instanceof Error ? error.message : "Inténtalo de nuevo más tarde.";
+      const context = (error as { context?: unknown } | null)?.context;
+      if (context instanceof Response) {
+        try {
+          const body = (await context.clone().json()) as { error?: string; message?: string };
+          message = body.error ?? body.message ?? message;
+        } catch {
+          // Conserva el mensaje original si la respuesta no contiene JSON.
+        }
+      }
       toast.error("No se pudo añadir la tarjeta a Google Wallet", {
-        description: error instanceof Error ? error.message : "Inténtalo de nuevo más tarde.",
+        description: message,
       });
     } finally {
       setGoogleWalletLoading(false);
