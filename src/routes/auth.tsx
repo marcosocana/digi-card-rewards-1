@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,6 @@ const demoUsers = [
 ];
 
 function AuthPage() {
-  const navigate = useNavigate();
   const search = Route.useSearch();
   const welcomeHandled = useRef(false);
   const [activeTab, setActiveTab] = useState<"signin" | "signup">(search.tab);
@@ -61,7 +60,7 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [signupSent, setSignupSent] = useState(false);
-  const [signupWasRepeated, setSignupWasRepeated] = useState(false);
+  const [accountExists, setAccountExists] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -113,12 +112,13 @@ function AuthPage() {
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth?confirmed=1`,
-        data: { full_name: fullName.trim(), business_name: businessName.trim() },
+    const { data, error } = await supabase.functions.invoke("register-business-account", {
+      body: {
+        email: email.trim().toLowerCase(),
+        password,
+        fullName: fullName.trim(),
+        businessName: businessName.trim(),
+        redirectTo: `${window.location.origin}/auth?confirmed=1`,
       },
     });
     setLoading(false);
@@ -126,38 +126,19 @@ function AuthPage() {
       toast.error("No hemos podido crear la cuenta", { description: error.message });
       return;
     }
-    if (!data.session) {
-      const repeatedSignup = data.user?.identities?.length === 0;
-      if (repeatedSignup) {
-        setLoading(true);
-        const { error: resendError } = await supabase.auth.resend({
-          type: "signup",
-          email: email.trim().toLowerCase(),
-          options: { emailRedirectTo: `${window.location.origin}/auth?confirmed=1` },
-        });
-        setLoading(false);
-        if (resendError) {
-          toast.error("No hemos podido reenviar el email", {
-            description: resendError.message,
-          });
-          return;
-        }
-      }
-      setSignupWasRepeated(repeatedSignup);
-      setSignupSent(true);
-      toast.success(
-        repeatedSignup
-          ? "Si la cuenta estaba pendiente, recibirá un nuevo enlace"
-          : "Revisa tu correo para confirmar la cuenta",
-      );
+    if (data?.code === "account_exists") {
+      setAccountExists(true);
       return;
     }
-    try {
-      await sendTransactionalEmail({ kind: "account_welcome" });
-    } catch (emailError) {
-      console.error("No se pudo enviar el email de bienvenida", emailError);
+    if (!data?.ok) {
+      toast.error("No hemos podido crear la cuenta", {
+        description: data?.error || "Inténtalo de nuevo dentro de unos minutos.",
+      });
+      return;
     }
-    void navigate({ to: "/panel" });
+    setAccountExists(false);
+    setSignupSent(true);
+    toast.success("Revisa tu correo para confirmar la cuenta");
   };
 
   const resendConfirmation = async () => {
@@ -292,24 +273,51 @@ function AuthPage() {
               </TabsContent>
 
               <TabsContent value="signup">
-                {signupSent ? (
-                  <div className="mt-5 rounded-2xl border bg-[#dff7ff] p-5 text-center">
-                    <h2 className="font-display text-xl font-bold">
-                      {signupWasRepeated ? "Este email ya está registrado" : "Revisa tu email"}
-                    </h2>
+                {accountExists ? (
+                  <div className="mt-5 rounded-2xl border bg-[#fff0d8] p-5 text-center">
+                    <h2 className="font-display text-xl font-bold">Esta cuenta ya existe</h2>
                     <p className="mt-2 text-sm text-black/65">
-                      {signupWasRepeated ? (
-                        <>
-                          Si la cuenta de <strong>{email}</strong> todavía estaba pendiente, hemos
-                          solicitado un nuevo enlace de verificación. Si ya estaba verificada,
-                          inicia sesión con tu contraseña.
-                        </>
-                      ) : (
-                        <>
-                          Te hemos enviado un enlace a <strong>{email}</strong> para verificar tu
-                          email y terminar de crear tu cuenta.
-                        </>
-                      )}
+                      Ya hay una cuenta asociada a <strong>{email}</strong>. Inicia sesión o
+                      recupera la contraseña si no la recuerdas.
+                    </p>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      <Button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => void requestPasswordReset()}
+                      >
+                        {loading ? "Enviando…" : "Recuperar contraseña"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={loading}
+                        onClick={() => {
+                          setAccountExists(false);
+                          setActiveTab("signin");
+                        }}
+                      >
+                        Iniciar sesión
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={loading}
+                        onClick={() => {
+                          setAccountExists(false);
+                          setEmail("");
+                        }}
+                      >
+                        Usar otro email
+                      </Button>
+                    </div>
+                  </div>
+                ) : signupSent ? (
+                  <div className="mt-5 rounded-2xl border bg-[#dff7ff] p-5 text-center">
+                    <h2 className="font-display text-xl font-bold">Revisa tu email</h2>
+                    <p className="mt-2 text-sm text-black/65">
+                      Te hemos enviado un enlace a <strong>{email}</strong> para verificar tu email
+                      y terminar de crear tu cuenta.
                     </p>
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                       <Button
@@ -328,19 +336,6 @@ function AuthPage() {
                       >
                         Cambiar email
                       </Button>
-                      {signupWasRepeated ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={loading}
-                          onClick={() => {
-                            setSignupSent(false);
-                            setActiveTab("signin");
-                          }}
-                        >
-                          Iniciar sesión
-                        </Button>
-                      ) : null}
                     </div>
                   </div>
                 ) : (
