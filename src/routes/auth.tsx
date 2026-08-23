@@ -61,6 +61,7 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [signupSent, setSignupSent] = useState(false);
+  const [signupWasRepeated, setSignupWasRepeated] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -126,8 +127,29 @@ function AuthPage() {
       return;
     }
     if (!data.session) {
+      const repeatedSignup = data.user?.identities?.length === 0;
+      if (repeatedSignup) {
+        setLoading(true);
+        const { error: resendError } = await supabase.auth.resend({
+          type: "signup",
+          email: email.trim().toLowerCase(),
+          options: { emailRedirectTo: `${window.location.origin}/auth?confirmed=1` },
+        });
+        setLoading(false);
+        if (resendError) {
+          toast.error("No hemos podido reenviar el email", {
+            description: resendError.message,
+          });
+          return;
+        }
+      }
+      setSignupWasRepeated(repeatedSignup);
       setSignupSent(true);
-      toast.success("Revisa tu correo para confirmar la cuenta");
+      toast.success(
+        repeatedSignup
+          ? "Si la cuenta estaba pendiente, recibirá un nuevo enlace"
+          : "Revisa tu correo para confirmar la cuenta",
+      );
       return;
     }
     try {
@@ -136,6 +158,23 @@ function AuthPage() {
       console.error("No se pudo enviar el email de bienvenida", emailError);
     }
     void navigate({ to: "/panel" });
+  };
+
+  const resendConfirmation = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes("@")) return toast.error("Introduce un email válido");
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: normalizedEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth?confirmed=1` },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("No hemos podido reenviar el email", { description: error.message });
+      return;
+    }
+    toast.success("Email de verificación reenviado");
   };
 
   const requestPasswordReset = async () => {
@@ -255,19 +294,54 @@ function AuthPage() {
               <TabsContent value="signup">
                 {signupSent ? (
                   <div className="mt-5 rounded-2xl border bg-[#dff7ff] p-5 text-center">
-                    <h2 className="font-display text-xl font-bold">Revisa tu email</h2>
+                    <h2 className="font-display text-xl font-bold">
+                      {signupWasRepeated ? "Este email ya está registrado" : "Revisa tu email"}
+                    </h2>
                     <p className="mt-2 text-sm text-black/65">
-                      Te hemos enviado un enlace a <strong>{email}</strong> para verificar tu email
-                      y terminar de crear tu cuenta.
+                      {signupWasRepeated ? (
+                        <>
+                          Si la cuenta de <strong>{email}</strong> todavía estaba pendiente, hemos
+                          solicitado un nuevo enlace de verificación. Si ya estaba verificada,
+                          inicia sesión con tu contraseña.
+                        </>
+                      ) : (
+                        <>
+                          Te hemos enviado un enlace a <strong>{email}</strong> para verificar tu
+                          email y terminar de crear tu cuenta.
+                        </>
+                      )}
                     </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="mt-4"
-                      onClick={() => setSignupSent(false)}
-                    >
-                      Cambiar email
-                    </Button>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      <Button
+                        type="button"
+                        variant="default"
+                        disabled={loading}
+                        onClick={() => void resendConfirmation()}
+                      >
+                        {loading ? "Enviando…" : "Reenviar email"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={loading}
+                        onClick={() => setSignupSent(false)}
+                      >
+                        Cambiar email
+                      </Button>
+                      {signupWasRepeated ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={loading}
+                          onClick={() => {
+                            setSignupSent(false);
+                            setActiveTab("signin");
+                          }}
+                        >
+                          Iniciar sesión
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : (
                   <form onSubmit={signUp} className="mt-5 space-y-4">
