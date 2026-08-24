@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,6 +13,7 @@ import {
   ChartNoAxesCombined,
   ChevronDown,
   CircleHelp,
+  CreditCard,
   TicketPercent,
   ScanLine,
   Settings2,
@@ -55,12 +56,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useI18n, type Language } from "@/lib/i18n";
-import {
-  getSelectedLocationIds,
-  setSelectedLocationIds,
-  useSession,
-  type OrgRole,
-} from "@/lib/session";
+import { setSelectedLocationIds, useSession, type OrgRole } from "@/lib/session";
+import { getSubscriptionPlan } from "@/lib/subscription-plans";
 
 interface NavItem {
   to: string;
@@ -188,16 +185,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const initializedLocations = useRef<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const { language, setLanguage, t } = useI18n();
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("fideleo:sidebar-collapsed") === "true");
-    setSelectedLocations(getSelectedLocationIds());
     const dark = window.localStorage.getItem("fideleo:theme") === "dark";
     setDarkMode(dark);
     document.documentElement.classList.toggle("dark", dark);
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    const locationKey = `${session.userId}:${session.locations.map((location) => location.id).join(",")}`;
+    if (initializedLocations.current === locationKey) return;
+    initializedLocations.current = locationKey;
+    const initialSelection = session.locations.length === 1 ? [session.locations[0].id] : [];
+    setSelectedLocations(initialSelection);
+    setSelectedLocationIds(initialSelection);
+  }, [session]);
 
   useEffect(() => {
     if (!session?.locations.length || !selectedLocations.length) return;
@@ -213,6 +220,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const items =
     session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
   const roleName = t(session?.isSuperadmin ? "Superadmin" : role);
+  const currentPlan = getSubscriptionPlan(session?.planCode);
 
   const updateLocations = (ids: string[]) => {
     setSelectedLocations(ids);
@@ -290,6 +298,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </span>
           </Link>
+        </div>
+
+        <div
+          className={cn(
+            "mx-2 mt-2 flex items-center gap-2 rounded-lg bg-sidebar-accent/70 px-2.5 py-2 text-xs font-semibold",
+            collapsed && "lg:mx-0 lg:justify-center lg:px-2",
+          )}
+          title={t("Plan {plan}", { plan: currentPlan?.name ?? t("Sin plan") })}
+        >
+          <CreditCard className="size-4 shrink-0" />
+          <span className={cn("truncate", collapsed && "lg:hidden")}>
+            {t("Plan {plan}", { plan: currentPlan?.name ?? t("Sin plan") })}
+          </span>
         </div>
 
         {session?.locations.length && session.locations.length > 1 ? (

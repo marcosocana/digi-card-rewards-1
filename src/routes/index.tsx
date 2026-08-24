@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { subscriptionPlans } from "@/lib/subscription-plans";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -72,43 +73,6 @@ const howItWorks = [
     title: "Los puntos se convierten en premios",
     text: "El cliente acumula puntos y puede convertirlos en productos gratis cuando alcance el volumen de puntos que tú decidas.",
     color: "bg-[#ffd9ee]",
-  },
-];
-
-const plans = [
-  {
-    name: "Básico",
-    price: "24,95 €",
-    color: "bg-[#dff7ff]",
-    features: [
-      "1 establecimiento",
-      "Hasta 1.000 clientes",
-      "Tarjeta digital y QR",
-      "Panel de métricas",
-    ],
-  },
-  {
-    name: "Pro",
-    price: "44,95 €",
-    color: "bg-[#f8b9e7]",
-    featured: true,
-    features: [
-      "Hasta 3 establecimientos",
-      "Hasta 5.000 clientes",
-      "Notificaciones y automatizaciones",
-      "Soporte prioritario",
-    ],
-  },
-  {
-    name: "Ultra",
-    price: "99,95 €",
-    color: "bg-[#ffe65c]",
-    features: [
-      "Hasta 15 establecimientos",
-      "Clientes ilimitados",
-      "Integraciones a medida",
-      "Acompañamiento dedicado",
-    ],
   },
 ];
 
@@ -300,7 +264,7 @@ function HomePage() {
             Un plan para cada etapa de tu negocio.
           </h2>
           <div className="mt-14 grid gap-5 lg:grid-cols-3">
-            {plans.map((plan) => (
+            {subscriptionPlans.map((plan) => (
               <article
                 key={plan.name}
                 className={cn(

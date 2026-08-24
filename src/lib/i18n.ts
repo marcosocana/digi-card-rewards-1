@@ -34,6 +34,8 @@ const ca: Dictionary = {
   admin: "administrador",
   manager: "responsable",
   staff: "empleat",
+  "Plan {plan}": "Pla {plan}",
+  "Sin plan": "Sense pla",
   Administrador: "Administrador",
   Responsable: "Responsable",
   Empleado: "Empleat",
@@ -247,6 +249,14 @@ const ca: Dictionary = {
   "Comprobar acceso": "Comprovar l'accés",
   "Solo un administrador puede contratar el plan": "Només un administrador pot contractar el pla",
   "No se pudo iniciar el pago": "No s'ha pogut iniciar el pagament",
+  "No se pudo iniciar el cambio de plan": "No s'ha pogut iniciar el canvi de pla",
+  "Necesitas un plan superior": "Necessites un pla superior",
+  "Has alcanzado el máximo de establecimientos de tu plan {plan}.":
+    "Has arribat al màxim d'establiments del teu pla {plan}.",
+  "Elige un plan para añadir más establecimientos.": "Tria un pla per afegir més establiments.",
+  "Mejorar a {plan}": "Millora a {plan}",
+  "Ya tienes el plan con mayor capacidad. Contacta con Fideleo si necesitas más establecimientos.":
+    "Ja tens el pla amb més capacitat. Contacta amb Fideleo si necessites més establiments.",
   "Pide a un administrador de la cuenta que seleccione el plan.":
     "Demana a un administrador del compte que seleccioni el pla.",
 };
@@ -278,6 +288,8 @@ const en: Dictionary = {
   admin: "administrator",
   manager: "manager",
   staff: "employee",
+  "Plan {plan}": "{plan} plan",
+  "Sin plan": "No plan",
   Administrador: "Administrator",
   Responsable: "Manager",
   Empleado: "Employee",
@@ -491,6 +503,14 @@ const en: Dictionary = {
   "Comprobar acceso": "Check access",
   "Solo un administrador puede contratar el plan": "Only an administrator can purchase a plan",
   "No se pudo iniciar el pago": "Could not start payment",
+  "No se pudo iniciar el cambio de plan": "Could not start the plan change",
+  "Necesitas un plan superior": "You need a higher plan",
+  "Has alcanzado el máximo de establecimientos de tu plan {plan}.":
+    "You have reached the location limit for your {plan} plan.",
+  "Elige un plan para añadir más establecimientos.": "Choose a plan to add more locations.",
+  "Mejorar a {plan}": "Upgrade to {plan}",
+  "Ya tienes el plan con mayor capacidad. Contacta con Fideleo si necesitas más establecimientos.":
+    "You already have the highest-capacity plan. Contact Fideleo if you need more locations.",
   "Pide a un administrador de la cuenta que seleccione el plan.":
     "Ask an account administrator to select the plan.",
 };

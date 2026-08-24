@@ -117,7 +117,7 @@ Deno.serve(async (request) => {
       if (!organizationId) throw new Error("La suscripción no identifica la organización");
       const status = allowedStatuses.has(subscription.status) ? subscription.status : "none";
       const firstItem = subscription.items?.data?.[0];
-      const planCode = subscription.metadata?.plan_code || planFromPrice(firstItem?.price?.id);
+      const planCode = planFromPrice(firstItem?.price?.id) || subscription.metadata?.plan_code;
       const periodEnd = firstItem?.current_period_end || subscription.current_period_end;
       const response = await fetch(
         `${supabaseUrl}/rest/v1/organizations?id=eq.${encodeURIComponent(organizationId)}`,

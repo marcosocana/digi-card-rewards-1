@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -11,15 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PlanUpgradeDialog } from "@/components/app/plan-upgrade-dialog";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useSession } from "@/lib/session";
+import { getSubscriptionPlan } from "@/lib/subscription-plans";
 
 export const Route = createFileRoute("/_authenticated/panel/establecimientos")({
   component: EstablecimientosPage,
@@ -34,11 +35,11 @@ const slugify = (v: string) =>
     .replace(/(^-|-$)/g, "");
 
 function EstablecimientosPage() {
-  const { data: session } = useSession();
+  const { data: session, refetch: refetchSession } = useSession();
   const orgId = session?.org?.organization_id;
-  const planLimit =
-    ({ basic: 1, pro: 3, ultra: 15 } as Record<string, number>)[session?.planCode ?? ""] ?? null;
+  const planLimit = getSubscriptionPlan(session?.planCode)?.maxLocations ?? null;
   const [open, setOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [form, setForm] = useState({ name: "", address_line: "", city: "", postal_code: "" });
   const [editing, setEditing] = useState<{
     id: string;
@@ -63,6 +64,27 @@ function EstablecimientosPage() {
     },
   });
   const planLimitReached = planLimit !== null && (data?.length ?? 0) >= planLimit;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("plan") !== "updated") return;
+    let attempts = 0;
+    const checkPlan = async () => {
+      attempts += 1;
+      const { data: refreshedSession } = await refetchSession();
+      if (refreshedSession?.planCode !== session?.planCode || attempts >= 8) {
+        window.clearInterval(timer);
+        window.history.replaceState({}, "", "/panel/establecimientos");
+        if (refreshedSession?.planCode !== session?.planCode) {
+          toast.success("Plan actualizado");
+        }
+      }
+    };
+    const timer = window.setInterval(() => void checkPlan(), 1_500);
+    void checkPlan();
+    return () => window.clearInterval(timer);
+  }, [refetchSession, session?.planCode]);
 
   const create = async () => {
     if (!orgId || form.name.trim().length < 2) {
@@ -100,7 +122,7 @@ function EstablecimientosPage() {
     toast.success("Establecimiento creado");
     setOpen(false);
     setForm({ name: "", address_line: "", city: "", postal_code: "" });
-    void refetch();
+    await Promise.all([refetch(), refetchSession()]);
   };
 
   const updateLocation = async () => {
@@ -126,47 +148,40 @@ function EstablecimientosPage() {
         title="Establecimientos"
         description="Cada local tiene su propio QR de captación y su equipo asignado."
         actions={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button
-                disabled={planLimitReached}
-                title={
-                  planLimitReached
-                    ? `Tu plan permite hasta ${planLimit} establecimiento${planLimit === 1 ? "" : "s"}`
-                    : undefined
-                }
-              >
-                <Plus aria-hidden className="size-4" /> Nuevo establecimiento
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Nuevo establecimiento</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                {(
-                  [
-                    ["name", "Nombre"],
-                    ["address_line", "Dirección"],
-                    ["city", "Ciudad"],
-                    ["postal_code", "Código postal"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <div key={key} className="space-y-1.5">
-                    <Label htmlFor={key}>{label}</Label>
-                    <Input
-                      id={key}
-                      value={form[key]}
-                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
-              </div>
-              <DialogFooter>
-                <Button onClick={() => void create()}>Crear</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <>
+            <Button onClick={() => (planLimitReached ? setUpgradeOpen(true) : setOpen(true))}>
+              <Plus aria-hidden className="size-4" /> Nuevo establecimiento
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nuevo establecimiento</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  {(
+                    [
+                      ["name", "Nombre"],
+                      ["address_line", "Dirección"],
+                      ["city", "Ciudad"],
+                      ["postal_code", "Código postal"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label htmlFor={key}>{label}</Label>
+                      <Input
+                        id={key}
+                        value={form[key]}
+                        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <DialogFooter>
+                  <Button onClick={() => void create()}>Crear</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
         }
       />
 
@@ -256,6 +271,12 @@ function EstablecimientosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PlanUpgradeDialog
+        currentPlanCode={session?.planCode}
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+      />
     </>
   );
 }

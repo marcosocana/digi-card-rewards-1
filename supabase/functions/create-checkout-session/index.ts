@@ -78,17 +78,74 @@ Deno.serve(async (request) => {
     }
 
     const organizationsResponse = await fetch(
-      `${supabaseUrl}/rest/v1/organizations?id=eq.${encodeURIComponent(membership.organization_id)}&select=id,display_name,stripe_customer_id,subscription_status&limit=1`,
+      `${supabaseUrl}/rest/v1/organizations?id=eq.${encodeURIComponent(membership.organization_id)}&select=id,display_name,plan_code,stripe_customer_id,stripe_subscription_id,subscription_status&limit=1`,
       { headers: databaseHeaders },
     );
     const organizations = await organizationsResponse.json();
     const organization = organizations[0];
     if (!organization) return json({ error: "Organización no encontrada" }, 404);
+    let customerId = organization.stripe_customer_id as string | null;
+
     if (["active", "trialing"].includes(organization.subscription_status)) {
-      return json({ error: "La organización ya tiene un plan activo" }, 409);
+      const planRanks: Record<string, number> = { basic: 1, pro: 2, ultra: 3 };
+      const currentRank = planRanks[organization.plan_code] || 0;
+      const requestedRank = planRanks[planCode] || 0;
+      if (!currentRank || requestedRank <= currentRank) {
+        return json({ error: "Selecciona un plan superior al que ya tienes" }, 400);
+      }
+      if (!customerId || !organization.stripe_subscription_id) {
+        return json(
+          { error: "La suscripción activa no está vinculada correctamente con Stripe" },
+          409,
+        );
+      }
+
+      const subscription = await stripeRequest(
+        `/v1/subscriptions/${encodeURIComponent(organization.stripe_subscription_id)}?expand[]=items.data.price`,
+        stripeSecretKey,
+      );
+      const subscriptionItems = subscription.items?.data || [];
+      if (subscriptionItems.length !== 1 || !subscriptionItems[0]?.id) {
+        return json({ error: "Esta suscripción necesita revisión antes de cambiar de plan" }, 409);
+      }
+      const stripeCustomerId =
+        typeof subscription.customer === "string"
+          ? subscription.customer
+          : subscription.customer?.id;
+      if (stripeCustomerId !== customerId) {
+        return json({ error: "La suscripción no pertenece a esta organización" }, 409);
+      }
+
+      const returnUrl = `${appUrl}/panel/establecimientos`;
+      const portalParams = new URLSearchParams();
+      portalParams.set("customer", customerId);
+      portalParams.set("return_url", returnUrl);
+      portalParams.set("locale", "es");
+      portalParams.set("flow_data[type]", "subscription_update_confirm");
+      portalParams.set(
+        "flow_data[subscription_update_confirm][subscription]",
+        organization.stripe_subscription_id,
+      );
+      portalParams.set(
+        "flow_data[subscription_update_confirm][items][0][id]",
+        subscriptionItems[0].id,
+      );
+      portalParams.set("flow_data[subscription_update_confirm][items][0][price]", priceId);
+      portalParams.set("flow_data[subscription_update_confirm][items][0][quantity]", "1");
+      portalParams.set("flow_data[after_completion][type]", "redirect");
+      portalParams.set(
+        "flow_data[after_completion][redirect][return_url]",
+        `${returnUrl}?plan=updated`,
+      );
+
+      const portal = await stripeRequest("/v1/billing_portal/sessions", stripeSecretKey, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: portalParams,
+      });
+      return json({ url: portal.url, mode: "upgrade" });
     }
 
-    let customerId = organization.stripe_customer_id as string | null;
     if (!customerId) {
       const customerParams = new URLSearchParams();
       customerParams.set("email", user.email || "");

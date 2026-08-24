@@ -6,46 +6,7 @@ import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const plans = [
-  {
-    code: "basic",
-    name: "Básico",
-    price: "24,95 €",
-    color: "bg-[#dff7ff]",
-    features: [
-      "1 establecimiento",
-      "Hasta 1.000 clientes",
-      "Tarjeta digital y QR",
-      "Panel de métricas",
-    ],
-  },
-  {
-    code: "pro",
-    name: "Pro",
-    price: "44,95 €",
-    color: "bg-[#f8b9e7]",
-    featured: true,
-    features: [
-      "Hasta 3 establecimientos",
-      "Hasta 5.000 clientes",
-      "Notificaciones y automatizaciones",
-      "Soporte prioritario",
-    ],
-  },
-  {
-    code: "ultra",
-    name: "Ultra",
-    price: "99,95 €",
-    color: "bg-[#ffe65c]",
-    features: [
-      "Hasta 15 establecimientos",
-      "Clientes ilimitados",
-      "Integraciones a medida",
-      "Acompañamiento dedicado",
-    ],
-  },
-] as const;
+import { subscriptionPlans } from "@/lib/subscription-plans";
 
 export function SubscriptionGate() {
   const { data: session, refetch } = useSession();
@@ -139,7 +100,7 @@ export function SubscriptionGate() {
         </div>
 
         <div className="mt-7 grid gap-4 lg:grid-cols-3">
-          {plans.map((plan) => (
+          {subscriptionPlans.map((plan) => (
             <article
               key={plan.code}
               className={cn(
