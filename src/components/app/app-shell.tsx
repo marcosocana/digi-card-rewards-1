@@ -69,6 +69,13 @@ interface NavItem {
 
 const nav: NavItem[] = [
   {
+    to: "/panel/wallet",
+    label: "Wallet",
+    icon: Wallet,
+    roles: ["admin"],
+    group: "Operaciones",
+  },
+  {
     to: "/panel",
     label: "Inicio",
     icon: LayoutDashboard,
@@ -161,12 +168,11 @@ const nav: NavItem[] = [
   },
   {
     to: "/panel/equipo",
-    label: "Equipo",
+    label: "Usuarios",
     icon: ShieldCheck,
     roles: ["admin"],
     group: "Administración",
   },
-  { to: "/panel/wallet", label: "Wallet", icon: Wallet, roles: ["admin"], group: "Administración" },
   {
     to: "/panel/configuracion",
     label: "Configuración",
@@ -377,14 +383,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           if (!groupItems.length) return null;
           return (
             <div key={group} className="mb-5">
-              <p
-                className={cn(
-                  "mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/40",
-                  collapsed && "lg:hidden",
-                )}
-              >
-                {t(group)}
-              </p>
+              {group === "Operaciones" ? null : (
+                <p
+                  className={cn(
+                    "mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/40",
+                    collapsed && "lg:hidden",
+                  )}
+                >
+                  {t(group)}
+                </p>
+              )}
               <div className="space-y-1">
                 {groupItems.map((item) => (
                   <Link

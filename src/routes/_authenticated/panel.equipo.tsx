@@ -246,7 +246,7 @@ function EquipoPage() {
   return (
     <>
       <PageHeader
-        title="Equipo"
+        title="Usuarios"
         description="Roles y permisos de acceso al panel."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>

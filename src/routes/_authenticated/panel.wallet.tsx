@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ImagePlus, LoaderCircle, Palette, QrCode, Save, X } from "lucide-react";
+import { CheckCircle2, Clock3, ImagePlus, LoaderCircle, QrCode, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSession } from "@/lib/session";
 import { num } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -28,11 +27,15 @@ const defaultDesign = {
   pointsLabel: "Puntos",
 };
 
+type WalletProvider = "google" | "apple";
+type WalletDesign = typeof defaultDesign;
+
 function WalletPage() {
   const { data: session } = useSession();
   const { t } = useI18n();
   const orgId = session?.org?.organization_id;
   const [design, setDesign] = useState(defaultDesign);
+  const [provider, setProvider] = useState<WalletProvider>("google");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"logoUrl" | "heroUrl" | null>(null);
 
@@ -49,7 +52,7 @@ function WalletPage() {
         supabase
           .from("organization_branding")
           .select(
-            "wallet_background_color, wallet_text_color, wallet_logo_url, wallet_hero_url, wallet_program_name, wallet_points_label, logo_url, primary_color, text_color",
+            "wallet_background_color, wallet_text_color, wallet_logo_url, wallet_hero_url, wallet_program_name, wallet_points_label, wallet_provider_designs, logo_url, primary_color, text_color",
           )
           .eq("organization_id", orgId!)
           .maybeSingle(),
@@ -67,6 +70,29 @@ function WalletPage() {
 
   useEffect(() => {
     if (!data) return;
+    const providerDesigns = (data.branding?.wallet_provider_designs ?? {}) as Record<
+      WalletProvider,
+      Partial<WalletDesign> | undefined
+    >;
+    const savedDesign = providerDesigns[provider];
+    if (savedDesign) {
+      setDesign({
+        ...defaultDesign,
+        programName: data.organization.display_name ?? "Fideleo",
+        ...savedDesign,
+      });
+      return;
+    }
+
+    if (provider === "apple") {
+      setDesign({
+        ...defaultDesign,
+        backgroundColor: "#111111",
+        programName: data.organization.display_name ?? "Fideleo",
+      });
+      return;
+    }
+
     setDesign({
       backgroundColor:
         data.branding?.wallet_background_color ??
@@ -80,11 +106,12 @@ function WalletPage() {
         data.branding?.wallet_program_name ?? data.organization.display_name ?? "Fideleo",
       pointsLabel: data.branding?.wallet_points_label ?? defaultDesign.pointsLabel,
     });
-  }, [data]);
+  }, [data, provider]);
 
   const passes = data?.passes ?? [];
-  const count = (fn: (pass: { provider: string; status: string }) => boolean) =>
-    passes.filter((pass) => fn(pass as { provider: string; status: string })).length;
+  const providerPasses = passes.filter((pass) => pass.provider === provider);
+  const providerCount = (fn: (pass: { status: string; is_sandbox: boolean }) => boolean) =>
+    providerPasses.filter((pass) => fn(pass as { status: string; is_sandbox: boolean })).length;
 
   const uploadAsset = async (file: File, kind: "logoUrl" | "heroUrl") => {
     if (!orgId) return;
@@ -126,15 +153,32 @@ function WalletPage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("organization_branding").upsert({
+    const storedDesigns = (data?.branding?.wallet_provider_designs ?? {}) as Record<
+      string,
+      Partial<WalletDesign>
+    >;
+    const payload = {
       organization_id: orgId,
-      wallet_background_color: design.backgroundColor,
-      wallet_text_color: design.textColor,
-      wallet_logo_url: design.logoUrl || null,
-      wallet_hero_url: design.heroUrl || null,
-      wallet_program_name: design.programName.trim(),
-      wallet_points_label: design.pointsLabel.trim(),
-    });
+      wallet_provider_designs: {
+        ...storedDesigns,
+        [provider]: {
+          ...design,
+          programName: design.programName.trim(),
+          pointsLabel: design.pointsLabel.trim(),
+        },
+      },
+      ...(provider === "google"
+        ? {
+            wallet_background_color: design.backgroundColor,
+            wallet_text_color: design.textColor,
+            wallet_logo_url: design.logoUrl || null,
+            wallet_hero_url: design.heroUrl || null,
+            wallet_program_name: design.programName.trim(),
+            wallet_points_label: design.pointsLabel.trim(),
+          }
+        : {}),
+    };
+    const { error } = await supabase.from("organization_branding").upsert(payload);
     setSaving(false);
     if (error) {
       toast.error(t("No se pudo guardar"), { description: error.message });
@@ -191,51 +235,127 @@ function WalletPage() {
     <>
       <PageHeader
         title="Wallet"
-        description={t("Gestiona las tarjetas digitales y personaliza su aspecto visual.")}
+        description={t("Consulta el uso de cada Wallet y personaliza el aspecto de las tarjetas.")}
       />
-      <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="summary">{t("Resumen")}</TabsTrigger>
-          <TabsTrigger value="design">
-            <Palette className="size-4" /> {t("Personalizar tarjeta")}
-          </TabsTrigger>
-        </TabsList>
+      <section className="surface p-3 sm:p-4">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(["google", "apple"] as const).map((walletProvider) => {
+            const selected = provider === walletProvider;
+            const status = walletProvider === "google" ? t("Conectado") : t("Incompleto");
+            return (
+              <button
+                key={walletProvider}
+                type="button"
+                onClick={() => setProvider(walletProvider)}
+                className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                  selected
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/10"
+                    : "border-transparent hover:bg-muted"
+                }`}
+              >
+                <WalletProviderIcon provider={walletProvider} />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">
+                    {walletProvider === "google" ? "Tarjeta Google" : "Tarjeta Apple"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {walletProvider === "google" ? "Google Wallet" : "Apple Wallet"}
+                  </span>
+                </span>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    walletProvider === "google"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {status}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-        <TabsContent value="summary" className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label={t("Tarjetas totales")} value={num(passes.length)} />
-            <MetricCard
-              label="Apple Wallet"
-              value={num(count((pass) => pass.provider === "apple"))}
-            />
-            <MetricCard
-              label="Google Wallet"
-              value={num(count((pass) => pass.provider === "google"))}
-            />
-            <MetricCard
-              label={t("Pendientes de actualizar")}
-              value={num(
-                count(
-                  (pass) =>
-                    pass.status === "update_pending" || pass.status === "pending_generation",
-                ),
-              )}
-            />
-          </div>
-          <div className="surface p-5">
-            <h2 className="font-display text-lg font-semibold">{t("Proveedor de emisión")}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-display text-xl font-semibold">
+            {provider === "google" ? "Google Wallet" : "Apple Wallet"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {provider === "google"
+              ? t("Uso general de las tarjetas emitidas para Google Wallet.")
+              : t("Métricas preparadas para la futura integración con Apple Wallet.")}
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label={t("Tarjetas emitidas")} value={num(providerPasses.length)} />
+          <MetricCard
+            label={t("Tarjetas activas")}
+            value={num(providerCount((pass) => pass.status === "active"))}
+          />
+          <MetricCard
+            label={t("Pendientes")}
+            value={num(
+              providerCount(
+                (pass) => pass.status === "update_pending" || pass.status === "pending_generation",
+              ),
+            )}
+          />
+          <MetricCard
+            label={t("En pruebas")}
+            value={num(providerCount((pass) => pass.is_sandbox))}
+          />
+        </div>
+      </section>
+
+      {provider === "apple" ? (
+        <section className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <Clock3 className="mt-0.5 size-5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold">{t("Integración en preparación")}</p>
+            <p className="mt-1 text-sm opacity-75">
               {t(
-                "Google Wallet está conectado. Las tarjetas se generan desde el perfil de cada cliente y conservan su saldo actualizado.",
+                "Puedes adelantar el diseño visual. La emisión y actualización de pases Apple se activará cuando se incorporen sus credenciales.",
               )}
             </p>
           </div>
-        </TabsContent>
+        </section>
+      ) : (
+        <section className="flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+          <p className="text-sm">
+            {t(
+              "Google Wallet está conectado. Las tarjetas se generan desde el perfil de cada cliente y conservan su saldo actualizado.",
+            )}
+          </p>
+        </section>
+      )}
 
-        <TabsContent
-          value="design"
-          className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.9fr)]"
-        >
+      <section>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-semibold">
+              {t("Diseño del pase {provider}", {
+                provider: provider === "google" ? "Google Wallet" : "Apple Wallet",
+              })}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t(
+                "Personaliza el aspecto del pase digital y comprueba el resultado en tiempo real.",
+              )}
+            </p>
+          </div>
+          <Button disabled={saving || uploading !== null} onClick={() => void saveDesign()}>
+            {saving ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
+            {saving ? t("Guardando…") : t("Guardar diseño")}
+          </Button>
+        </div>
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.9fr)]">
           <section className="surface space-y-5 p-5 sm:p-6">
             <div>
               <h2 className="font-display text-lg font-semibold">{t("Aspecto de la tarjeta")}</h2>
@@ -299,21 +419,15 @@ function WalletPage() {
                 )}
               </div>
             </div>
-            <Button disabled={saving || uploading !== null} onClick={() => void saveDesign()}>
-              {saving ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Save className="size-4" />
-              )}
-              {saving ? t("Guardando…") : t("Guardar diseño")}
-            </Button>
           </section>
 
           <section className="surface p-5 sm:p-6 xl:sticky xl:top-24">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="font-display text-lg font-semibold">{t("Vista previa")}</h2>
-                <p className="text-xs text-muted-foreground">Google Wallet</p>
+                <p className="text-xs text-muted-foreground">
+                  {provider === "google" ? "Google Wallet" : "Apple Wallet"}
+                </p>
               </div>
               <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                 {t("En tiempo real")}
@@ -372,8 +486,24 @@ function WalletPage() {
               )}
             </p>
           </section>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </section>
     </>
+  );
+}
+
+function WalletProviderIcon({ provider }: { provider: WalletProvider }) {
+  return (
+    <span
+      aria-hidden
+      className={`relative block h-7 w-9 shrink-0 overflow-hidden rounded-md ${
+        provider === "google" ? "bg-[#4285f4]" : "bg-[#4a4a4a]"
+      }`}
+    >
+      <span className="absolute inset-x-0 top-0 h-1 bg-[#ff5f57]" />
+      <span className="absolute inset-x-0 top-1 h-1 bg-[#ffbd2e]" />
+      <span className="absolute inset-x-0 top-2 h-1 bg-[#34c759]" />
+      <span className="absolute bottom-1.5 left-2 right-2 h-2 rounded-b-md bg-white/80" />
+    </span>
   );
 }

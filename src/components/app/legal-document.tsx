@@ -42,7 +42,7 @@ export function LegalDocumentLayout({
             <img src="/isotipo.svg" alt="" className="size-8" />
             <span className="text-sm font-semibold">{entity.name}</span>
           </Link>
-          <span className="text-xs text-black/45">Actualizado: 22/08/2026</span>
+          <span className="text-xs text-black/45">Actualizado: 24/08/2026</span>
         </div>
         <h1 className="mt-9 text-4xl font-semibold tracking-[-.05em] sm:text-5xl">
           {titles[type]}
@@ -194,22 +194,33 @@ function DefaultLegalContent({
       <>
         <Section title="1. Uso de cookies">
           <p>
-            Este sitio utiliza almacenamiento y tecnologías técnicas necesarias para mantener la
-            seguridad, recordar el estado de sesión y prestar las funciones solicitadas. No se
-            utilizan con fines publicitarios en la configuración actual.
+            Este sitio utiliza cookies y almacenamiento local estrictamente necesarios para mantener
+            la seguridad, recordar el estado de sesión, conservar la elección sobre cookies y
+            prestar las funciones solicitadas. Estas tecnologías no requieren consentimiento porque
+            resultan necesarias para el funcionamiento del servicio.
           </p>
         </Section>
-        <Section title="2. Cookies opcionales">
+        <Section title="2. Categorías opcionales">
           <p>
-            Si en el futuro se incorporan analítica, personalización no esencial o publicidad, se
-            solicitará consentimiento previo mediante un panel que permita aceptar o rechazar con la
-            misma facilidad.
+            El panel permite autorizar por separado preferencias no esenciales, analítica y
+            marketing. Permanecen desactivadas hasta obtener una elección afirmativa. En la
+            configuración actual no se cargan herramientas publicitarias de terceros; cualquier
+            incorporación futura quedará condicionada al consentimiento correspondiente.
           </p>
         </Section>
-        <Section title="3. Gestión">
+        <Section title="3. Consentimiento y conservación">
           <p>
-            Puedes eliminar o bloquear cookies desde la configuración del navegador. Al hacerlo,
-            algunas funciones técnicas pueden dejar de estar disponibles.
+            La elección se almacena localmente junto con la fecha y la versión del panel. Aceptar y
+            rechazar las categorías opcionales se ofrece con la misma facilidad, y no aceptar no
+            limita el acceso a las funciones esenciales.
+          </p>
+        </Section>
+        <Section title="4. Gestión y retirada">
+          <p>
+            Puedes revisar o retirar tu consentimiento desde “Configurar cookies”, disponible en el
+            pie de página. También puedes eliminar o bloquear el almacenamiento desde la
+            configuración del navegador; al hacerlo, algunas funciones técnicas pueden dejar de
+            estar disponibles y volveremos a solicitar tu elección.
           </p>
         </Section>
       </>

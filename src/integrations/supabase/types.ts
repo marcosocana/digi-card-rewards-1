@@ -1829,6 +1829,7 @@ export type Database = {
           wallet_hero_url: string | null
           wallet_logo_url: string | null
           wallet_points_label: string
+          wallet_provider_designs: Json
           wallet_program_name: string | null
           wallet_text_color: string
         }
@@ -1856,6 +1857,7 @@ export type Database = {
           wallet_hero_url?: string | null
           wallet_logo_url?: string | null
           wallet_points_label?: string
+          wallet_provider_designs?: Json
           wallet_program_name?: string | null
           wallet_text_color?: string
         }
@@ -1883,6 +1885,7 @@ export type Database = {
           wallet_hero_url?: string | null
           wallet_logo_url?: string | null
           wallet_points_label?: string
+          wallet_provider_designs?: Json
           wallet_program_name?: string | null
           wallet_text_color?: string
         }

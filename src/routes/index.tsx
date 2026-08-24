@@ -11,6 +11,7 @@ import {
   QrCode,
   ScanLine,
   Sparkles,
+  Star,
   Users,
   Store,
   WalletCards,
@@ -18,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { subscriptionPlans } from "@/lib/subscription-plans";
+import { CookieConsent, openCookieSettingsEvent } from "@/components/app/cookie-consent";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -73,6 +75,51 @@ const howItWorks = [
     title: "Los puntos se convierten en premios",
     text: "El cliente acumula puntos y puede convertirlos en productos gratis cuando alcance el volumen de puntos que tú decidas.",
     color: "bg-[#ffd9ee]",
+  },
+];
+
+const testimonials = [
+  {
+    name: "Helena",
+    business: "Manila San Sebastián",
+    image: "/testimonials/helena.jpg",
+    quote:
+      "Llevar la experiencia del local al móvil nos permite cuidar al cliente también después de cada visita.",
+  },
+  {
+    name: "Andrea",
+    business: "Waffle Barcelona",
+    image: "/testimonials/andrea.png",
+    quote:
+      "La tarjeta en Wallet mantiene la marca presente y convierte la siguiente visita en algo mucho más natural.",
+  },
+  {
+    name: "Luis",
+    business: "Martivia Madrid",
+    image: "/testimonials/luis.png",
+    quote:
+      "Ahora podemos entender mejor quién repite y medir qué acciones generan una relación más duradera.",
+  },
+  {
+    name: "Rafa",
+    business: "Padoca Burgos",
+    image: "/testimonials/rafa.png",
+    quote:
+      "Queríamos dejar atrás las tarjetas físicas y ofrecer recompensas claras, sencillas y siempre accesibles.",
+  },
+  {
+    name: "Judit",
+    business: "Indartxu Álava",
+    image: "/testimonials/judit.png",
+    quote:
+      "Cada compra suma y eso se nota tanto en la frecuencia de visita como en el vínculo con la marca.",
+  },
+  {
+    name: "Catherina",
+    business: "Mamma Tiramisú Barcelona",
+    image: "/testimonials/catherina.png",
+    quote:
+      "Los clientes entienden sus puntos de un vistazo y vuelven sabiendo exactamente qué recompensa les espera.",
   },
 ];
 
@@ -358,6 +405,59 @@ function HomePage() {
         </div>
       </section>
 
+      <section id="testimonios" className="bg-[#f7f3ff] py-24 lg:py-32">
+        <div className="mx-auto max-w-[1440px] px-5 lg:px-10">
+          <div className="max-w-4xl">
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#8754c9]">
+              Testimonios
+            </p>
+            <h2 className="mt-4 text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
+              Negocios que convierten cada visita en una relación.
+            </h2>
+            <p className="mt-5 max-w-2xl text-black/60">
+              Historias de equipos que han simplificado su fidelización y mantienen su marca en el
+              móvil de sus clientes.
+            </p>
+          </div>
+        </div>
+        <div className="mt-14 flex snap-x snap-mandatory gap-6 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2.5rem))] pb-8">
+          {testimonials.map((testimonial) => (
+            <article
+              key={`${testimonial.name}-${testimonial.business}`}
+              className="grid w-[88vw] max-w-[44rem] shrink-0 snap-center overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm sm:grid-cols-[15rem_1fr]"
+            >
+              <img
+                src={testimonial.image}
+                alt={testimonial.name}
+                loading="lazy"
+                className="h-64 w-full object-cover sm:h-full"
+              />
+              <div className="flex min-h-[22rem] flex-col p-7 sm:p-9">
+                <div className="flex gap-1" aria-label="5 de 5 estrellas">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star
+                      key={index}
+                      className="size-5 fill-[#ff9d3d] text-[#ff9d3d]"
+                      aria-hidden
+                    />
+                  ))}
+                </div>
+                <blockquote className="mt-7 text-xl font-medium leading-relaxed">
+                  “{testimonial.quote}”
+                </blockquote>
+                <div className="mt-auto border-t border-black/10 pt-6">
+                  <p className="font-semibold">{testimonial.name}</p>
+                  <p className="text-sm text-black/50">{testimonial.business}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="mx-auto mt-2 max-w-[1440px] px-5 text-xs text-black/40 lg:px-10">
+          Imágenes y contenidos provisionales, pendientes de sustituir por casos propios de Fideleo.
+        </p>
+      </section>
+
       <section id="preguntas" className="border-t border-black/10 px-5 py-24 lg:px-10 lg:py-32">
         <div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[.7fr_1.3fr]">
           <div>
@@ -494,6 +594,15 @@ function HomePage() {
                   Cookies
                 </Link>
               </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event(openCookieSettingsEvent))}
+                  className="text-left hover:text-white"
+                >
+                  Configurar cookies
+                </button>
+              </li>
             </ul>
           </div>
         </div>
@@ -502,6 +611,7 @@ function HomePage() {
           <span>Fidelización digital, sin fricción.</span>
         </div>
       </footer>
+      <CookieConsent />
     </main>
   );
 }

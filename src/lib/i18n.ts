@@ -23,6 +23,7 @@ const ca: Dictionary = {
   Actividad: "Activitat",
   Establecimientos: "Establiments",
   Equipo: "Equip",
+  Usuarios: "Usuaris",
   Configuración: "Configuració",
   Operaciones: "Operacions",
   Fidelización: "Fidelització",
@@ -165,6 +166,24 @@ const ca: Dictionary = {
   "Enviar mensaje de retorno": "Envia un missatge de retorn",
   "Gestiona las tarjetas digitales y personaliza su aspecto visual.":
     "Gestiona les targetes digitals i personalitza'n l'aspecte visual.",
+  "Consulta el uso de cada Wallet y personaliza el aspecto de las tarjetas.":
+    "Consulta l'ús de cada Wallet i personalitza l'aspecte de les targetes.",
+  Conectado: "Connectat",
+  Incompleto: "Incomplet",
+  "Uso general de las tarjetas emitidas para Google Wallet.":
+    "Ús general de les targetes emeses per a Google Wallet.",
+  "Métricas preparadas para la futura integración con Apple Wallet.":
+    "Mètriques preparades per a la futura integració amb Apple Wallet.",
+  "Tarjetas emitidas": "Targetes emeses",
+  "Tarjetas activas": "Targetes actives",
+  Pendientes: "Pendents",
+  "En pruebas": "En proves",
+  "Integración en preparación": "Integració en preparació",
+  "Puedes adelantar el diseño visual. La emisión y actualización de pases Apple se activará cuando se incorporen sus credenciales.":
+    "Pots avançar el disseny visual. L'emissió i l'actualització de passis Apple s'activarà quan s'incorporin les credencials.",
+  "Diseño del pase {provider}": "Disseny del passi {provider}",
+  "Personaliza el aspecto del pase digital y comprueba el resultado en tiempo real.":
+    "Personalitza l'aspecte del passi digital i comprova el resultat en temps real.",
   Resumen: "Resum",
   "Personalizar tarjeta": "Personalitza la targeta",
   "Tarjetas totales": "Targetes totals",
@@ -277,6 +296,7 @@ const en: Dictionary = {
   Actividad: "Activity",
   Establecimientos: "Locations",
   Equipo: "Team",
+  Usuarios: "Users",
   Configuración: "Settings",
   Operaciones: "Operations",
   Fidelización: "Loyalty",
@@ -419,6 +439,24 @@ const en: Dictionary = {
   "Enviar mensaje de retorno": "Send a return message",
   "Gestiona las tarjetas digitales y personaliza su aspecto visual.":
     "Manage digital cards and customize their visual appearance.",
+  "Consulta el uso de cada Wallet y personaliza el aspecto de las tarjetas.":
+    "Review usage for each Wallet and customize the cards' appearance.",
+  Conectado: "Connected",
+  Incompleto: "Incomplete",
+  "Uso general de las tarjetas emitidas para Google Wallet.":
+    "Overall usage of cards issued for Google Wallet.",
+  "Métricas preparadas para la futura integración con Apple Wallet.":
+    "Metrics prepared for the future Apple Wallet integration.",
+  "Tarjetas emitidas": "Cards issued",
+  "Tarjetas activas": "Active cards",
+  Pendientes: "Pending",
+  "En pruebas": "Test cards",
+  "Integración en preparación": "Integration in progress",
+  "Puedes adelantar el diseño visual. La emisión y actualización de pases Apple se activará cuando se incorporen sus credenciales.":
+    "You can prepare the visual design now. Apple pass issuance and updates will be enabled when its credentials are added.",
+  "Diseño del pase {provider}": "{provider} pass design",
+  "Personaliza el aspecto del pase digital y comprueba el resultado en tiempo real.":
+    "Customize the digital pass and preview the result in real time.",
   Resumen: "Overview",
   "Personalizar tarjeta": "Customize card",
   "Tarjetas totales": "Total cards",
