@@ -12,6 +12,7 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
     confirmed: search.confirmed === "1",
     reset: search.reset === "1",
+    oauth: search.oauth === "1",
     tab: search.tab === "signup" ? ("signup" as const) : ("signin" as const),
     email: typeof search.email === "string" ? search.email.slice(0, 254) : "",
   }),
@@ -62,6 +63,44 @@ function AuthPage() {
   const [signupSent, setSignupSent] = useState(false);
   const [accountExists, setAccountExists] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<"signin" | "signup" | null>(null);
+
+  useEffect(() => {
+    if (!search.oauth) return;
+    let cancelled = false;
+
+    const finishOAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (error) {
+        toast.error("No hemos podido completar el acceso con Google", {
+          description: error.message,
+        });
+        return;
+      }
+      if (!data.session) return;
+      if (welcomeHandled.current) return;
+      welcomeHandled.current = true;
+
+      const intent = window.localStorage.getItem("fideleo:google-oauth-intent");
+      window.localStorage.removeItem("fideleo:google-oauth-intent");
+      if (intent === "signup") {
+        try {
+          await sendTransactionalEmail({ kind: "account_welcome" });
+        } catch (emailError) {
+          console.error("No se pudo enviar el email de bienvenida", emailError);
+        }
+      }
+      window.location.assign("/panel");
+    };
+
+    void finishOAuth();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => void finishOAuth());
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, [search.oauth]);
 
   useEffect(() => {
     if (!search.confirmed || welcomeHandled.current) return;
@@ -107,6 +146,23 @@ function AuthPage() {
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     await signInWithCredentials(email, password);
+  };
+
+  const continueWithGoogle = async (intent: "signin" | "signup") => {
+    setOauthLoading(intent);
+    window.localStorage.setItem("fideleo:google-oauth-intent", intent);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth?oauth=1`,
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    if (error) {
+      window.localStorage.removeItem("fideleo:google-oauth-intent");
+      setOauthLoading(null);
+      toast.error("No hemos podido conectar con Google", { description: error.message });
+    }
   };
 
   const signUp = async (e: React.FormEvent) => {
@@ -237,7 +293,16 @@ function AuthPage() {
               </TabsList>
 
               <TabsContent value="signin">
-                <form onSubmit={signIn} className="mt-5 space-y-4">
+                <div className="mt-5">
+                  <GoogleAuthButton
+                    label="Continuar con Google"
+                    loading={oauthLoading === "signin"}
+                    disabled={loading || oauthLoading !== null}
+                    onClick={() => void continueWithGoogle("signin")}
+                  />
+                  <AuthDivider />
+                </div>
+                <form onSubmit={signIn} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -339,53 +404,62 @@ function AuthPage() {
                     </div>
                   </div>
                 ) : (
-                  <form onSubmit={signUp} className="mt-5 space-y-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="name">Nombre completo</Label>
-                      <Input
-                        id="name"
-                        required
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="business-name">Nombre del negocio</Label>
-                      <Input
-                        id="business-name"
-                        required
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email2">Email</Label>
-                      <Input
-                        id="email2"
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="password2">Contraseña</Label>
-                      <Input
-                        id="password2"
-                        type="password"
-                        required
-                        minLength={8}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Usa el email al que te invitaron para heredar tu rol automáticamente.
-                      </p>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? "Creando…" : "Crear cuenta"}
-                    </Button>
-                  </form>
+                  <div className="mt-5">
+                    <GoogleAuthButton
+                      label="Crear cuenta con Google"
+                      loading={oauthLoading === "signup"}
+                      disabled={loading || oauthLoading !== null}
+                      onClick={() => void continueWithGoogle("signup")}
+                    />
+                    <AuthDivider />
+                    <form onSubmit={signUp} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="name">Nombre completo</Label>
+                        <Input
+                          id="name"
+                          required
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="business-name">Nombre del negocio</Label>
+                        <Input
+                          id="business-name"
+                          required
+                          value={businessName}
+                          onChange={(e) => setBusinessName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email2">Email</Label>
+                        <Input
+                          id="email2"
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="password2">Contraseña</Label>
+                        <Input
+                          id="password2"
+                          type="password"
+                          required
+                          minLength={8}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Usa el email al que te invitaron para heredar tu rol automáticamente.
+                        </p>
+                      </div>
+                      <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? "Creando…" : "Crear cuenta"}
+                      </Button>
+                    </form>
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
@@ -419,5 +493,67 @@ function AuthPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function GoogleAuthButton({
+  label,
+  loading,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className="h-11 w-full bg-white text-black hover:bg-black/[.03]"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {loading ? (
+        <span className="size-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+      ) : (
+        <GoogleIcon />
+      )}
+      {loading ? "Conectando con Google…" : label}
+    </Button>
+  );
+}
+
+function AuthDivider() {
+  return (
+    <div className="my-5 flex items-center gap-3" aria-hidden>
+      <span className="h-px flex-1 bg-border" />
+      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">o</span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="size-4">
+      <path
+        fill="#4285F4"
+        d="M21.6 12.23c0-.71-.06-1.4-.18-2.06H12v3.9h5.38a4.6 4.6 0 0 1-2 3.02v2.53h3.24c1.9-1.75 2.98-4.33 2.98-7.39Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 22c2.7 0 4.98-.9 6.63-2.38l-3.24-2.53c-.9.6-2.05.96-3.39.96-2.6 0-4.81-1.76-5.6-4.13H3.05v2.6A10 10 0 0 0 12 22Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.4 13.92A6 6 0 0 1 6.08 12c0-.67.12-1.32.32-1.92v-2.6H3.05A10 10 0 0 0 2 12c0 1.61.39 3.14 1.05 4.52l3.35-2.6Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.95c1.47 0 2.79.5 3.82 1.5l2.88-2.88A9.65 9.65 0 0 0 12 2a10 10 0 0 0-8.95 5.48l3.35 2.6c.79-2.37 3-4.13 5.6-4.13Z"
+      />
+    </svg>
   );
 }
