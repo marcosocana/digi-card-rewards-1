@@ -57,7 +57,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n, type Language } from "@/lib/i18n";
 import { setSelectedLocationIds, useSession, type OrgRole } from "@/lib/session";
-import { getSubscriptionPlan } from "@/lib/subscription-plans";
 
 interface NavItem {
   to: string;
@@ -68,13 +67,6 @@ interface NavItem {
 }
 
 const nav: NavItem[] = [
-  {
-    to: "/panel/wallet",
-    label: "Wallet",
-    icon: Wallet,
-    roles: ["admin"],
-    group: "Operaciones",
-  },
   {
     to: "/panel",
     label: "Inicio",
@@ -93,6 +85,13 @@ const nav: NavItem[] = [
     to: "/panel/clientes",
     label: "Clientes",
     icon: Users,
+    roles: ["admin", "manager"],
+    group: "Operaciones",
+  },
+  {
+    to: "/panel/tienda",
+    label: "Tienda",
+    icon: ShoppingBag,
     roles: ["admin", "manager"],
     group: "Operaciones",
   },
@@ -146,13 +145,6 @@ const nav: NavItem[] = [
     group: "Analítica",
   },
   {
-    to: "/panel/tienda",
-    label: "Tienda",
-    icon: ShoppingBag,
-    roles: ["admin", "manager"],
-    group: "Analítica",
-  },
-  {
     to: "/panel/actividad",
     label: "Actividad",
     icon: Settings2,
@@ -170,6 +162,20 @@ const nav: NavItem[] = [
     to: "/panel/equipo",
     label: "Usuarios",
     icon: ShieldCheck,
+    roles: ["admin"],
+    group: "Administración",
+  },
+  {
+    to: "/panel/suscripcion",
+    label: "Mi suscripción",
+    icon: CreditCard,
+    roles: ["admin"],
+    group: "Administración",
+  },
+  {
+    to: "/panel/wallet",
+    label: "Wallet",
+    icon: Wallet,
     roles: ["admin"],
     group: "Administración",
   },
@@ -226,7 +232,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const items =
     session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
   const roleName = t(session?.isSuperadmin ? "Superadmin" : role);
-  const currentPlan = getSubscriptionPlan(session?.planCode);
 
   const updateLocations = (ids: string[]) => {
     setSelectedLocations(ids);
@@ -304,19 +309,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </span>
           </Link>
-        </div>
-
-        <div
-          className={cn(
-            "mx-2 mt-2 flex items-center gap-2 rounded-lg bg-sidebar-accent/70 px-2.5 py-2 text-xs font-semibold",
-            collapsed && "lg:mx-0 lg:justify-center lg:px-2",
-          )}
-          title={t("Plan {plan}", { plan: currentPlan?.name ?? t("Sin plan") })}
-        >
-          <CreditCard className="size-4 shrink-0" />
-          <span className={cn("truncate", collapsed && "lg:hidden")}>
-            {t("Plan {plan}", { plan: currentPlan?.name ?? t("Sin plan") })}
-          </span>
         </div>
 
         {session?.locations.length && session.locations.length > 1 ? (

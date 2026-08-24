@@ -53,6 +53,12 @@ Deno.serve(async (request) => {
 
     const payload = await request.json();
     const planCode = typeof payload.planCode === "string" ? payload.planCode.toLowerCase() : "";
+    const requestedReturnPath = typeof payload.returnPath === "string" ? payload.returnPath : "";
+    const returnPath = ["/panel/suscripcion", "/panel/establecimientos"].includes(
+      requestedReturnPath,
+    )
+      ? requestedReturnPath
+      : "/panel/suscripcion";
     const priceIds: Record<string, string | undefined> = {
       basic: Deno.env.get("STRIPE_BASIC_PRICE_ID"),
       pro: Deno.env.get("STRIPE_PRO_PRICE_ID"),
@@ -116,7 +122,7 @@ Deno.serve(async (request) => {
         return json({ error: "La suscripción no pertenece a esta organización" }, 409);
       }
 
-      const returnUrl = `${appUrl}/panel/establecimientos`;
+      const returnUrl = `${appUrl}${returnPath}`;
       const portalParams = new URLSearchParams();
       portalParams.set("customer", customerId);
       portalParams.set("return_url", returnUrl);

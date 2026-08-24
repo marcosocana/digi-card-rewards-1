@@ -33,7 +33,7 @@ export function PlanUpgradeDialog({ currentPlanCode, open, onOpenChange }: PlanU
   const choosePlan = async (planCode: SubscriptionPlanCode) => {
     setLoadingPlan(planCode);
     const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-      body: { planCode },
+      body: { planCode, returnPath: window.location.pathname },
     });
     setLoadingPlan(null);
 

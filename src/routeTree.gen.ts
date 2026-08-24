@@ -33,6 +33,7 @@ import { Route as AuthenticatedPanelOnboardingRouteImport } from './routes/_auth
 import { Route as AuthenticatedPanelPerfilRouteImport } from './routes/_authenticated/panel.perfil'
 import { Route as AuthenticatedPanelProgramaRouteImport } from './routes/_authenticated/panel.programa'
 import { Route as AuthenticatedPanelRecompensasRouteImport } from './routes/_authenticated/panel.recompensas'
+import { Route as AuthenticatedPanelSuscripcionRouteImport } from './routes/_authenticated/panel.suscripcion'
 import { Route as AuthenticatedPanelTiendaRouteImport } from './routes/_authenticated/panel.tienda'
 import { Route as AuthenticatedPanelWalletRouteImport } from './routes/_authenticated/panel.wallet'
 import { Route as UnirmeOrganizationSlugIndexRouteImport } from './routes/unirme.$organizationSlug.index'
@@ -173,6 +174,12 @@ const AuthenticatedPanelRecompensasRoute =
     path: '/recompensas',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
+const AuthenticatedPanelSuscripcionRoute =
+  AuthenticatedPanelSuscripcionRouteImport.update({
+    id: '/suscripcion',
+    path: '/suscripcion',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 const AuthenticatedPanelTiendaRoute =
   AuthenticatedPanelTiendaRouteImport.update({
     id: '/tienda',
@@ -239,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/panel/perfil': typeof AuthenticatedPanelPerfilRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/panel/suscripcion': typeof AuthenticatedPanelSuscripcionRoute
   '/panel/tienda': typeof AuthenticatedPanelTiendaRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
@@ -270,6 +278,7 @@ export interface FileRoutesByTo {
   '/panel/perfil': typeof AuthenticatedPanelPerfilRoute
   '/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/panel/suscripcion': typeof AuthenticatedPanelSuscripcionRoute
   '/panel/tienda': typeof AuthenticatedPanelTiendaRoute
   '/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
@@ -304,6 +313,7 @@ export interface FileRoutesById {
   '/_authenticated/panel/perfil': typeof AuthenticatedPanelPerfilRoute
   '/_authenticated/panel/programa': typeof AuthenticatedPanelProgramaRoute
   '/_authenticated/panel/recompensas': typeof AuthenticatedPanelRecompensasRoute
+  '/_authenticated/panel/suscripcion': typeof AuthenticatedPanelSuscripcionRoute
   '/_authenticated/panel/tienda': typeof AuthenticatedPanelTiendaRoute
   '/_authenticated/panel/wallet': typeof AuthenticatedPanelWalletRoute
   '/unirme/$organizationSlug/$locationSlug': typeof UnirmeOrganizationSlugLocationSlugRoute
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/panel/perfil'
     | '/panel/programa'
     | '/panel/recompensas'
+    | '/panel/suscripcion'
     | '/panel/tienda'
     | '/panel/wallet'
     | '/unirme/$organizationSlug/$locationSlug'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/panel/perfil'
     | '/panel/programa'
     | '/panel/recompensas'
+    | '/panel/suscripcion'
     | '/panel/tienda'
     | '/panel/wallet'
     | '/unirme/$organizationSlug/$locationSlug'
@@ -402,6 +414,7 @@ export interface FileRouteTypes {
     | '/_authenticated/panel/perfil'
     | '/_authenticated/panel/programa'
     | '/_authenticated/panel/recompensas'
+    | '/_authenticated/panel/suscripcion'
     | '/_authenticated/panel/tienda'
     | '/_authenticated/panel/wallet'
     | '/unirme/$organizationSlug/$locationSlug'
@@ -594,6 +607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelRecompensasRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/_authenticated/panel/suscripcion': {
+      id: '/_authenticated/panel/suscripcion'
+      path: '/suscripcion'
+      fullPath: '/panel/suscripcion'
+      preLoaderRoute: typeof AuthenticatedPanelSuscripcionRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
     '/_authenticated/panel/tienda': {
       id: '/_authenticated/panel/tienda'
       path: '/tienda'
@@ -661,6 +681,7 @@ interface AuthenticatedPanelRouteChildren {
   AuthenticatedPanelPerfilRoute: typeof AuthenticatedPanelPerfilRoute
   AuthenticatedPanelProgramaRoute: typeof AuthenticatedPanelProgramaRoute
   AuthenticatedPanelRecompensasRoute: typeof AuthenticatedPanelRecompensasRoute
+  AuthenticatedPanelSuscripcionRoute: typeof AuthenticatedPanelSuscripcionRoute
   AuthenticatedPanelTiendaRoute: typeof AuthenticatedPanelTiendaRoute
   AuthenticatedPanelWalletRoute: typeof AuthenticatedPanelWalletRoute
   AuthenticatedPanelIndexRoute: typeof AuthenticatedPanelIndexRoute
@@ -685,6 +706,7 @@ const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelPerfilRoute: AuthenticatedPanelPerfilRoute,
   AuthenticatedPanelProgramaRoute: AuthenticatedPanelProgramaRoute,
   AuthenticatedPanelRecompensasRoute: AuthenticatedPanelRecompensasRoute,
+  AuthenticatedPanelSuscripcionRoute: AuthenticatedPanelSuscripcionRoute,
   AuthenticatedPanelTiendaRoute: AuthenticatedPanelTiendaRoute,
   AuthenticatedPanelWalletRoute: AuthenticatedPanelWalletRoute,
   AuthenticatedPanelIndexRoute: AuthenticatedPanelIndexRoute,

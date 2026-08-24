@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Minus, Package, Plus, ShoppingBag } from "lucide-react";
+import { LoaderCircle, Minus, Package, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/panel/tienda")({ component: TiendaPage });
 
@@ -54,6 +55,19 @@ const products = [
 
 function TiendaPage() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  useEffect(() => {
+    const result = new URLSearchParams(window.location.search).get("order");
+    if (result === "success") {
+      setQuantities({});
+      toast.success("Pedido confirmado", {
+        description: "Stripe ha registrado el pago y recibirás el detalle del pedido por email.",
+      });
+    } else if (result === "cancelled") {
+      toast.info("Pedido no completado", { description: "Tu carrito se mantiene sin cambios." });
+    }
+  }, []);
   const units = useMemo(
     () => Object.values(quantities).reduce((sum, value) => sum + value, 0),
     [quantities],
@@ -67,6 +81,25 @@ function TiendaPage() {
       ...current,
       [id]: Math.max(0, Math.min(99, (current[id] ?? 0) + delta)),
     }));
+
+  const checkout = async () => {
+    const items = products
+      .map((product) => ({ id: product.id, quantity: quantities[product.id] ?? 0 }))
+      .filter((item) => item.quantity > 0);
+    if (!items.length) return;
+    setCheckingOut(true);
+    const { data, error } = await supabase.functions.invoke("create-store-checkout", {
+      body: { items },
+    });
+    setCheckingOut(false);
+    if (error || !data?.url) {
+      toast.error("No se pudo preparar el pedido", {
+        description: data?.error || error?.message,
+      });
+      return;
+    }
+    window.location.assign(data.url);
+  };
 
   return (
     <>
@@ -132,16 +165,9 @@ function TiendaPage() {
             {total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
           </p>
         </div>
-        <Button
-          size="lg"
-          disabled={!units}
-          onClick={() =>
-            toast.info("Compra próximamente", {
-              description: "El pedido quedará conectado a Stripe en una siguiente fase.",
-            })
-          }
-        >
-          <ShoppingBag /> Comprar
+        <Button size="lg" disabled={!units || checkingOut} onClick={() => void checkout()}>
+          {checkingOut ? <LoaderCircle className="animate-spin" /> : <ShoppingBag />}
+          {checkingOut ? "Preparando pedido…" : "Comprar con Stripe"}
         </Button>
       </div>
     </>
