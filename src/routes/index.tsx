@@ -77,9 +77,8 @@ const howItWorks = [
 
 const plans = [
   {
-    name: "Essential",
-    price: "49 €",
-    checkoutUrl: import.meta.env.VITE_STRIPE_ESSENTIAL_CHECKOUT_URL as string | undefined,
+    name: "Básico",
+    price: "24,95 €",
     color: "bg-[#dff7ff]",
     features: [
       "1 establecimiento",
@@ -89,9 +88,8 @@ const plans = [
     ],
   },
   {
-    name: "Growth",
-    price: "89 €",
-    checkoutUrl: import.meta.env.VITE_STRIPE_GROWTH_CHECKOUT_URL as string | undefined,
+    name: "Pro",
+    price: "44,95 €",
     color: "bg-[#f8b9e7]",
     featured: true,
     features: [
@@ -102,12 +100,11 @@ const plans = [
     ],
   },
   {
-    name: "Scale",
-    price: "A medida",
-    checkoutUrl: import.meta.env.VITE_STRIPE_SCALE_CHECKOUT_URL as string | undefined,
+    name: "Ultra",
+    price: "99,95 €",
     color: "bg-[#ffe65c]",
     features: [
-      "Establecimientos ilimitados",
+      "Hasta 15 establecimientos",
       "Clientes ilimitados",
       "Integraciones a medida",
       "Acompañamiento dedicado",
@@ -332,13 +329,9 @@ function HomePage() {
                   asChild
                   className="mt-auto rounded-full bg-black text-white hover:bg-black/75"
                 >
-                  {plan.checkoutUrl ? (
-                    <a href={plan.checkoutUrl}>Comprar</a>
-                  ) : (
-                    <Link to="/solicitar-demo" search={{ plan: plan.name }}>
-                      Comprar
-                    </Link>
-                  )}
+                  <Link to="/auth" search={{ tab: "signup" }}>
+                    Comprar
+                  </Link>
                 </Button>
               </article>
             ))}

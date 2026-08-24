@@ -54,9 +54,9 @@ Deno.serve(async (request) => {
     const payload = await request.json();
     const planCode = typeof payload.planCode === "string" ? payload.planCode.toLowerCase() : "";
     const priceIds: Record<string, string | undefined> = {
-      essential: Deno.env.get("STRIPE_ESSENTIAL_PRICE_ID"),
-      growth: Deno.env.get("STRIPE_GROWTH_PRICE_ID"),
-      scale: Deno.env.get("STRIPE_SCALE_PRICE_ID"),
+      basic: Deno.env.get("STRIPE_BASIC_PRICE_ID"),
+      pro: Deno.env.get("STRIPE_PRO_PRICE_ID"),
+      ultra: Deno.env.get("STRIPE_ULTRA_PRICE_ID"),
     };
     const priceId = priceIds[planCode];
     if (!priceId) return json({ error: "Este plan todavía no está disponible para compra" }, 400);

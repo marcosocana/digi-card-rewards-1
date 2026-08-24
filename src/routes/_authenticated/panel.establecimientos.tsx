@@ -36,6 +36,8 @@ const slugify = (v: string) =>
 function EstablecimientosPage() {
   const { data: session } = useSession();
   const orgId = session?.org?.organization_id;
+  const planLimit =
+    ({ basic: 1, pro: 3, ultra: 15 } as Record<string, number>)[session?.planCode ?? ""] ?? null;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", address_line: "", city: "", postal_code: "" });
   const [editing, setEditing] = useState<{
@@ -54,11 +56,13 @@ function EstablecimientosPage() {
         .from("locations")
         .select("id, name, slug, address_line, city, postal_code, status")
         .eq("organization_id", orgId!)
+        .is("archived_at", null)
         .order("name");
       if (error) throw error;
       return data;
     },
   });
+  const planLimitReached = planLimit !== null && (data?.length ?? 0) >= planLimit;
 
   const create = async () => {
     if (!orgId || form.name.trim().length < 2) {
@@ -124,7 +128,14 @@ function EstablecimientosPage() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button
+                disabled={planLimitReached}
+                title={
+                  planLimitReached
+                    ? `Tu plan permite hasta ${planLimit} establecimiento${planLimit === 1 ? "" : "s"}`
+                    : undefined
+                }
+              >
                 <Plus aria-hidden className="size-4" /> Nuevo establecimiento
               </Button>
             </DialogTrigger>
@@ -158,6 +169,13 @@ function EstablecimientosPage() {
           </Dialog>
         }
       />
+
+      {planLimit !== null ? (
+        <p className="mb-4 text-sm text-muted-foreground">
+          {data?.length ?? 0} de {planLimit} establecimiento{planLimit === 1 ? "" : "s"} incluidos
+          en tu plan.
+        </p>
+      ) : null}
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded-xl" />

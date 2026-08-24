@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 
 const plans = [
   {
-    code: "essential",
-    name: "Essential",
-    price: "49 €",
+    code: "basic",
+    name: "Básico",
+    price: "24,95 €",
     color: "bg-[#dff7ff]",
     features: [
       "1 establecimiento",
@@ -21,9 +21,9 @@ const plans = [
     ],
   },
   {
-    code: "growth",
-    name: "Growth",
-    price: "89 €",
+    code: "pro",
+    name: "Pro",
+    price: "44,95 €",
     color: "bg-[#f8b9e7]",
     featured: true,
     features: [
@@ -34,12 +34,12 @@ const plans = [
     ],
   },
   {
-    code: "scale",
-    name: "Scale",
-    price: "A medida",
+    code: "ultra",
+    name: "Ultra",
+    price: "99,95 €",
     color: "bg-[#ffe65c]",
     features: [
-      "Establecimientos ilimitados",
+      "Hasta 15 establecimientos",
       "Clientes ilimitados",
       "Integraciones a medida",
       "Acompañamiento dedicado",
@@ -170,7 +170,7 @@ export function SubscriptionGate() {
                 onClick={() => void choosePlan(plan.code)}
               >
                 {loadingPlan === plan.code ? <Loader2 className="size-4 animate-spin" /> : null}
-                {t(plan.code === "scale" ? "Solicitar plan" : "Elegir plan")}
+                {t("Elegir plan")}
               </Button>
             </article>
           ))}

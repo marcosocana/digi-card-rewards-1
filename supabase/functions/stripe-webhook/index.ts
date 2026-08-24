@@ -102,9 +102,9 @@ Deno.serve(async (request) => {
 
     const planFromPrice = (priceId: string | undefined) => {
       const prices: Record<string, string | undefined> = {
-        essential: Deno.env.get("STRIPE_ESSENTIAL_PRICE_ID"),
-        growth: Deno.env.get("STRIPE_GROWTH_PRICE_ID"),
-        scale: Deno.env.get("STRIPE_SCALE_PRICE_ID"),
+        basic: Deno.env.get("STRIPE_BASIC_PRICE_ID"),
+        pro: Deno.env.get("STRIPE_PRO_PRICE_ID"),
+        ultra: Deno.env.get("STRIPE_ULTRA_PRICE_ID"),
       };
       return Object.entries(prices).find(([, configured]) => configured === priceId)?.[0] || null;
     };
