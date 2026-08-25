@@ -73,6 +73,7 @@ const emailHtml = ({
   action: string;
 }) => {
   const content = actionContent(action);
+  const showActionLink = action !== "signup";
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(content.subject)}</title></head>
 <body style="margin:0;background:#f5f5f2;font-family:Manrope,Inter,Arial,sans-serif;color:#111111">
@@ -91,7 +92,11 @@ const emailHtml = ({
             ? `<div style="margin:28px 0;border:1px solid #111111;border-radius:18px;background:#f5f5f2;padding:22px;text-align:center"><p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:32px;font-weight:800;letter-spacing:.18em">${escapeHtml(token)}</p></div>`
             : ""
         }
-        <div style="margin:28px 0"><a href="${escapeHtml(verifyUrl)}" style="display:inline-block;border-radius:999px;background:#111111;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 25px">${escapeHtml(content.button)}</a></div>
+        ${
+          showActionLink
+            ? `<div style="margin:28px 0"><a href="${escapeHtml(verifyUrl)}" style="display:inline-block;border-radius:999px;background:#111111;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 25px">${escapeHtml(content.button)}</a></div>`
+            : ""
+        }
         <p style="margin:24px 0 0;border-radius:16px;background:#dff7ff;padding:16px;color:#3e3e3e;font-size:13px;line-height:1.55">Si no has solicitado este correo, puedes ignorarlo.</p>
       </td></tr>
       <tr><td style="padding:20px 6px 0;color:#6c6c6c;font-size:12px;line-height:1.5">© ${new Date().getUTCFullYear()} Fideleo · Correo transaccional enviado mediante Resend.</td></tr>
@@ -108,7 +113,10 @@ Deno.serve(async (request) => {
   const hookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   if (!resendApiKey || !fromEmail || !hookSecret || !supabaseUrl) {
-    return Response.json({ error: { http_code: 500, message: "Email hook no configurado" } }, { status: 500 });
+    return Response.json(
+      { error: { http_code: 500, message: "Email hook no configurado" } },
+      { status: 500 },
+    );
   }
 
   try {
@@ -120,12 +128,12 @@ Deno.serve(async (request) => {
     const token = payload.email_data.token || payload.email_data.token_new || "";
     const tokenHash = payload.email_data.token_hash || payload.email_data.token_hash_new || "";
     const redirectTo = payload.email_data.redirect_to || "https://www.fideleo.store/auth";
-    if (!recipient || !tokenHash) throw new Error("El evento de Auth no contiene destinatario o token");
+    if (!recipient || !tokenHash)
+      throw new Error("El evento de Auth no contiene destinatario o token");
 
     const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(action)}&redirect_to=${encodeURIComponent(redirectTo)}`;
     const content = actionContent(action);
-    const name =
-      payload.user.user_metadata?.full_name || payload.user.user_metadata?.name || "";
+    const name = payload.user.user_metadata?.full_name || payload.user.user_metadata?.name || "";
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -136,15 +144,20 @@ Deno.serve(async (request) => {
       body: JSON.stringify({
         from: fromEmail,
         to: [recipient],
+        reply_to: "fideleo.app@gmail.com",
         subject: content.subject,
         html: emailHtml({ name, token, verifyUrl, action }),
-        text: `${content.title}\n\n${content.message}${token ? `\n\nCódigo: ${token}` : ""}\n\n${content.button}: ${verifyUrl}`,
+        text: `${content.title}\n\n${content.message}${token ? `\n\nCódigo: ${token}` : ""}${action !== "signup" ? `\n\n${content.button}: ${verifyUrl}` : ""}`,
         tags: [{ name: "category", value: `auth_${action.replaceAll(/[^a-z0-9_]/gi, "_")}` }],
       }),
     });
 
     if (!resendResponse.ok) {
-      console.error("Resend auth email failed", resendResponse.status, (await resendResponse.text()).slice(0, 300));
+      console.error(
+        "Resend auth email failed",
+        resendResponse.status,
+        (await resendResponse.text()).slice(0, 300),
+      );
       throw new Error("Resend no ha aceptado el correo de autenticación");
     }
     const resend = await resendResponse.json();

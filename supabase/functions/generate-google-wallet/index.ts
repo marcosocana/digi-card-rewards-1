@@ -246,7 +246,10 @@ Deno.serve(async (request) => {
       const patched = await fetch(classEndpoint, {
         method: "PATCH",
         headers: walletHeaders,
-        body: JSON.stringify(classBody),
+        // Google changes approved classes back to review whenever their shared
+        // presentation is updated. Sending the server-returned APPROVED value
+        // (or omitting the required transition) makes the API reject the patch.
+        body: JSON.stringify({ ...classBody, reviewStatus: "UNDER_REVIEW" }),
       });
       if (!patched.ok) throw await walletError(patched, "GOOGLE_CLASS_UPDATE_FAILED");
     } else {
