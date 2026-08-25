@@ -32,6 +32,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/send-transactional-email/index.ts"
 
+[functions.send-auth-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-auth-email/index.ts"
+
 [functions.create-checkout-session]
 enabled = true
 verify_jwt = true

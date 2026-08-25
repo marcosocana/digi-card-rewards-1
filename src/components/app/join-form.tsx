@@ -57,6 +57,23 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
     });
   };
 
+  const resendVerification = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email: form.email.trim().toLowerCase(),
+      options: { shouldCreateUser: true },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("No hemos podido reenviar el código", { description: error.message });
+      return;
+    }
+    setCode("");
+    toast.success("Código reenviado", {
+      description: "Revisa también las carpetas de spam y promociones.",
+    });
+  };
+
   const verifyAndRegister = async (event: React.FormEvent) => {
     event.preventDefault();
     if (code.trim().length < 6) return toast.error("Introduce el código recibido por email");
@@ -139,13 +156,24 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
         >
           {loading ? "Verificando…" : "Verificar y crear mi tarjeta"}
         </Button>
-        <button
-          type="button"
-          className="mt-4 w-full text-center text-sm underline underline-offset-4"
-          onClick={() => setVerificationSent(false)}
-        >
-          Cambiar email
-        </button>
+        <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+          <button
+            type="button"
+            className="underline underline-offset-4"
+            disabled={loading}
+            onClick={() => void resendVerification()}
+          >
+            Reenviar código
+          </button>
+          <button
+            type="button"
+            className="underline underline-offset-4"
+            disabled={loading}
+            onClick={() => setVerificationSent(false)}
+          >
+            Cambiar email
+          </button>
+        </div>
       </form>
     );
   }
