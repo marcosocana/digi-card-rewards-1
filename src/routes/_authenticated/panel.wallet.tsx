@@ -43,7 +43,7 @@ function WalletPage() {
     queryKey: ["wallet-passes", orgId],
     enabled: Boolean(orgId),
     queryFn: async () => {
-      const [passes, organization, branding] = await Promise.all([
+      const [passes, organization, branding, settings] = await Promise.all([
         supabase
           .from("wallet_passes")
           .select("provider, status, is_sandbox, memberships!inner(organization_id)")
@@ -56,14 +56,20 @@ function WalletPage() {
           )
           .eq("organization_id", orgId!)
           .maybeSingle(),
+        supabase
+          .from("wallet_integration_settings")
+          .select("provider, mode, status, last_verified_at, last_error")
+          .eq("organization_id", orgId!),
       ]);
       if (passes.error) throw passes.error;
       if (organization.error) throw organization.error;
       if (branding.error) throw branding.error;
+      if (settings.error) throw settings.error;
       return {
         passes: passes.data ?? [],
         organization: organization.data,
         branding: branding.data,
+        settings: settings.data ?? [],
       };
     },
   });
@@ -109,6 +115,9 @@ function WalletPage() {
   }, [data, provider]);
 
   const passes = data?.passes ?? [];
+  const providerSetting = data?.settings.find((setting) => setting.provider === provider);
+  const providerConnected =
+    providerSetting?.mode === "live" && providerSetting?.status === "active";
   const providerPasses = passes.filter((pass) => pass.provider === provider);
   const providerCount = (fn: (pass: { status: string; is_sandbox: boolean }) => boolean) =>
     providerPasses.filter((pass) => fn(pass as { status: string; is_sandbox: boolean })).length;
@@ -241,7 +250,11 @@ function WalletPage() {
         <div className="grid gap-2 sm:grid-cols-2">
           {(["google", "apple"] as const).map((walletProvider) => {
             const selected = provider === walletProvider;
-            const status = walletProvider === "google" ? t("Conectado") : t("Incompleto");
+            const walletSetting = data?.settings.find(
+              (setting) => setting.provider === walletProvider,
+            );
+            const connected = walletSetting?.mode === "live" && walletSetting?.status === "active";
+            const status = connected ? t("Conectado") : t("Incompleto");
             return (
               <button
                 key={walletProvider}
@@ -264,7 +277,7 @@ function WalletPage() {
                 </span>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    walletProvider === "google"
+                    connected
                       ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                       : "bg-muted text-muted-foreground"
                   }`}
@@ -309,15 +322,19 @@ function WalletPage() {
         </div>
       </section>
 
-      {provider === "apple" ? (
+      {!providerConnected ? (
         <section className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
           <Clock3 className="mt-0.5 size-5 shrink-0" />
           <div>
-            <p className="text-sm font-semibold">{t("Integración en preparación")}</p>
+            <p className="text-sm font-semibold">{t("Integración pendiente")}</p>
             <p className="mt-1 text-sm opacity-75">
-              {t(
-                "Puedes adelantar el diseño visual. La emisión y actualización de pases Apple se activará cuando se incorporen sus credenciales.",
-              )}
+              {provider === "google"
+                ? t(
+                    "Google Wallet se mostrará como conectado después de validar las credenciales y generar el primer pase.",
+                  )
+                : t(
+                    "Puedes adelantar el diseño visual. La emisión y actualización de pases Apple se activará cuando se incorporen sus credenciales.",
+                  )}
             </p>
           </div>
         </section>

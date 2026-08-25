@@ -60,21 +60,13 @@ function PortalPage() {
 
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      const userUuid = sessionData.session?.user.id;
-      if (sessionError || !userUuid)
+      if (sessionError || !sessionData.session?.user.id)
         throw new Error("Tu sesión ha caducado. Verifica de nuevo tu email.");
-
-      const customerName = [data.customer.first_name, data.customer.last_name]
-        .filter(Boolean)
-        .join(" ");
       const { data: walletData, error } = await supabase.functions.invoke<{
         url?: string;
         error?: string;
       }>("generate-google-wallet", {
         body: {
-          userUuid,
-          customerName,
-          currentPoints: data.membership.balance,
           membershipPublicId: data.membership.public_id,
         },
       });

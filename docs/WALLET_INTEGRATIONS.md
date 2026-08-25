@@ -21,10 +21,19 @@ Quedan pendientes el endpoint de descarga `.pkpass`, el registro de dispositivos
 Variables exclusivas del backend:
 
 - `GOOGLE_WALLET_ISSUER_ID`
-- `GOOGLE_WALLET_CLASS_ID`
-- `GOOGLE_WALLET_SERVICE_ACCOUNT_JSON_BASE64`
+- `GOOGLE_WALLET_SERVICE_ACCOUNT_JSON` (JSON sin transformar), o bien
+  `GOOGLE_WALLET_SERVICE_ACCOUNT_JSON_BASE64` (el mismo JSON codificado en Base64)
 - `WALLET_PUBLIC_BASE_URL`
+- `GOOGLE_WALLET_CLASS_ID` (opcional; acepta el ID completo o solo el sufijo de una clase ya
+  creada)
 
-Quedan pendientes la creación/verificación de la clase en Google Wallet y la firma del enlace `Add to Google Wallet`.
+Por compatibilidad temporal también se reconoce el nombre anterior
+`GOOGLE_SERVICE_ACCOUNT_JSON`. Sin un `GOOGLE_WALLET_CLASS_ID` explícito, la función crea una clase
+por organización. La clase y el objeto se actualizan cuando ya existen y el enlace
+`Add to Google Wallet` queda firmado durante una hora.
+
+La cuenta de servicio debe estar añadida como usuario con nivel **Developer** dentro de la cuenta
+de emisor en Google Pay & Wallet Console. La API de Google Wallet también debe estar habilitada en
+el proyecto de Google Cloud correspondiente.
 
 Los certificados, claves privadas y cuentas de servicio nunca deben utilizar prefijos públicos (`VITE_`) ni almacenarse en el repositorio.

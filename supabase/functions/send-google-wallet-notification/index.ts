@@ -67,6 +67,25 @@ const getGoogleAccessToken = async (credentials: { client_email: string; private
   return body.access_token as string;
 };
 
+const readGoogleCredentials = () => {
+  const raw =
+    Deno.env.get("GOOGLE_WALLET_SERVICE_ACCOUNT_JSON") ??
+    Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+  const encoded = Deno.env.get("GOOGLE_WALLET_SERVICE_ACCOUNT_JSON_BASE64");
+  if (!raw && !encoded) return null;
+  try {
+    const credentials = JSON.parse(raw ?? atob(encoded!)) as {
+      client_email?: string;
+      private_key?: string;
+    };
+    return credentials.client_email && credentials.private_key
+      ? (credentials as { client_email: string; private_key: string })
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
@@ -76,9 +95,9 @@ Deno.serve(async (request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const credentialsJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+    const credentials = readGoogleCredentials();
     if (!authorization) return json({ error: "UNAUTHORIZED" }, 401);
-    if (!supabaseUrl || !anonKey || !serviceKey || !credentialsJson) {
+    if (!supabaseUrl || !anonKey || !serviceKey || !credentials) {
       return json({ error: "SERVER_CONFIGURATION" }, 500);
     }
 
@@ -116,10 +135,6 @@ Deno.serve(async (request) => {
     }>;
     if (!deliveriesResponse.ok) throw new Error("DELIVERIES_QUERY_FAILED");
 
-    const credentials = JSON.parse(credentialsJson) as {
-      client_email: string;
-      private_key: string;
-    };
     const accessToken = await getGoogleAccessToken(credentials);
     let delivered = 0;
     let failed = 0;
