@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { sendTransactionalEmail } from "@/lib/transactional-email";
 
 export const Route = createFileRoute("/auth")({
@@ -34,25 +42,59 @@ export const Route = createFileRoute("/auth")({
 
 const demoUsers = [
   {
-    email: "super@cafenorte.es",
-    password: "super@cafenorte.es",
-    role: "Superadministrador",
+    plan: "Todas las empresas",
+    email: "dios@demo.fideleo.app",
+    password: "dios@demo.fideleo.app",
+    role: "Modo dios · Superadmin",
+    onboarding: false,
   },
   {
-    email: "admin@cafenorte.es",
-    password: "admin@cafenorte.es",
-    role: "Administrador de Café Norte",
+    plan: "Gratis",
+    email: "admin.gratis@demo.fideleo.app",
+    password: "admin.gratis@demo.fideleo.app",
+    role: "Administrador",
+    onboarding: true,
   },
   {
-    email: "malasana@cafenorte.es",
-    password: "malasana@cafenorte.es",
-    role: "Responsable de Malasaña",
+    plan: "Gratis",
+    email: "manager.gratis@demo.fideleo.app",
+    password: "manager.gratis@demo.fideleo.app",
+    role: "Responsable",
+    onboarding: false,
   },
   {
-    email: "empleado@cafenorte.es",
-    password: "empleado@cafenorte.es",
-    role: "Empleado de Malasaña",
+    plan: "Gratis",
+    email: "staff.gratis@demo.fideleo.app",
+    password: "staff.gratis@demo.fideleo.app",
+    role: "Empleado",
+    onboarding: false,
   },
+  ...(["Básico", "Pro", "Ultra"] as const).flatMap((plan) => {
+    const code = plan === "Básico" ? "basico" : plan.toLowerCase();
+    return [
+      {
+        plan,
+        email: `admin.${code}@demo.fideleo.app`,
+        password: `admin.${code}@demo.fideleo.app`,
+        role: "Administrador",
+        onboarding: true,
+      },
+      {
+        plan,
+        email: `manager.${code}@demo.fideleo.app`,
+        password: `manager.${code}@demo.fideleo.app`,
+        role: "Responsable",
+        onboarding: false,
+      },
+      {
+        plan,
+        email: `staff.${code}@demo.fideleo.app`,
+        password: `staff.${code}@demo.fideleo.app`,
+        role: "Empleado",
+        onboarding: false,
+      },
+    ];
+  }),
 ];
 
 const ensureBusinessAccount = async (name?: string) => {
@@ -159,7 +201,11 @@ function AuthPage() {
     };
   }, [businessName, destination, search.confirmed]);
 
-  const signInWithCredentials = async (loginEmail: string, loginPassword: string) => {
+  const signInWithCredentials = async (
+    loginEmail: string,
+    loginPassword: string,
+    nextDestination = destination,
+  ) => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail.trim(),
@@ -180,7 +226,7 @@ function AuthPage() {
       return;
     }
     setLoading(false);
-    window.location.assign(destination);
+    window.location.assign(nextDestination);
   };
 
   const signIn = async (e: React.FormEvent) => {
@@ -295,11 +341,11 @@ function AuthPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-6xl">
         <Link to="/" className="font-display text-xl font-semibold">
           Fideleo
         </Link>
-        <div className="surface mt-4 p-6">
+        <div className="surface mx-auto mt-4 max-w-md p-6">
           {search.reset ? (
             <form onSubmit={completePasswordReset} className="space-y-4">
               <div>
@@ -508,30 +554,70 @@ function AuthPage() {
           )}
         </div>
 
-        <div className="surface mt-4 p-5">
-          <h2 className="text-sm font-semibold">Cuentas demo preparadas</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Pulsa una cuenta para entrar directamente. La contraseña es el mismo email.
-          </p>
-          <ul className="mt-3 space-y-1.5 text-xs">
-            {demoUsers.map((user) => (
-              <li key={user.email} className="flex justify-between gap-3">
-                <button
-                  type="button"
-                  disabled={loading}
-                  className="font-medium underline-offset-2 hover:underline"
-                  onClick={() => {
-                    setEmail(user.email);
-                    setPassword(user.password);
-                    void signInWithCredentials(user.email, user.password);
-                  }}
-                >
-                  {user.email}
-                </button>
-                <span className="text-muted-foreground">{user.role}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="surface mt-6 overflow-hidden">
+          <div className="border-b px-5 py-4">
+            <h2 className="font-display text-lg font-bold">Cuentas demo preparadas</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Usa “Entrar” para abrir el panel con cada nivel de permisos. Las cuentas Gratis
+              muestran todas las funciones bloqueadas.
+            </p>
+          </div>
+          <Table className="min-w-[940px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Plan</TableHead>
+                <TableHead>Rol</TableHead>
+                <TableHead>Usuario</TableHead>
+                <TableHead>Contraseña</TableHead>
+                <TableHead className="text-right">Accesos</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {demoUsers.map((user) => (
+                <TableRow key={user.email}>
+                  <TableCell className="font-semibold">{user.plan}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell className="font-mono text-xs">{user.email}</TableCell>
+                  <TableCell className="font-mono text-xs">{user.password}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={loading}
+                        onClick={() => {
+                          setEmail(user.email);
+                          setPassword(user.password);
+                          void signInWithCredentials(user.email, user.password);
+                        }}
+                      >
+                        Entrar
+                      </Button>
+                      {user.onboarding ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={loading}
+                          onClick={() => {
+                            setEmail(user.email);
+                            setPassword(user.password);
+                            void signInWithCredentials(
+                              user.email,
+                              user.password,
+                              "/panel/onboarding",
+                            );
+                          }}
+                        >
+                          Onboarding
+                        </Button>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
     </main>
