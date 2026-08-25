@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Coins, Gift, Lightbulb, Receipt, TrendingUp, Users } from "lucide-react";
+import { Coins, Gift, Receipt, TrendingUp, Users } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/app/metric-card";
@@ -316,7 +316,6 @@ function ResumenPage() {
               label="Ventas asociadas"
               value={eur(data?.sales)}
               icon={<TrendingUp className="size-4" />}
-              className="bg-[#f4efff] dark:bg-card"
               to="/panel/estadisticas"
             />
             <MetricCard
@@ -331,30 +330,6 @@ function ResumenPage() {
               icon={<Receipt className="size-4" />}
               to="/panel/estadisticas"
             />
-          </div>
-
-          <div className="flex items-start gap-3 rounded-2xl bg-[#d9f4ff] p-5 sm:p-6 dark:border dark:bg-card">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-primary dark:bg-muted">
-              <Lightbulb className="size-5" />
-            </span>
-            <div>
-              <p className="font-semibold">{t("Oportunidad del mes")}</p>
-              <p className="mt-1 text-sm leading-relaxed text-foreground/65">
-                {t(
-                  "Has registrado {members} nuevas altas y {redemptions} canjes en el periodo seleccionado. Revisa los clientes próximos a recompensa para impulsar su próxima visita.",
-                  {
-                    members: num(data?.newMembers),
-                    redemptions: num(data?.redemptions),
-                  },
-                )}
-              </p>
-              <Link
-                to="/panel/notificaciones"
-                className="mt-3 inline-flex items-center gap-1 text-sm font-semibold"
-              >
-                {t("Enviar mensaje de retorno")} <ArrowUpRight className="size-4" />
-              </Link>
-            </div>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
