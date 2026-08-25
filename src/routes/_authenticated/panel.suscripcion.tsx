@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CreditCard, LoaderCircle, TrendingUp, XCircle } from "lucide-react";
-import { toast } from "sonner";
+import { Check, CreditCard, TrendingUp, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { PlanUpgradeDialog } from "@/components/app/plan-upgrade-dialog";
 import { Button } from "@/components/ui/button";
@@ -20,9 +19,11 @@ function SubscriptionPage() {
   const { data: session } = useSession();
   const { t } = useI18n();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [openingPortal, setOpeningPortal] = useState(false);
   const plan = getSubscriptionPlan(session?.planCode);
   const canUpgrade = getHigherSubscriptionPlans(session?.planCode).length > 0;
+  const cancellationWhatsappUrl = `https://wa.me/34695834018?text=${encodeURIComponent(
+    `Hola, quiero cancelar mi plan ${plan?.name ?? ""} de Fideleo.`,
+  )}`;
 
   const { data: subscription, isLoading } = useQuery({
     queryKey: ["subscription-detail", session?.org?.organization_id],
@@ -30,28 +31,13 @@ function SubscriptionPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("organizations")
-        .select("subscription_status, subscription_current_period_end, stripe_subscription_id")
+        .select("subscription_status, subscription_current_period_end")
         .eq("id", session!.org!.organization_id)
         .single();
       if (error) throw error;
       return data;
     },
   });
-
-  const openCancellation = async () => {
-    setOpeningPortal(true);
-    const { data, error } = await supabase.functions.invoke("create-billing-portal", {
-      body: { action: "cancel" },
-    });
-    setOpeningPortal(false);
-    if (error || !data?.url) {
-      toast.error(t("No se pudo abrir la gestión de la suscripción"), {
-        description: data?.error || error?.message,
-      });
-      return;
-    }
-    window.location.assign(data.url);
-  };
 
   const periodEnd = subscription?.subscription_current_period_end
     ? new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(
@@ -119,21 +105,12 @@ function SubscriptionPage() {
                 <TrendingUp className="size-4" /> {t("Mejorar el plan")}
               </Button>
             ) : null}
-            {subscription?.stripe_subscription_id ? (
-              <Button
-                variant="outline"
-                className="text-destructive hover:text-destructive"
-                disabled={openingPortal}
-                onClick={() => void openCancellation()}
-              >
-                {openingPortal ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <XCircle className="size-4" />
-                )}
-                {t("Cancelar suscripción")}
-              </Button>
-            ) : null}
+            <Button asChild variant="outline" className="text-destructive hover:text-destructive">
+              <a href={cancellationWhatsappUrl} target="_blank" rel="noopener noreferrer">
+                <XCircle className="size-4" />
+                {t("Cancelar plan")}
+              </a>
+            </Button>
           </div>
         </div>
       </section>

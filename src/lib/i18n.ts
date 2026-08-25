@@ -46,6 +46,7 @@ const ca: Dictionary = {
     "No hi ha cap pla actiu associat a aquest compte.",
   "Próxima renovación: {date}": "Pròxima renovació: {date}",
   "Mejorar el plan": "Millora el pla",
+  "Cancelar plan": "Cancel·la el pla",
   "Cancelar suscripción": "Cancel·la la subscripció",
   "No se pudo abrir la gestión de la suscripción":
     "No s'ha pogut obrir la gestió de la subscripció",
@@ -331,6 +332,7 @@ const en: Dictionary = {
     "There is no active plan associated with this account.",
   "Próxima renovación: {date}": "Next renewal: {date}",
   "Mejorar el plan": "Upgrade plan",
+  "Cancelar plan": "Cancel plan",
   "Cancelar suscripción": "Cancel subscription",
   "No se pudo abrir la gestión de la suscripción": "Subscription management could not be opened",
   Administrador: "Administrator",

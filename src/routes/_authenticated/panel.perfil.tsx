@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Save, Store, UserRound } from "lucide-react";
+import { ArrowRight, CreditCard, KeyRound, Save, Store, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { roleLabel } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTransactionalEmail } from "@/lib/transactional-email";
 import { PageSkeleton } from "@/components/app/brand-loader";
+import { getSubscriptionPlan } from "@/lib/subscription-plans";
 
 export const Route = createFileRoute("/_authenticated/panel/perfil")({ component: PerfilPage });
 
@@ -22,6 +23,7 @@ function PerfilPage() {
   const [form, setForm] = useState({ fullName: "", phone: "" });
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const plan = getSubscriptionPlan(session?.planCode);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["my-profile", session?.userId],
@@ -173,26 +175,46 @@ function PerfilPage() {
             </div>
           </section>
         </div>
-        <aside className="surface h-fit p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <Store className="size-5 text-primary" />
-            <h2 className="font-display text-lg font-bold">Establecimientos</h2>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">Locales a los que tienes acceso.</p>
-          <div className="mt-5 space-y-2">
-            {session?.locations.length ? (
-              session.locations.map((location) => (
-                <div
-                  key={location.id}
-                  className="rounded-xl border bg-muted/35 px-4 py-3 text-sm font-medium"
-                >
-                  {location.name}
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin establecimientos asignados.</p>
-            )}
-          </div>
+        <aside className="h-fit space-y-5">
+          {session?.org?.role === "admin" ? (
+            <section className="surface p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <CreditCard className="size-5 text-primary" />
+                <h2 className="font-display text-lg font-bold">Mi suscripción</h2>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Plan actual:{" "}
+                <span className="font-semibold text-foreground">{plan?.name ?? "—"}</span>
+              </p>
+              <Button asChild variant="outline" className="mt-5 w-full justify-between">
+                <Link to="/panel/suscripcion">
+                  Gestionar suscripción <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </section>
+          ) : null}
+
+          <section className="surface p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <Store className="size-5 text-primary" />
+              <h2 className="font-display text-lg font-bold">Establecimientos</h2>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">Locales a los que tienes acceso.</p>
+            <div className="mt-5 space-y-2">
+              {session?.locations.length ? (
+                session.locations.map((location) => (
+                  <div
+                    key={location.id}
+                    className="rounded-xl border bg-muted/35 px-4 py-3 text-sm font-medium"
+                  >
+                    {location.name}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin establecimientos asignados.</p>
+              )}
+            </div>
+          </section>
         </aside>
       </div>
     </>
