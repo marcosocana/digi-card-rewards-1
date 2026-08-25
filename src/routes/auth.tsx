@@ -484,7 +484,6 @@ function AuthPage() {
             </Tabs>
           )}
         </div>
-
       </div>
     </main>
   );
