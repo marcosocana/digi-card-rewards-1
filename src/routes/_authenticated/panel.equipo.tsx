@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Building2, ChevronDown, Pencil, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { roleLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { sendTransactionalEmail } from "@/lib/transactional-email";
@@ -42,9 +43,8 @@ export const Route = createFileRoute("/_authenticated/panel/equipo")({
 });
 
 function EquipoPage() {
-  const { data: session } = useSession();
+  const { session, organizationId: orgId, isSuperadmin, isGlobal, canMutate } = useAdminScope();
   const { t } = useI18n();
-  const orgId = session?.org?.organization_id;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     email: "",
@@ -61,16 +61,17 @@ function EquipoPage() {
   } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["team", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["team", orgId, isSuperadmin],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("organization_users")
         .select(
-          "id, full_name, invited_email, role, status, user_id, can_adjust_points, user_location_assignments(location_id)",
+          "id, full_name, invited_email, role, status, user_id, can_adjust_points, user_location_assignments(location_id), organizations(display_name)",
         )
-        .eq("organization_id", orgId!)
         .order("role");
+      if (orgId) query = query.eq("organization_id", orgId);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -251,7 +252,7 @@ function EquipoPage() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={!canMutate}>
                 <Plus aria-hidden className="size-4" /> {t("Invitar")}
               </Button>
             </DialogTrigger>
@@ -319,6 +320,8 @@ function EquipoPage() {
         }
       />
 
+      {isGlobal ? <AdminScopeNotice action="invitar usuarios a esa empresa" /> : null}
+
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded-xl" />
       ) : (
@@ -354,6 +357,7 @@ function EquipoPage() {
                 <Button
                   size="icon"
                   variant="ghost"
+                  disabled={isGlobal}
                   aria-label={t("Editar {name}", { name: u.full_name ?? u.invited_email ?? "" })}
                   onClick={() =>
                     setEditing({

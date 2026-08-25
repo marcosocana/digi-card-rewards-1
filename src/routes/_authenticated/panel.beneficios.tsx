@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Gift, Plus, TicketPercent } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { dateOnly, eur, num } from "@/lib/format";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -28,14 +28,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PageSkeleton } from "@/components/app/brand-loader";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 
 export const Route = createFileRoute("/_authenticated/panel/beneficios")({
   component: BeneficiosPage,
 });
 
 function BeneficiosPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin, isGlobal, canMutate } = useAdminScope();
   const [couponOpen, setCouponOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const [issuedCode, setIssuedCode] = useState<string | null>(null);
@@ -48,23 +48,24 @@ function BeneficiosPage() {
   });
   const [gift, setGift] = useState({ amount: "25", recipient_name: "", recipient_email: "" });
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["benefits", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["benefits", orgId, isSuperadmin],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const [coupons, cards] = await Promise.all([
-        supabase
-          .from("coupons")
-          .select("*")
-          .eq("organization_id", orgId!)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("gift_cards")
-          .select(
-            "id,public_id,code_hint,initial_balance_cents,remaining_balance_cents,recipient_name,recipient_email,expires_at,status,created_at",
-          )
-          .eq("organization_id", orgId!)
-          .order("created_at", { ascending: false }),
-      ]);
+      let couponsQuery = supabase
+        .from("coupons")
+        .select("*, organizations(display_name)")
+        .order("created_at", { ascending: false });
+      let cardsQuery = supabase
+        .from("gift_cards")
+        .select(
+          "id,public_id,code_hint,initial_balance_cents,remaining_balance_cents,recipient_name,recipient_email,expires_at,status,created_at,organizations(display_name)",
+        )
+        .order("created_at", { ascending: false });
+      if (orgId) {
+        couponsQuery = couponsQuery.eq("organization_id", orgId);
+        cardsQuery = cardsQuery.eq("organization_id", orgId);
+      }
+      const [coupons, cards] = await Promise.all([couponsQuery, cardsQuery]);
       if (coupons.error) throw coupons.error;
       if (cards.error) throw cards.error;
       return { coupons: coupons.data ?? [], cards: cards.data ?? [] };
@@ -118,6 +119,7 @@ function BeneficiosPage() {
         title="Cupones y tarjetas regalo"
         description="Beneficios monetarios con uso, saldo e historial controlados en backend."
       />
+      {isGlobal ? <AdminScopeNotice action="crear beneficios para esa empresa" /> : null}
       <Tabs defaultValue="coupons">
         <TabsList>
           <TabsTrigger value="coupons">Cupones</TabsTrigger>
@@ -127,7 +129,7 @@ function BeneficiosPage() {
           <div className="flex justify-end">
             <Dialog open={couponOpen} onOpenChange={setCouponOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button disabled={!canMutate}>
                   <Plus className="size-4" /> Nuevo cupón
                 </Button>
               </DialogTrigger>
@@ -198,6 +200,12 @@ function BeneficiosPage() {
                     <TicketPercent className="mb-2 size-5 text-primary" />
                     <h2 className="font-display text-lg font-semibold">{item.title}</h2>
                     <p className="font-mono text-sm">{item.code}</p>
+                    {isSuperadmin ? (
+                      <p className="text-xs text-muted-foreground">
+                        {(item.organizations as { display_name: string } | null)?.display_name ??
+                          "Sin empresa"}
+                      </p>
+                    ) : null}
                   </div>
                   <Badge>{item.status}</Badge>
                 </div>
@@ -222,7 +230,7 @@ function BeneficiosPage() {
               }}
             >
               <DialogTrigger asChild>
-                <Button>
+                <Button disabled={!canMutate}>
                   <Gift className="size-4" /> Emitir tarjeta
                 </Button>
               </DialogTrigger>

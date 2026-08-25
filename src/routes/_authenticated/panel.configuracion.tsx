@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 
 export const Route = createFileRoute("/_authenticated/panel/configuracion")({
   component: ConfiguracionPage,
@@ -56,8 +57,7 @@ const empty = {
 };
 
 function ConfiguracionPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { organizationId: orgId, isGlobal } = useAdminScope();
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [uploadingAsset, setUploadingAsset] = useState<"logo_url" | "cover_url" | null>(null);
@@ -255,6 +255,16 @@ function ConfiguracionPage() {
     void refetch();
   };
 
+  if (isGlobal)
+    return (
+      <>
+        <PageHeader
+          title="Configuración"
+          description="Gestiona los datos y las integraciones de cualquier empresa."
+        />
+        <AdminScopeNotice action="consultar y editar su configuración" />
+      </>
+    );
   if (isLoading) return <Skeleton className="h-96 rounded-xl" />;
   const field = (key: keyof typeof form, label: string, type = "text") => (
     <div className="space-y-1.5">

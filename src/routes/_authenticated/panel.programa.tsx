@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 import { EmptyState } from "@/components/app/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { ruleText } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/panel/programa")({
@@ -26,8 +27,7 @@ export const Route = createFileRoute("/_authenticated/panel/programa")({
 });
 
 function ProgramaPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { organizationId: orgId, isGlobal } = useAdminScope();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["program", orgId],
@@ -118,6 +118,16 @@ function ProgramaPage() {
     void refetch();
   };
 
+  if (isGlobal)
+    return (
+      <>
+        <PageHeader
+          title="Programa de fidelización"
+          description="Gestiona el programa de cualquier empresa desde Modo Dios."
+        />
+        <AdminScopeNotice action="consultar y editar su programa" />
+      </>
+    );
   if (isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
   if (!data)
     return (

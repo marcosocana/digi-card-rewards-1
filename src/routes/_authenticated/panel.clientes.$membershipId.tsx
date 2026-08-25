@@ -36,7 +36,7 @@ function ClienteDetalle() {
   const { membershipId } = Route.useParams();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const canAdjust = session?.org?.can_adjust_points ?? false;
+  const canAdjust = session?.isSuperadmin || (session?.org?.can_adjust_points ?? false);
 
   const [delta, setDelta] = useState("");
   const [reason, setReason] = useState("");

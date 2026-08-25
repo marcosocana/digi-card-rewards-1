@@ -10,6 +10,8 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { getHigherSubscriptionPlans, getSubscriptionPlan } from "@/lib/subscription-plans";
 import { PageSkeleton } from "@/components/app/brand-loader";
+import { useAdminScope } from "@/lib/session";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 
 export const Route = createFileRoute("/_authenticated/panel/suscripcion")({
   component: SubscriptionPage,
@@ -17,27 +19,28 @@ export const Route = createFileRoute("/_authenticated/panel/suscripcion")({
 
 function SubscriptionPage() {
   const { data: session } = useSession();
+  const { organizationId: orgId, isGlobal } = useAdminScope();
   const { t } = useI18n();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const plan = getSubscriptionPlan(session?.planCode);
-  const canUpgrade = getHigherSubscriptionPlans(session?.planCode).length > 0;
-  const cancellationWhatsappUrl = `https://wa.me/34695834018?text=${encodeURIComponent(
-    `Hola, quiero cancelar mi plan ${plan?.name ?? ""} de Fideleo.`,
-  )}`;
-
   const { data: subscription, isLoading } = useQuery({
-    queryKey: ["subscription-detail", session?.org?.organization_id],
-    enabled: Boolean(session?.org?.organization_id),
+    queryKey: ["subscription-detail", orgId],
+    enabled: Boolean(orgId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("organizations")
-        .select("subscription_status, subscription_current_period_end")
-        .eq("id", session!.org!.organization_id)
+        .select("plan_code,subscription_status,subscription_current_period_end")
+        .eq("id", orgId!)
         .single();
       if (error) throw error;
       return data;
     },
   });
+  const currentPlanCode = subscription?.plan_code ?? session?.planCode;
+  const plan = getSubscriptionPlan(currentPlanCode);
+  const canUpgrade = getHigherSubscriptionPlans(currentPlanCode).length > 0;
+  const cancellationWhatsappUrl = `https://wa.me/34695834018?text=${encodeURIComponent(
+    `Hola, quiero cancelar mi plan ${plan?.name ?? ""} de Fideleo.`,
+  )}`;
 
   const periodEnd = subscription?.subscription_current_period_end
     ? new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(
@@ -45,6 +48,16 @@ function SubscriptionPage() {
       )
     : null;
 
+  if (isGlobal)
+    return (
+      <>
+        <PageHeader
+          title={t("Mi suscripción")}
+          description={t("Consulta y gestiona el plan de cualquier empresa.")}
+        />
+        <AdminScopeNotice action="consultar y gestionar su suscripción" />
+      </>
+    );
   if (isLoading) return <PageSkeleton variant="detail" />;
 
   return (
@@ -116,7 +129,7 @@ function SubscriptionPage() {
       </section>
 
       <PlanUpgradeDialog
-        currentPlanCode={session?.planCode}
+        currentPlanCode={currentPlanCode}
         open={upgradeOpen}
         onOpenChange={setUpgradeOpen}
       />

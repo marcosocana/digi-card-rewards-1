@@ -220,9 +220,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [selectedLocations, session?.locations]);
 
-  const role = session?.org?.role ?? "staff";
-  const items =
-    session?.isSuperadmin && !session.org ? [] : nav.filter((i) => i.roles.includes(role));
+  const role = session?.isSuperadmin ? "admin" : (session?.org?.role ?? "staff");
+  const items = nav.filter((i) => i.roles.includes(role));
   const roleName = t(session?.isSuperadmin ? "Superadmin" : role);
 
   const updateLocations = (ids: string[]) => {

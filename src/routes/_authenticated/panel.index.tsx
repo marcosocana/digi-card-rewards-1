@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Coins, Gift, Receipt, TrendingUp, Users } from "lucide-react";
@@ -17,13 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  fetchSessionInfo,
-  getSelectedLocationIds,
-  locationFilterEvent,
-  sessionQueryKey,
-  useSession,
-} from "@/lib/session";
+import { fetchSessionInfo, sessionQueryKey, useAdminScope } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
@@ -72,25 +66,17 @@ const getPresetRange = (preset: Exclude<PeriodPreset, "custom">) => {
 };
 
 function ResumenPage() {
-  const { data: session } = useSession();
+  const {
+    session,
+    organizationId: orgId,
+    isSuperadmin,
+    selectedLocationIds: selectedLocations,
+  } = useAdminScope();
   const { t } = useI18n();
-  const orgId = session?.org?.organization_id;
   const today = localDate();
   const [period, setPeriod] = useState<PeriodPreset>("today");
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-
-  useEffect(() => {
-    setSelectedLocations(getSelectedLocationIds());
-    const update = (event: Event) => {
-      const locations = (event as CustomEvent<string[]>).detail;
-      setSelectedLocations(locations);
-    };
-    window.addEventListener(locationFilterEvent, update);
-    return () => window.removeEventListener(locationFilterEvent, update);
-  }, []);
-
   const {
     data,
     isLoading,
@@ -104,21 +90,24 @@ function ResumenPage() {
       toDate,
       [...selectedLocations].sort().join(","),
     ],
-    enabled: Boolean(orgId),
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
       const from = new Date(`${fromDate}T00:00:00`).toISOString();
       const to = new Date(`${toDate}T23:59:59.999`).toISOString();
       let membersQuery = supabase
         .from("memberships")
         .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId!)
         .lte("joined_at", to);
       let newMembersQuery = supabase
         .from("memberships")
         .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId!)
         .gte("joined_at", from)
         .lte("joined_at", to);
+
+      if (orgId) {
+        membersQuery = membersQuery.eq("organization_id", orgId);
+        newMembersQuery = newMembersQuery.eq("organization_id", orgId);
+      }
 
       if (selectedLocations.length) {
         membersQuery = membersQuery.in("acquisition_location_id", selectedLocations);
@@ -141,11 +130,11 @@ function ResumenPage() {
           let query = supabase
             .from("point_transactions")
             .select("id, type, points_delta, amount_cents, created_at, membership_id, location_id")
-            .eq("organization_id", orgId!)
             .gte("created_at", from)
             .lte("created_at", to)
             .order("created_at", { ascending: false })
             .range(page * pageSize, (page + 1) * pageSize - 1);
+          if (orgId) query = query.eq("organization_id", orgId);
           if (selectedLocations.length) query = query.in("location_id", selectedLocations);
 
           const response = await query;
@@ -156,11 +145,15 @@ function ResumenPage() {
         return allRows;
       };
 
+      let locationsQuery = supabase.from("locations").select("id, name").order("name");
+      if (orgId) locationsQuery = locationsQuery.eq("organization_id", orgId);
+      if (selectedLocations.length) locationsQuery = locationsQuery.in("id", selectedLocations);
+
       const [members, newMembers, rows, locations] = await Promise.all([
         membersQuery,
         newMembersQuery,
         fetchTransactions(),
-        supabase.from("locations").select("id, name").eq("organization_id", orgId!).order("name"),
+        locationsQuery,
       ]);
       if (members.error) throw members.error;
       if (newMembers.error) throw newMembers.error;
@@ -202,7 +195,7 @@ function ResumenPage() {
     },
   });
 
-  if (!session?.org) {
+  if (!session?.org && !isSuperadmin) {
     return (
       <EmptyState
         title="Aún no perteneces a ninguna organización"

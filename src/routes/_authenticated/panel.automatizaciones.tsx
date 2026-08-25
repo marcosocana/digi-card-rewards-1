@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Bot, Play } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { dateTime, num } from "@/lib/format";
 import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/app/metric-card";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 
 export const Route = createFileRoute("/_authenticated/panel/automatizaciones")({
   component: AutomatizacionesPage,
@@ -27,20 +28,21 @@ const triggerLabel: Record<string, string> = {
 };
 
 function AutomatizacionesPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin, isGlobal } = useAdminScope();
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["automations", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["automations", orgId, isSuperadmin],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const [automations, jobs] = await Promise.all([
-        supabase
-          .from("notification_automations")
-          .select("*")
-          .eq("organization_id", orgId!)
-          .order("created_at"),
-        supabase.from("automation_jobs").select("id,status").eq("organization_id", orgId!),
-      ]);
+      let automationsQuery = supabase
+        .from("notification_automations")
+        .select("*, organizations(display_name)")
+        .order("created_at");
+      let jobsQuery = supabase.from("automation_jobs").select("id,status");
+      if (orgId) {
+        automationsQuery = automationsQuery.eq("organization_id", orgId);
+        jobsQuery = jobsQuery.eq("organization_id", orgId);
+      }
+      const [automations, jobs] = await Promise.all([automationsQuery, jobsQuery]);
       if (automations.error) throw automations.error;
       return { automations: automations.data ?? [], jobs: jobs.data ?? [] };
     },
@@ -92,11 +94,12 @@ function AutomatizacionesPage() {
         title="Automatizaciones"
         description="Mensajes activados por comportamiento, fechas y recompensas."
         actions={
-          <Button variant="outline" onClick={() => void run()}>
+          <Button variant="outline" disabled={isGlobal} onClick={() => void run()}>
             <Play className="size-4" /> Ejecutar cola ahora
           </Button>
         }
       />
+      {isGlobal ? <AdminScopeNotice action="ejecutar la cola de esa empresa" /> : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard
           label="Activas"
@@ -119,6 +122,9 @@ function AutomatizacionesPage() {
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {triggerLabel[automation.trigger_type] ?? automation.trigger_type}
+                    {isSuperadmin
+                      ? ` · ${(automation.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"}`
+                      : ""}
                   </p>
                 </div>
                 <Switch

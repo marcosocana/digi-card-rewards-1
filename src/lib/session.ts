@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,6 +16,7 @@ export interface SessionLocation {
   id: string;
   name: string;
   slug: string;
+  organizationId?: string;
   organizationName?: string;
 }
 
@@ -68,13 +70,14 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
   if (isSuperadmin) {
     const { data } = await supabase
       .from("locations")
-      .select("id, name, slug, organizations(display_name)")
+      .select("id, name, slug, organizations(id, display_name)")
       .eq("status", "active")
       .order("name");
     locations = (data ?? []).map((location) => ({
       id: location.id,
       name: location.name,
       slug: location.slug,
+      organizationId: (location.organizations as { id: string } | null)?.id,
       organizationName: (location.organizations as { display_name: string } | null)?.display_name,
     }));
   } else if (ou) {
@@ -143,3 +146,40 @@ export const setSelectedLocationIds = (ids: string[]) => {
   window.localStorage.setItem(LOCATION_FILTER_KEY, JSON.stringify(ids));
   window.dispatchEvent(new CustomEvent(locationFilterEvent, { detail: ids }));
 };
+
+export function useAdminScope() {
+  const { data: session } = useSession();
+  const [selectedLocationIds, setLocationIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setLocationIds(getSelectedLocationIds());
+    const update = (event: Event) => {
+      setLocationIds((event as CustomEvent<string[]>).detail);
+    };
+    window.addEventListener(locationFilterEvent, update);
+    return () => window.removeEventListener(locationFilterEvent, update);
+  }, []);
+
+  const validLocationIds = selectedLocationIds.filter((id) =>
+    session?.locations.some((location) => location.id === id),
+  );
+  const organizationIds = new Set(
+    session?.locations
+      .filter((location) => validLocationIds.includes(location.id))
+      .map((location) => location.organizationId)
+      .filter((id): id is string => Boolean(id)) ?? [],
+  );
+  const scopedSuperadminOrg = organizationIds.size === 1 ? [...organizationIds][0] : null;
+  const organizationId = session?.isSuperadmin
+    ? scopedSuperadminOrg
+    : (session?.org?.organization_id ?? null);
+
+  return {
+    session,
+    isSuperadmin: session?.isSuperadmin === true,
+    isGlobal: session?.isSuperadmin === true && !organizationId,
+    organizationId,
+    selectedLocationIds: validLocationIds,
+    canMutate: !session?.isSuperadmin || Boolean(organizationId),
+  };
+}

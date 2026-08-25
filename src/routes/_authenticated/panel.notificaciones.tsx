@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Bell, Plus, Send, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { dateTime, num } from "@/lib/format";
 import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/app/metric-card";
@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 
 export const Route = createFileRoute("/_authenticated/panel/notificaciones")({
   component: NotificacionesPage,
@@ -46,8 +47,7 @@ const labels: Record<string, string> = {
 };
 
 function NotificacionesPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin, isGlobal, canMutate } = useAdminScope();
   const [open, setOpen] = useState(false);
   const [segmentOpen, setSegmentOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,35 +62,46 @@ function NotificacionesPage() {
   const [segmentForm, setSegmentForm] = useState({ name: "", type: "marketing", value: "" });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["notifications", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["notifications", orgId, isSuperadmin],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
+      let notificationsQuery = supabase
+        .from("notifications")
+        .select(
+          "id,title,message,status,kind,scheduled_for,created_at,recipient_count,delivered_count,failed_count,customer_segments(name),organizations(display_name)",
+        )
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (orgId) notificationsQuery = notificationsQuery.eq("organization_id", orgId);
+
+      const segmentsQuery = orgId
+        ? supabase
+            .from("customer_segments")
+            .select("id,name,description")
+            .eq("organization_id", orgId)
+            .eq("status", "active")
+            .order("name")
+        : Promise.resolve({ data: [], error: null });
+      const organizationQuery = orgId
+        ? supabase
+            .from("organizations")
+            .select("notification_daily_limit,timezone")
+            .eq("id", orgId)
+            .single()
+        : Promise.resolve({ data: null, error: null });
+      const locationsQuery = orgId
+        ? supabase
+            .from("locations")
+            .select("id,name")
+            .eq("organization_id", orgId)
+            .eq("status", "active")
+            .order("name")
+        : Promise.resolve({ data: [], error: null });
       const [notifications, segments, organization, locations] = await Promise.all([
-        supabase
-          .from("notifications")
-          .select(
-            "id,title,message,status,kind,scheduled_for,created_at,recipient_count,delivered_count,failed_count,customer_segments(name)",
-          )
-          .eq("organization_id", orgId!)
-          .order("created_at", { ascending: false })
-          .limit(100),
-        supabase
-          .from("customer_segments")
-          .select("id,name,description")
-          .eq("organization_id", orgId!)
-          .eq("status", "active")
-          .order("name"),
-        supabase
-          .from("organizations")
-          .select("notification_daily_limit,timezone")
-          .eq("id", orgId!)
-          .single(),
-        supabase
-          .from("locations")
-          .select("id,name")
-          .eq("organization_id", orgId!)
-          .eq("status", "active")
-          .order("name"),
+        notificationsQuery,
+        segmentsQuery,
+        organizationQuery,
+        locationsQuery,
       ]);
       if (notifications.error) throw notifications.error;
       if (segments.error) throw segments.error;
@@ -227,7 +238,7 @@ function NotificacionesPage() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button disabled={(data?.manualToday ?? 0) >= (data?.limit ?? 1)}>
+              <Button disabled={!canMutate || (data?.manualToday ?? 0) >= (data?.limit ?? 1)}>
                 <Plus className="size-4" /> Nueva notificación
               </Button>
             </DialogTrigger>
@@ -309,6 +320,7 @@ function NotificacionesPage() {
           </Dialog>
         }
       />
+      {isGlobal ? <AdminScopeNotice action="crear envíos para esa empresa" /> : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard label="Uso diario" value={`${num(data?.manualToday)}/${num(data?.limit)}`} />
         <MetricCard
@@ -330,7 +342,7 @@ function NotificacionesPage() {
           </div>
           <Dialog open={segmentOpen} onOpenChange={setSegmentOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" disabled={!canMutate}>
                 <UsersRound className="size-4" /> Nuevo segmento
               </Button>
             </DialogTrigger>
@@ -445,6 +457,9 @@ function NotificacionesPage() {
                 <p className="truncate text-xs text-muted-foreground">
                   {item.customer_segments?.name ?? "Automatización"} · {num(item.recipient_count)}{" "}
                   destinatarios · {dateTime(item.scheduled_for ?? item.created_at)}
+                  {isSuperadmin
+                    ? ` · ${(item.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"}`
+                    : ""}
                 </p>
               </div>
               <Badge variant={item.status === "sent" ? "default" : "secondary"}>

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { dateTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/panel/actividad")({
@@ -11,19 +11,19 @@ export const Route = createFileRoute("/_authenticated/panel/actividad")({
 });
 
 function ActividadPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin } = useAdminScope();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["audit", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["audit", orgId, isSuperadmin],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("audit_logs")
-        .select("id, action, entity_type, actor_label, created_at")
-        .eq("organization_id", orgId!)
+        .select("id, action, entity_type, actor_label, created_at, organizations(display_name)")
         .order("created_at", { ascending: false })
         .limit(100);
+      if (orgId) query = query.eq("organization_id", orgId);
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -43,6 +43,9 @@ function ActividadPage() {
                   <p className="text-sm font-medium">{a.action}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {a.entity_type} · {a.actor_label ?? "sistema"}
+                    {isSuperadmin
+                      ? ` · ${(a.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"}`
+                      : ""}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-muted-foreground">

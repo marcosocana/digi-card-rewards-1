@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { downloadDataUrl, qrPngDataUrl } from "@/lib/qr";
 
 export const Route = createFileRoute("/_authenticated/panel/captacion")({
@@ -15,27 +15,26 @@ export const Route = createFileRoute("/_authenticated/panel/captacion")({
 });
 
 function CaptacionPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin, selectedLocationIds } = useAdminScope();
   const [origin, setOrigin] = useState("");
   const [codes, setCodes] = useState<Record<string, string>>({});
 
   useEffect(() => setOrigin(window.location.origin), []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["capture-locations", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["capture-locations", orgId, isSuperadmin, [...selectedLocationIds].sort().join(",")],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const [org, locs] = await Promise.all([
-        supabase.from("organizations").select("slug").eq("id", orgId!).maybeSingle(),
-        supabase
-          .from("locations")
-          .select("id, name, slug")
-          .eq("organization_id", orgId!)
-          .eq("status", "active")
-          .order("name"),
-      ]);
-      return { orgSlug: org.data?.slug ?? "", locations: locs.data ?? [] };
+      let query = supabase
+        .from("locations")
+        .select("id, name, slug, organizations(slug,display_name)")
+        .eq("status", "active")
+        .order("name");
+      if (orgId) query = query.eq("organization_id", orgId);
+      if (selectedLocationIds.length) query = query.in("id", selectedLocationIds);
+      const { data, error } = await query;
+      if (error) throw error;
+      return { locations: data ?? [] };
     },
   });
 
@@ -45,7 +44,12 @@ function CaptacionPage() {
       const entries = await Promise.all(
         data.locations.map(
           async (l) =>
-            [l.id, await qrPngDataUrl(`${origin}/unirme/${data.orgSlug}/${l.slug}`)] as const,
+            [
+              l.id,
+              await qrPngDataUrl(
+                `${origin}/unirme/${(l.organizations as { slug: string } | null)?.slug ?? ""}/${l.slug}`,
+              ),
+            ] as const,
         ),
       );
       setCodes(Object.fromEntries(entries));
@@ -63,10 +67,17 @@ function CaptacionPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {(data?.locations ?? []).map((l) => {
-            const url = `${origin}/unirme/${data?.orgSlug}/${l.slug}`;
+            const organization = l.organizations as {
+              slug: string;
+              display_name: string;
+            } | null;
+            const url = `${origin}/unirme/${organization?.slug ?? ""}/${l.slug}`;
             return (
               <div key={l.id} className="surface flex flex-col items-center gap-3 p-5 text-center">
-                <h2 className="font-display text-lg font-semibold">{l.name}</h2>
+                <h2 className="font-display text-lg font-semibold">
+                  {isSuperadmin ? `${organization?.display_name ?? "Sin empresa"} · ` : ""}
+                  {l.name}
+                </h2>
                 {codes[l.id] ? (
                   <img
                     src={codes[l.id]}

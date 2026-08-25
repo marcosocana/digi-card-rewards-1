@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { eur, num } from "@/lib/format";
 import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/app/metric-card";
@@ -21,13 +21,19 @@ export const Route = createFileRoute("/_authenticated/panel/estadisticas")({
 });
 
 function EstadisticasPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin, selectedLocationIds } = useAdminScope();
   const [period, setPeriod] = useState("365");
   const [locationId, setLocationId] = useState("all");
   const { data, isLoading } = useQuery({
-    queryKey: ["advanced-stats", orgId, period, locationId],
-    enabled: Boolean(orgId),
+    queryKey: [
+      "advanced-stats",
+      orgId,
+      isSuperadmin,
+      period,
+      locationId,
+      [...selectedLocationIds].sort().join(","),
+    ],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
       const from = new Date();
       from.setDate(from.getDate() - Number(period));
@@ -35,42 +41,58 @@ function EstadisticasPage() {
       let transactionQuery = supabase
         .from("point_transactions")
         .select("membership_id,location_id,type,amount_cents,points_delta,created_at")
-        .eq("organization_id", orgId!)
         .gte("created_at", from.toISOString())
         .order("created_at");
       let membershipQuery = supabase
         .from("memberships")
         .select(
           "id,joined_at,acquisition_location_id,cached_points_balance,customers(first_name,last_name,last_activity_at)",
-        )
-        .eq("organization_id", orgId!);
-      if (locationId !== "all") {
-        transactionQuery = transactionQuery.eq("location_id", locationId);
-        membershipQuery = membershipQuery.eq("acquisition_location_id", locationId);
+        );
+      if (orgId) {
+        transactionQuery = transactionQuery.eq("organization_id", orgId);
+        membershipQuery = membershipQuery.eq("organization_id", orgId);
+      }
+      const scopedLocationIds = locationId !== "all" ? [locationId] : selectedLocationIds;
+      if (scopedLocationIds.length) {
+        transactionQuery = transactionQuery.in("location_id", scopedLocationIds);
+        membershipQuery = membershipQuery.in("acquisition_location_id", scopedLocationIds);
+      }
+
+      let passesQuery = supabase
+        .from("wallet_passes")
+        .select("provider,memberships!inner(organization_id,acquisition_location_id)");
+      let rewardsQuery = supabase
+        .from("redemptions")
+        .select("id,created_at")
+        .gte("created_at", from.toISOString());
+      let earnedQuery = supabase
+        .from("customer_rewards")
+        .select("id,status,awarded_at,memberships!inner(organization_id,acquisition_location_id)")
+        .gte("awarded_at", from.toISOString());
+      let locationsQuery = supabase
+        .from("locations")
+        .select("id,name,organizations(display_name)")
+        .eq("status", "active")
+        .order("name");
+      if (orgId) {
+        passesQuery = passesQuery.eq("memberships.organization_id", orgId);
+        rewardsQuery = rewardsQuery.eq("organization_id", orgId);
+        earnedQuery = earnedQuery.eq("memberships.organization_id", orgId);
+        locationsQuery = locationsQuery.eq("organization_id", orgId);
+      }
+      if (scopedLocationIds.length) {
+        passesQuery = passesQuery.in("memberships.acquisition_location_id", scopedLocationIds);
+        rewardsQuery = rewardsQuery.in("location_id", scopedLocationIds);
+        earnedQuery = earnedQuery.in("memberships.acquisition_location_id", scopedLocationIds);
+        locationsQuery = locationsQuery.in("id", scopedLocationIds);
       }
       const [transactions, memberships, passes, rewards, earned, locations] = await Promise.all([
         transactionQuery,
         membershipQuery,
-        supabase
-          .from("wallet_passes")
-          .select("provider,memberships!inner(organization_id)")
-          .eq("memberships.organization_id", orgId!),
-        supabase
-          .from("redemptions")
-          .select("id,created_at")
-          .eq("organization_id", orgId!)
-          .gte("created_at", from.toISOString()),
-        supabase
-          .from("customer_rewards")
-          .select("id,status,awarded_at,memberships!inner(organization_id,acquisition_location_id)")
-          .eq("memberships.organization_id", orgId!)
-          .gte("awarded_at", from.toISOString()),
-        supabase
-          .from("locations")
-          .select("id,name")
-          .eq("organization_id", orgId!)
-          .eq("status", "active")
-          .order("name"),
+        passesQuery,
+        rewardsQuery,
+        earnedQuery,
+        locationsQuery,
       ]);
       if (transactions.error) throw transactions.error;
       const tx = transactions.data ?? [];
@@ -126,9 +148,7 @@ function EstadisticasPage() {
         (membershipId) =>
           purchases.filter((item) => item.membership_id === membershipId).length >= 2,
       ).length;
-      const filteredEarned = (earned.data ?? []).filter(
-        (item) => locationId === "all" || item.memberships?.acquisition_location_id === locationId,
-      );
+      const filteredEarned = earned.data ?? [];
       const generated = filteredEarned.length;
       const redeemed = filteredEarned.filter((item) => item.status === "redeemed").length;
       return {
@@ -187,7 +207,9 @@ function EstadisticasPage() {
                 <SelectItem value="all">Todas las ubicaciones</SelectItem>
                 {(data?.locations ?? []).map((location) => (
                   <SelectItem key={location.id} value={location.id}>
-                    {location.name}
+                    {isSuperadmin
+                      ? `${(location.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"} · ${location.name}`
+                      : location.name}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlanUpgradeDialog } from "@/components/app/plan-upgrade-dialog";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useSession } from "@/lib/session";
+import { useAdminScope, useSession } from "@/lib/session";
 import { getSubscriptionPlan } from "@/lib/subscription-plans";
 
 export const Route = createFileRoute("/_authenticated/panel/establecimientos")({
@@ -35,8 +36,15 @@ const slugify = (v: string) =>
     .replace(/(^-|-$)/g, "");
 
 function EstablecimientosPage() {
-  const { data: session, refetch: refetchSession } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { refetch: refetchSession } = useSession();
+  const {
+    session,
+    organizationId: orgId,
+    isSuperadmin,
+    isGlobal,
+    selectedLocationIds,
+    canMutate,
+  } = useAdminScope();
   const planLimit = getSubscriptionPlan(session?.planCode)?.maxLocations ?? null;
   const [open, setOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -50,15 +58,19 @@ function EstablecimientosPage() {
   } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["locations", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["locations", orgId, isSuperadmin, [...selectedLocationIds].sort().join(",")],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("locations")
-        .select("id, name, slug, address_line, city, postal_code, status")
-        .eq("organization_id", orgId!)
+        .select(
+          "id, name, slug, address_line, city, postal_code, status, organizations(display_name)",
+        )
         .is("archived_at", null)
         .order("name");
+      if (orgId) query = query.eq("organization_id", orgId);
+      if (selectedLocationIds.length) query = query.in("id", selectedLocationIds);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -149,7 +161,10 @@ function EstablecimientosPage() {
         description="Cada local tiene su propio QR de captación y su equipo asignado."
         actions={
           <>
-            <Button onClick={() => (planLimitReached ? setUpgradeOpen(true) : setOpen(true))}>
+            <Button
+              disabled={!canMutate}
+              onClick={() => (planLimitReached ? setUpgradeOpen(true) : setOpen(true))}
+            >
               <Plus aria-hidden className="size-4" /> Nuevo establecimiento
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
@@ -185,6 +200,8 @@ function EstablecimientosPage() {
         }
       />
 
+      {isGlobal ? <AdminScopeNotice action="crear un establecimiento para esa empresa" /> : null}
+
       {planLimit !== null ? (
         <p className="mb-4 text-sm text-muted-foreground">
           {data?.length ?? 0} de {planLimit} establecimiento{planLimit === 1 ? "" : "s"} incluidos
@@ -201,6 +218,9 @@ function EstablecimientosPage() {
               <div className="min-w-0">
                 <p className="text-sm font-medium">{l.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
+                  {isSuperadmin
+                    ? `${(l.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"} · `
+                    : ""}
                   {[l.address_line, l.postal_code, l.city].filter(Boolean).join(", ") ||
                     "Sin dirección"}
                 </p>

@@ -19,10 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { num } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { qrPngDataUrl } from "@/lib/qr";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 
 export const Route = createFileRoute("/_authenticated/panel/wallet")({
   component: WalletPage,
@@ -41,35 +42,44 @@ type WalletProvider = "google" | "apple";
 type WalletDesign = typeof defaultDesign;
 
 function WalletPage() {
-  const { data: session } = useSession();
+  const { session, organizationId: orgId, isSuperadmin, isGlobal } = useAdminScope();
   const { t } = useI18n();
-  const orgId = session?.org?.organization_id;
   const [design, setDesign] = useState(defaultDesign);
   const [provider, setProvider] = useState<WalletProvider>("google");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"logoUrl" | "heroUrl" | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["wallet-passes", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["wallet-passes", orgId, isSuperadmin],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
+      let passesQuery = supabase
+        .from("wallet_passes")
+        .select("provider, status, is_sandbox, memberships!inner(organization_id)");
+      let settingsQuery = supabase
+        .from("wallet_integration_settings")
+        .select("provider, mode, status, last_verified_at, last_error");
+      if (orgId) {
+        passesQuery = passesQuery.eq("memberships.organization_id", orgId);
+        settingsQuery = settingsQuery.eq("organization_id", orgId);
+      }
+      const organizationQuery = orgId
+        ? supabase.from("organizations").select("display_name").eq("id", orgId).single()
+        : Promise.resolve({ data: { display_name: "Todas las empresas" }, error: null });
+      const brandingQuery = orgId
+        ? supabase
+            .from("organization_branding")
+            .select(
+              "wallet_background_color, wallet_text_color, wallet_logo_url, wallet_hero_url, wallet_program_name, wallet_points_label, wallet_provider_designs, logo_url, primary_color, text_color",
+            )
+            .eq("organization_id", orgId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null });
       const [passes, organization, branding, settings] = await Promise.all([
-        supabase
-          .from("wallet_passes")
-          .select("provider, status, is_sandbox, memberships!inner(organization_id)")
-          .eq("memberships.organization_id", orgId!),
-        supabase.from("organizations").select("display_name").eq("id", orgId!).single(),
-        supabase
-          .from("organization_branding")
-          .select(
-            "wallet_background_color, wallet_text_color, wallet_logo_url, wallet_hero_url, wallet_program_name, wallet_points_label, wallet_provider_designs, logo_url, primary_color, text_color",
-          )
-          .eq("organization_id", orgId!)
-          .maybeSingle(),
-        supabase
-          .from("wallet_integration_settings")
-          .select("provider, mode, status, last_verified_at, last_error")
-          .eq("organization_id", orgId!),
+        passesQuery,
+        organizationQuery,
+        brandingQuery,
+        settingsQuery,
       ]);
       if (passes.error) throw passes.error;
       if (organization.error) throw organization.error;
@@ -256,6 +266,7 @@ function WalletPage() {
         title="Wallet"
         description={t("Consulta el uso de cada Wallet y personaliza el aspecto de las tarjetas.")}
       />
+      {isGlobal ? <AdminScopeNotice action="personalizar el Wallet de esa empresa" /> : null}
       <section className="surface p-3 sm:p-4">
         <div className="grid gap-2 sm:grid-cols-2">
           {(["google", "apple"] as const).map((walletProvider) => {
@@ -373,7 +384,10 @@ function WalletPage() {
               )}
             </p>
           </div>
-          <Button disabled={saving || uploading !== null} onClick={() => void saveDesign()}>
+          <Button
+            disabled={isGlobal || saving || uploading !== null}
+            onClick={() => void saveDesign()}
+          >
             {saving ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (

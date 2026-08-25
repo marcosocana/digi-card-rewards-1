@@ -176,15 +176,21 @@ function PerfilPage() {
           </section>
         </div>
         <aside className="h-fit space-y-5">
-          {session?.org?.role === "admin" ? (
+          {session?.org?.role === "admin" || session?.isSuperadmin ? (
             <section className="surface p-5 sm:p-6">
               <div className="flex items-center gap-3">
                 <CreditCard className="size-5 text-primary" />
                 <h2 className="font-display text-lg font-bold">Mi suscripción</h2>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Plan actual:{" "}
-                <span className="font-semibold text-foreground">{plan?.name ?? "—"}</span>
+                {session?.isSuperadmin ? (
+                  "Selecciona los locales de una empresa para gestionar su plan."
+                ) : (
+                  <>
+                    Plan actual:{" "}
+                    <span className="font-semibold text-foreground">{plan?.name ?? "—"}</span>
+                  </>
+                )}
               </p>
               <Button asChild variant="outline" className="mt-5 w-full justify-between">
                 <Link to="/panel/suscripcion">
@@ -207,7 +213,9 @@ function PerfilPage() {
                     key={location.id}
                     className="rounded-xl border bg-muted/35 px-4 py-3 text-sm font-medium"
                   >
-                    {location.name}
+                    {session?.isSuperadmin && location.organizationName
+                      ? `${location.organizationName} · ${location.name}`
+                      : location.name}
                   </div>
                 ))
               ) : (

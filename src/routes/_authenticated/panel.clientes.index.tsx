@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { dateOnly, num } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/panel/clientes/")({
@@ -16,22 +16,25 @@ export const Route = createFileRoute("/_authenticated/panel/clientes/")({
 });
 
 function ClientesPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin, selectedLocationIds } = useAdminScope();
   const [term, setTerm] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["memberships", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["memberships", orgId, isSuperadmin, [...selectedLocationIds].sort().join(",")],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("memberships")
         .select(
-          "id, public_id, cached_points_balance, status, joined_at, customers(first_name, last_name, email)",
+          "id, public_id, cached_points_balance, status, joined_at, acquisition_location_id, customers(first_name, last_name, email), organizations(display_name)",
         )
-        .eq("organization_id", orgId!)
         .order("joined_at", { ascending: false })
         .limit(500);
+      if (orgId) query = query.eq("organization_id", orgId);
+      if (selectedLocationIds.length) {
+        query = query.in("acquisition_location_id", selectedLocationIds);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -93,6 +96,9 @@ function ClientesPage() {
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {c?.email} · alta {dateOnly(m.joined_at)}
+                    {isSuperadmin
+                      ? ` · ${(m.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"}`
+                      : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Gift, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
+import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 import { EmptyState } from "@/components/app/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useSession } from "@/lib/session";
+import { useAdminScope } from "@/lib/session";
 import { num } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/panel/recompensas")({
@@ -29,29 +30,43 @@ export const Route = createFileRoute("/_authenticated/panel/recompensas")({
 });
 
 function RecompensasPage() {
-  const { data: session } = useSession();
-  const orgId = session?.org?.organization_id;
+  const { session, organizationId: orgId, isSuperadmin, isGlobal, canMutate } = useAdminScope();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", points_cost: 100 });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["rewards", orgId],
-    enabled: Boolean(orgId),
+    queryKey: ["rewards", orgId, isSuperadmin],
+    enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
-      const { data: program } = await supabase
+      let programsQuery = supabase
         .from("loyalty_programs")
-        .select("id")
-        .eq("organization_id", orgId!)
-        .limit(1)
-        .maybeSingle();
-      if (!program) return { programId: null, rewards: [] };
+        .select("id,organization_id,organizations(display_name)")
+        .order("created_at");
+      if (orgId) programsQuery = programsQuery.eq("organization_id", orgId);
+      const { data: programs, error: programsError } = await programsQuery;
+      if (programsError) throw programsError;
+      if (!programs?.length) return { programId: null, rewards: [] };
+      const programById = new Map(programs.map((program) => [program.id, program]));
       const { data: rewards, error } = await supabase
         .from("rewards")
-        .select("id, name, description, points_cost, status")
-        .eq("program_id", program.id)
+        .select("id, name, description, points_cost, status, program_id")
+        .in(
+          "program_id",
+          programs.map((program) => program.id),
+        )
         .order("points_cost");
       if (error) throw error;
-      return { programId: program.id, rewards: rewards ?? [] };
+      return {
+        programId: programs.length === 1 ? programs[0].id : null,
+        rewards: (rewards ?? []).map((reward) => ({
+          ...reward,
+          organizationName: (
+            programById.get(reward.program_id)?.organizations as {
+              display_name: string;
+            } | null
+          )?.display_name,
+        })),
+      };
     },
   });
 
@@ -98,7 +113,7 @@ function RecompensasPage() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={!canMutate}>
                 <Plus aria-hidden className="size-4" /> Nueva recompensa
               </Button>
             </DialogTrigger>
@@ -143,6 +158,8 @@ function RecompensasPage() {
         }
       />
 
+      {isGlobal ? <AdminScopeNotice action="crear una recompensa para esa empresa" /> : null}
+
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded-xl" />
       ) : data?.rewards.length ? (
@@ -157,6 +174,11 @@ function RecompensasPage() {
               </div>
               {r.description ? (
                 <p className="text-sm text-muted-foreground">{r.description}</p>
+              ) : null}
+              {isSuperadmin ? (
+                <p className="text-xs text-muted-foreground">
+                  {r.organizationName ?? "Sin empresa"}
+                </p>
               ) : null}
               <div className="mt-auto flex items-center justify-between border-t pt-3">
                 <span className="text-xs text-muted-foreground">
