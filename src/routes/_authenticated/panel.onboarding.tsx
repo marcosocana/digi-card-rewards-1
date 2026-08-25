@@ -237,55 +237,20 @@ function OnboardingPage() {
       for (let index = 0; index < persistedLocations.length && !error; index += 1) {
         const location = persistedLocations[index];
         if (!location) continue;
-        if (location.id) {
-          const response = await supabase
-            .from("locations")
-            .update({
-              name: location.name.trim(),
-              address_line: location.addressLine || null,
-              city: location.city || null,
-              postal_code: location.postalCode || null,
-            })
-            .eq("id", location.id)
-            .eq("organization_id", orgId);
-          error = response.error;
-          continue;
-        }
-
-        const response = await supabase
-          .from("locations")
-          .insert({
-            organization_id: orgId,
-            name: location.name.trim(),
-            slug: `${slugify(location.name) || "local"}-${crypto.randomUUID().slice(0, 6)}`,
-            address_line: location.addressLine || null,
-            city: location.city || null,
-            postal_code: location.postalCode || null,
-            status: "active",
-          })
-          .select("id")
-          .single();
+        const response = await supabase.rpc("save_onboarding_location", {
+          _organization_id: orgId,
+          _location_id: location.id ?? null,
+          _name: location.name.trim(),
+          _slug: location.id
+            ? slugify(location.name) || "local"
+            : `${slugify(location.name) || "local"}-${crypto.randomUUID().slice(0, 6)}`,
+          _address_line: location.addressLine,
+          _city: location.city,
+          _postal_code: location.postalCode,
+        });
         error = response.error;
         if (!response.data || error) continue;
-        persistedLocations[index] = { ...location, id: response.data.id };
-        if (ids.program) {
-          const link = await supabase
-            .from("program_locations")
-            .upsert(
-              { program_id: ids.program, location_id: response.data.id },
-              { onConflict: "program_id,location_id" },
-            );
-          error = link.error;
-        }
-        if (!error && ids.campaign) {
-          const link = await supabase
-            .from("campaign_locations")
-            .upsert(
-              { campaign_id: ids.campaign, location_id: response.data.id },
-              { onConflict: "campaign_id,location_id" },
-            );
-          error = link.error;
-        }
+        persistedLocations[index] = { ...location, id: response.data };
       }
       if (!error) {
         setLocations(persistedLocations);

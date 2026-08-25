@@ -2698,6 +2698,10 @@ export type Database = {
         Args: { _organization_id: string }
         Returns: number
       }
+      ensure_current_business_account: {
+        Args: { _business_name?: string }
+        Returns: string
+      }
       export_customer_data: { Args: { _membership_id: string }; Returns: Json }
       get_membership_portal: { Args: { _public_id: string }; Returns: Json }
       get_wallet_install_state: {
@@ -2864,6 +2868,18 @@ export type Database = {
       search_memberships: {
         Args: { _location_id: string; _query: string }
         Returns: Json
+      }
+      save_onboarding_location: {
+        Args: {
+          _address_line: string
+          _city: string
+          _location_id: string | null
+          _name: string
+          _organization_id: string
+          _postal_code: string
+          _slug: string
+        }
+        Returns: string
       }
       segment_matches: {
         Args: { _definition: Json; _membership_id: string }

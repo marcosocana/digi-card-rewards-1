@@ -31,6 +31,10 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
   const user = userData.user;
   if (!user) return null;
 
+  // Repairs legacy accounts and OAuth users that were created before the
+  // business provisioning trigger existed. The RPC is idempotent.
+  await supabase.rpc("ensure_current_business_account", {});
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, platform_role")

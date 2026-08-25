@@ -32,28 +32,12 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const demoUsers = [
-  {
-    email: "super@cafenorte.es",
-    password: "super@cafenorte.es",
-    role: "Superadministrador",
-  },
-  {
-    email: "admin@cafenorte.es",
-    password: "admin@cafenorte.es",
-    role: "Administrador de Café Norte",
-  },
-  {
-    email: "malasana@cafenorte.es",
-    password: "malasana@cafenorte.es",
-    role: "Responsable de Malasaña",
-  },
-  {
-    email: "empleado@cafenorte.es",
-    password: "empleado@cafenorte.es",
-    role: "Empleado de Malasaña",
-  },
-];
+const ensureBusinessAccount = async (name?: string) => {
+  const { error } = await supabase.rpc("ensure_current_business_account", {
+    _business_name: name?.trim() || undefined,
+  });
+  if (error) throw error;
+};
 
 function AuthPage() {
   const search = Route.useSearch();
@@ -89,6 +73,15 @@ function AuthPage() {
 
       const intent = window.localStorage.getItem("fideleo:google-oauth-intent");
       window.localStorage.removeItem("fideleo:google-oauth-intent");
+      try {
+        await ensureBusinessAccount();
+      } catch (accountError) {
+        welcomeHandled.current = false;
+        toast.error("No hemos podido preparar tu cuenta", {
+          description: accountError instanceof Error ? accountError.message : "Inténtalo de nuevo",
+        });
+        return;
+      }
       if (intent === "signup") {
         try {
           await sendTransactionalEmail({ kind: "account_welcome" });
@@ -116,6 +109,15 @@ function AuthPage() {
       if (!data.session || cancelled || welcomeHandled.current) return;
       welcomeHandled.current = true;
       try {
+        await ensureBusinessAccount(businessName);
+      } catch (accountError) {
+        welcomeHandled.current = false;
+        toast.error("No hemos podido preparar tu cuenta", {
+          description: accountError instanceof Error ? accountError.message : "Inténtalo de nuevo",
+        });
+        return;
+      }
+      try {
         await sendTransactionalEmail({ kind: "account_welcome" });
       } catch (emailError) {
         console.error("No se pudo enviar el email de bienvenida", emailError);
@@ -132,7 +134,7 @@ function AuthPage() {
       cancelled = true;
       listener.subscription.unsubscribe();
     };
-  }, [destination, search.confirmed]);
+  }, [businessName, destination, search.confirmed]);
 
   const signInWithCredentials = async (loginEmail: string, loginPassword: string) => {
     setLoading(true);
@@ -140,11 +142,21 @@ function AuthPage() {
       email: loginEmail.trim(),
       password: loginPassword,
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error("No hemos podido iniciar sesión", { description: error.message });
       return;
     }
+    try {
+      await ensureBusinessAccount();
+    } catch (accountError) {
+      setLoading(false);
+      toast.error("No hemos podido preparar tu cuenta", {
+        description: accountError instanceof Error ? accountError.message : "Inténtalo de nuevo",
+      });
+      return;
+    }
+    setLoading(false);
     window.location.assign(destination);
   };
 
@@ -473,31 +485,6 @@ function AuthPage() {
           )}
         </div>
 
-        <div className="surface mt-4 p-5">
-          <h2 className="text-sm font-semibold">Cuentas demo preparadas</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Pulsa una cuenta para entrar directamente. La contraseña es el mismo email.
-          </p>
-          <ul className="mt-3 space-y-1.5 text-xs">
-            {demoUsers.map((u) => (
-              <li key={u.email} className="flex justify-between gap-3">
-                <button
-                  type="button"
-                  disabled={loading}
-                  className="font-medium underline-offset-2 hover:underline"
-                  onClick={() => {
-                    setEmail(u.email);
-                    setPassword(u.password);
-                    void signInWithCredentials(u.email, u.password);
-                  }}
-                >
-                  {u.email}
-                </button>
-                <span className="text-muted-foreground">{u.role}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </main>
   );
