@@ -15,6 +15,7 @@ import {
   Users,
   Store,
   WalletCards,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -125,15 +126,33 @@ const testimonials = [
   },
 ];
 
-function BrandMark({ onDark = false }: { onDark?: boolean }) {
+function BrandMark({
+  onDark = false,
+  compactOnMobile = false,
+}: {
+  onDark?: boolean;
+  compactOnMobile?: boolean;
+}) {
   return (
-    <img
-      src="/logo.svg"
-      alt="Fideleo"
-      width={210}
-      height={47}
-      className={cn("h-8 w-auto", onDark && "invert")}
-    />
+    <>
+      {compactOnMobile ? (
+        <img
+          src="/isotipo.svg"
+          alt=""
+          width={121}
+          height={121}
+          className="size-10 lg:hidden"
+          aria-hidden="true"
+        />
+      ) : null}
+      <img
+        src="/logo.svg"
+        alt="Fideleo"
+        width={210}
+        height={47}
+        className={cn("h-8 w-auto", compactOnMobile && "hidden lg:block", onDark && "invert")}
+      />
+    </>
   );
 }
 
@@ -164,7 +183,7 @@ function HomePage() {
           )}
         >
           <Link to="/" aria-label="Fideleo, inicio">
-            <BrandMark />
+            <BrandMark compactOnMobile />
           </Link>
           <nav
             className="hidden items-center gap-8 text-sm font-medium lg:flex"
@@ -183,7 +202,7 @@ function HomePage() {
               Preguntas
             </a>
           </nav>
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="hidden items-center gap-3 lg:flex">
             <Button asChild variant="ghost">
               <Link to="/auth">Iniciar sesión</Link>
             </Button>
@@ -192,19 +211,19 @@ function HomePage() {
             </Button>
           </div>
           <Button
-            className="sm:hidden"
+            className="lg:hidden"
             variant="ghost"
             size="icon"
             aria-label={mobileMenu ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={mobileMenu}
             onClick={() => setMobileMenu((current) => !current)}
           >
-            <Menu />
+            {mobileMenu ? <X /> : <Menu />}
           </Button>
         </div>
         {mobileMenu ? (
           <nav
-            className="mx-4 rounded-2xl border border-black/10 bg-white p-3 shadow-xl sm:hidden"
+            className="mx-4 rounded-2xl border border-black/10 bg-white p-3 shadow-xl lg:hidden"
             aria-label="Navegación móvil"
           >
             {[
@@ -222,8 +241,15 @@ function HomePage() {
                 {label}
               </a>
             ))}
+            <Button asChild variant="ghost" className="mt-2 w-full rounded-xl">
+              <Link to="/auth" onClick={() => setMobileMenu(false)}>
+                Iniciar sesión
+              </Link>
+            </Button>
             <Button asChild className="mt-2 w-full rounded-xl bg-black text-white">
-              <Link to="/solicitar-demo">Solicitar demo</Link>
+              <Link to="/solicitar-demo" onClick={() => setMobileMenu(false)}>
+                Solicitar demo
+              </Link>
             </Button>
           </nav>
         ) : null}
