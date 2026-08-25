@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, MailCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -39,6 +39,16 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [code, setCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(
+      () => setResendCooldown((current) => Math.max(0, current - 1)),
+      1_000,
+    );
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   const sendVerification = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -52,6 +62,7 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
     if (error)
       return toast.error("No hemos podido enviar el email", { description: error.message });
     setVerificationSent(true);
+    setResendCooldown(60);
     toast.success("Revisa tu email", {
       description: "Te hemos enviado un código de verificación.",
     });
@@ -69,6 +80,7 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
       return;
     }
     setCode("");
+    setResendCooldown(60);
     toast.success("Código reenviado", {
       description: "Revisa también las carpetas de spam y promociones.",
     });
@@ -160,10 +172,10 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
           <button
             type="button"
             className="underline underline-offset-4"
-            disabled={loading}
+            disabled={loading || resendCooldown > 0}
             onClick={() => void resendVerification()}
           >
-            Reenviar código
+            {resendCooldown > 0 ? `Reenviar código (${resendCooldown}s)` : "Reenviar código"}
           </button>
           <button
             type="button"
