@@ -7,7 +7,6 @@ import {
   Check,
   CircleDollarSign,
   Gift,
-  Menu,
   QrCode,
   ScanLine,
   Sparkles,
@@ -15,7 +14,6 @@ import {
   Users,
   Store,
   WalletCards,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -157,7 +155,6 @@ function BrandMark({
 }
 
 function HomePage() {
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -178,7 +175,7 @@ function HomePage() {
       >
         <div
           className={cn(
-            "mx-auto flex max-w-[1440px] items-center justify-between px-5 transition-all duration-300 lg:px-10",
+            "mx-auto flex max-w-[1440px] items-center justify-between px-3 transition-all duration-300 sm:px-5 lg:px-10",
             scrolled ? "py-3" : "py-5",
           )}
         >
@@ -202,57 +199,22 @@ function HomePage() {
               Preguntas
             </a>
           </nav>
-          <div className="hidden items-center gap-3 lg:flex">
-            <Button asChild variant="ghost">
+          <div className="flex items-center gap-1 sm:gap-3">
+            <Button
+              asChild
+              variant="ghost"
+              className="h-9 whitespace-nowrap px-2 text-[11px] sm:px-4 sm:text-sm"
+            >
               <Link to="/auth">Iniciar sesión</Link>
             </Button>
-            <Button asChild className="rounded-full bg-black px-6 text-white hover:bg-black/75">
+            <Button
+              asChild
+              className="h-9 whitespace-nowrap rounded-full bg-black px-3 text-[11px] text-white hover:bg-black/75 sm:px-6 sm:text-sm"
+            >
               <Link to="/solicitar-demo">Solicitar demo</Link>
             </Button>
           </div>
-          <Button
-            className="lg:hidden"
-            variant="ghost"
-            size="icon"
-            aria-label={mobileMenu ? "Cerrar menú" : "Abrir menú"}
-            aria-expanded={mobileMenu}
-            onClick={() => setMobileMenu((current) => !current)}
-          >
-            {mobileMenu ? <X /> : <Menu />}
-          </Button>
         </div>
-        {mobileMenu ? (
-          <nav
-            className="mx-4 rounded-2xl border border-black/10 bg-white p-3 shadow-xl lg:hidden"
-            aria-label="Navegación móvil"
-          >
-            {[
-              ["#como-funciona", "Cómo funciona"],
-              ["#precios", "Precios"],
-              ["#negocios", "Para tu negocio"],
-              ["#preguntas", "Preguntas"],
-            ].map(([href, label]) => (
-              <a
-                key={href}
-                href={href}
-                onClick={() => setMobileMenu(false)}
-                className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-black/5"
-              >
-                {label}
-              </a>
-            ))}
-            <Button asChild variant="ghost" className="mt-2 w-full rounded-xl">
-              <Link to="/auth" onClick={() => setMobileMenu(false)}>
-                Iniciar sesión
-              </Link>
-            </Button>
-            <Button asChild className="mt-2 w-full rounded-xl bg-black text-white">
-              <Link to="/solicitar-demo" onClick={() => setMobileMenu(false)}>
-                Solicitar demo
-              </Link>
-            </Button>
-          </nav>
-        ) : null}
       </header>
 
       <section className="relative bg-[#f8b9e7] px-5 pb-16 pt-32 sm:pt-40 lg:px-10 lg:pb-24">
