@@ -32,6 +32,29 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const demoUsers = [
+  {
+    email: "super@cafenorte.es",
+    password: "super@cafenorte.es",
+    role: "Superadministrador",
+  },
+  {
+    email: "admin@cafenorte.es",
+    password: "admin@cafenorte.es",
+    role: "Administrador de Café Norte",
+  },
+  {
+    email: "malasana@cafenorte.es",
+    password: "malasana@cafenorte.es",
+    role: "Responsable de Malasaña",
+  },
+  {
+    email: "empleado@cafenorte.es",
+    password: "empleado@cafenorte.es",
+    role: "Empleado de Malasaña",
+  },
+];
+
 const ensureBusinessAccount = async (name?: string) => {
   const { error } = await supabase.rpc("ensure_current_business_account", {
     _business_name: name?.trim() || undefined,
@@ -483,6 +506,32 @@ function AuthPage() {
               </TabsContent>
             </Tabs>
           )}
+        </div>
+
+        <div className="surface mt-4 p-5">
+          <h2 className="text-sm font-semibold">Cuentas demo preparadas</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Pulsa una cuenta para entrar directamente. La contraseña es el mismo email.
+          </p>
+          <ul className="mt-3 space-y-1.5 text-xs">
+            {demoUsers.map((user) => (
+              <li key={user.email} className="flex justify-between gap-3">
+                <button
+                  type="button"
+                  disabled={loading}
+                  className="font-medium underline-offset-2 hover:underline"
+                  onClick={() => {
+                    setEmail(user.email);
+                    setPassword(user.password);
+                    void signInWithCredentials(user.email, user.password);
+                  }}
+                >
+                  {user.email}
+                </button>
+                <span className="text-muted-foreground">{user.role}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </main>
