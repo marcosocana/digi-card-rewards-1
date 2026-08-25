@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSubscriptionPlan } from "@/lib/subscription-plans";
+import { getCaptureUrl } from "@/lib/public-url";
 import {
   Select,
   SelectContent,
@@ -166,8 +167,8 @@ function OnboardingPage() {
   }, [orgId]);
 
   useEffect(() => {
-    if (!ids.slug || typeof window === "undefined") return;
-    void qrPngDataUrl(`${window.location.origin}/club/${ids.slug}`).then(setQr);
+    if (!ids.slug) return;
+    void qrPngDataUrl(getCaptureUrl(ids.slug)).then(setQr);
   }, [ids.slug]);
 
   const upload = async (file: File, kind: "logo" | "cover") => {
@@ -327,10 +328,7 @@ function OnboardingPage() {
 
   if (loading) return <Skeleton className="h-[32rem] rounded-xl" />;
   const set = (key: keyof typeof form, value: string) => setForm({ ...form, [key]: value });
-  const publicUrl =
-    typeof window === "undefined"
-      ? `/club/${ids.slug}`
-      : `${window.location.origin}/club/${ids.slug}`;
+  const publicUrl = getCaptureUrl(ids.slug);
 
   return (
     <>

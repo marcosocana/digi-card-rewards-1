@@ -39,6 +39,15 @@ export function PublicClubExperience({
           .eq("status", "active")
           .maybeSingle();
         location = data ?? null;
+        if (!location) return null;
+
+        const { data: assignment } = await supabase
+          .from("program_locations")
+          .select("location_id")
+          .eq("program_id", program.id)
+          .eq("location_id", location.id)
+          .maybeSingle();
+        if (!assignment) return null;
       }
       return {
         organization,

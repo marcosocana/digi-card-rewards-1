@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download } from "lucide-react";
+import { Copy, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminScope } from "@/lib/session";
 import { downloadDataUrl, qrPngDataUrl } from "@/lib/qr";
+import { getCaptureUrl } from "@/lib/public-url";
 
 export const Route = createFileRoute("/_authenticated/panel/captacion")({
   component: CaptacionPage,
@@ -16,10 +17,7 @@ export const Route = createFileRoute("/_authenticated/panel/captacion")({
 
 function CaptacionPage() {
   const { session, organizationId: orgId, isSuperadmin, selectedLocationIds } = useAdminScope();
-  const [origin, setOrigin] = useState("");
   const [codes, setCodes] = useState<Record<string, string>>({});
-
-  useEffect(() => setOrigin(window.location.origin), []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["capture-locations", orgId, isSuperadmin, [...selectedLocationIds].sort().join(",")],
@@ -27,8 +25,12 @@ function CaptacionPage() {
     queryFn: async () => {
       let query = supabase
         .from("locations")
-        .select("id, name, slug, organizations(slug,display_name)")
+        .select(
+          "id, name, slug, organizations!inner(slug,display_name,status), program_locations!inner(loyalty_programs!inner(id,status))",
+        )
         .eq("status", "active")
+        .eq("organizations.status", "active")
+        .eq("program_locations.loyalty_programs.status", "active")
         .order("name");
       if (orgId) query = query.eq("organization_id", orgId);
       if (selectedLocationIds.length) query = query.in("id", selectedLocationIds);
@@ -39,7 +41,7 @@ function CaptacionPage() {
   });
 
   useEffect(() => {
-    if (!data || !origin) return;
+    if (!data) return;
     void (async () => {
       const entries = await Promise.all(
         data.locations.map(
@@ -47,14 +49,14 @@ function CaptacionPage() {
             [
               l.id,
               await qrPngDataUrl(
-                `${origin}/unirme/${(l.organizations as { slug: string } | null)?.slug ?? ""}/${l.slug}`,
+                getCaptureUrl((l.organizations as { slug: string } | null)?.slug ?? "", l.slug),
               ),
             ] as const,
         ),
       );
       setCodes(Object.fromEntries(entries));
     })();
-  }, [data, origin]);
+  }, [data]);
 
   return (
     <>
@@ -71,7 +73,7 @@ function CaptacionPage() {
               slug: string;
               display_name: string;
             } | null;
-            const url = `${origin}/unirme/${organization?.slug ?? ""}/${l.slug}`;
+            const url = getCaptureUrl(organization?.slug ?? "", l.slug);
             return (
               <div key={l.id} className="surface flex flex-col items-center gap-3 p-5 text-center">
                 <h2 className="font-display text-lg font-semibold">
@@ -87,8 +89,20 @@ function CaptacionPage() {
                 ) : (
                   <Skeleton className="size-44 rounded-lg" />
                 )}
-                <p className="break-all text-xs text-muted-foreground">{url}</p>
-                <div className="flex gap-2">
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all text-xs text-muted-foreground underline underline-offset-2"
+                >
+                  {url}
+                </a>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <a href={url} target="_blank" rel="noreferrer">
+                      <ExternalLink aria-hidden className="size-4" /> Abrir
+                    </a>
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
