@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Gift, Plus, TicketPercent } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +31,9 @@ import { PageSkeleton } from "@/components/app/brand-loader";
 import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 
 export const Route = createFileRoute("/_authenticated/panel/beneficios")({
+  beforeLoad: () => {
+    throw redirect({ to: "/panel" });
+  },
   component: BeneficiosPage,
 });
 
