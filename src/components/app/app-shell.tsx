@@ -42,8 +42,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -55,7 +58,12 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useI18n, type Language } from "@/lib/i18n";
-import { setSelectedLocationIds, useSession, type OrgRole } from "@/lib/session";
+import {
+  setSelectedLocationIds,
+  useSession,
+  type OrgRole,
+  type SessionLocation,
+} from "@/lib/session";
 
 interface NavItem {
   to: string;
@@ -189,6 +197,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [selectedLocationScope, setSelectedLocationScope] = useState("all");
   const initializedLocations = useRef<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const { language, setLanguage, t } = useI18n();
@@ -207,6 +216,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     initializedLocations.current = locationKey;
     const initialSelection = session.locations.length === 1 ? [session.locations[0].id] : [];
     setSelectedLocations(initialSelection);
+    setSelectedLocationScope(
+      initialSelection.length === 1 ? `location:${initialSelection[0]}` : "all",
+    );
     setSelectedLocationIds(initialSelection);
   }, [session]);
 
@@ -216,6 +228,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const valid = selectedLocations.filter((id) => allowed.has(id));
     if (valid.length !== selectedLocations.length) {
       setSelectedLocations(valid);
+      setSelectedLocationScope(valid.length === 1 ? `location:${valid[0]}` : "all");
       setSelectedLocationIds(valid);
     }
   }, [selectedLocations, session?.locations]);
@@ -224,29 +237,45 @@ export function AppShell({ children }: { children: ReactNode }) {
   const items = nav.filter((i) => i.roles.includes(role));
   const roleName = t(session?.isSuperadmin ? "Superadmin" : role);
 
-  const updateLocations = (ids: string[]) => {
+  const updateLocations = (scope: string, ids: string[]) => {
+    setSelectedLocationScope(scope);
     setSelectedLocations(ids);
     setSelectedLocationIds(ids);
   };
 
-  const toggleLocation = (id: string) => {
-    updateLocations(
-      selectedLocations.includes(id)
-        ? selectedLocations.filter((locationId) => locationId !== id)
-        : [...selectedLocations, id],
-    );
-  };
+  const organizationGroups = Array.from(
+    (session?.locations ?? []).reduce((groups, location) => {
+      if (!location.organizationId) return groups;
+      const current = groups.get(location.organizationId) ?? {
+        id: location.organizationId,
+        name: location.organizationName ?? "Club sin nombre",
+        locations: [],
+      };
+      current.locations.push(location);
+      groups.set(location.organizationId, current);
+      return groups;
+    }, new Map<string, { id: string; name: string; locations: SessionLocation[] }>()),
+  )
+    .map(([, group]) => group)
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
-  const selectedLocationLabel = !selectedLocations.length
-    ? t("Todos los locales")
-    : selectedLocations.length === 1
-      ? (() => {
-          const location = session?.locations.find(
-            (location) => location.id === selectedLocations[0],
-          );
-          return location ? formatLocationLabel(location, session?.isSuperadmin) : t("1 local");
-        })()
-      : t("{count} locales", { count: selectedLocations.length });
+  const selectedOrganization = selectedLocationScope.startsWith("organization:")
+    ? organizationGroups.find(
+        (group) => group.id === selectedLocationScope.replace("organization:", ""),
+      )
+    : null;
+  const selectedLocationLabel = selectedOrganization
+    ? `Club · ${selectedOrganization.name}`
+    : !selectedLocations.length
+      ? t("Todos los locales")
+      : selectedLocations.length === 1
+        ? (() => {
+            const location = session?.locations.find(
+              (location) => location.id === selectedLocations[0],
+            );
+            return location ? formatLocationLabel(location, session?.isSuperadmin) : t("1 local");
+          })()
+        : t("{count} locales", { count: selectedLocations.length });
 
   const toggleSidebar = () => {
     const next = !collapsed;
@@ -327,23 +356,53 @@ export function AppShell({ children }: { children: ReactNode }) {
               align="start"
               className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto"
             >
-              <DropdownMenuCheckboxItem
-                checked={!selectedLocations.length}
-                onSelect={(event) => event.preventDefault()}
-                onCheckedChange={() => updateLocations([])}
+              <DropdownMenuRadioGroup
+                value={selectedLocationScope}
+                onValueChange={(scope) => {
+                  if (scope === "all") return updateLocations("all", []);
+                  if (scope.startsWith("organization:")) {
+                    const organizationId = scope.replace("organization:", "");
+                    const group = organizationGroups.find((item) => item.id === organizationId);
+                    return updateLocations(
+                      scope,
+                      group?.locations.map((location) => location.id) ?? [],
+                    );
+                  }
+                  updateLocations(scope, [scope.replace("location:", "")]);
+                }}
               >
-                {t("Todos los locales")}
-              </DropdownMenuCheckboxItem>
-              {session.locations.map((location) => (
-                <DropdownMenuCheckboxItem
-                  key={location.id}
-                  checked={selectedLocations.includes(location.id)}
-                  onSelect={(event) => event.preventDefault()}
-                  onCheckedChange={() => toggleLocation(location.id)}
-                >
-                  {formatLocationLabel(location, session.isSuperadmin)}
-                </DropdownMenuCheckboxItem>
-              ))}
+                <DropdownMenuRadioItem value="all">{t("Todos los locales")}</DropdownMenuRadioItem>
+                {session.isSuperadmin
+                  ? organizationGroups.map((group) => (
+                      <div key={group.id}>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioItem
+                          value={`organization:${group.id}`}
+                          className="font-semibold"
+                        >
+                          <Building2 className="size-4" />
+                          Club · {group.name}
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuLabel className="pb-1 pl-8 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Establecimientos
+                        </DropdownMenuLabel>
+                        {group.locations.map((location) => (
+                          <DropdownMenuRadioItem
+                            key={location.id}
+                            value={`location:${location.id}`}
+                            className="pl-11"
+                          >
+                            {location.name}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </div>
+                    ))
+                  : session.locations.map((location) => (
+                      <DropdownMenuRadioItem key={location.id} value={`location:${location.id}`}>
+                        {location.name}
+                      </DropdownMenuRadioItem>
+                    ))}
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : session?.locations.length === 1 ? (
