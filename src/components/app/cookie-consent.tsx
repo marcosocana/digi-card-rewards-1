@@ -86,39 +86,50 @@ export function CookieConsent() {
       {bannerOpen ? (
         <aside
           aria-label="Consentimiento de cookies"
-          className="fixed inset-x-3 bottom-3 z-[80] mx-auto max-w-5xl rounded-[1.6rem] border border-black/15 bg-white p-5 text-black shadow-2xl sm:bottom-5 sm:p-6"
+          className="fixed inset-x-3 bottom-3 z-[80] mx-auto max-w-3xl rounded-2xl border border-black/15 bg-white p-3 text-black shadow-xl sm:p-4"
         >
-          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div className="max-w-3xl">
-              <span className="grid size-10 place-items-center rounded-full bg-[#ffe65c]">
-                <Cookie className="size-5" />
-              </span>
-              <h2 className="mt-3 text-xl font-semibold">Tu privacidad, bajo tu control</h2>
-              <p className="mt-2 text-sm leading-relaxed text-black/65">
-                Usamos almacenamiento necesario para que Fideleo funcione. Solo activaremos
-                analítica, personalización o marketing si nos das permiso. Puedes cambiar tu
-                elección en cualquier momento desde el pie de página.
+          <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#ffe65c]">
+                  <Cookie className="size-4" />
+                </span>
+                <h2 className="text-sm font-semibold">Tu privacidad, bajo tu control</h2>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-black/60">
+                Usamos cookies necesarias. Las opcionales solo se activan con tu permiso.{" "}
               </p>
               <Link
                 to="/legal/$document"
                 params={{ document: "cookies" }}
-                className="mt-2 inline-block text-sm font-semibold underline underline-offset-4"
+                className="mt-1 inline-block text-xs font-semibold underline underline-offset-4"
               >
                 Ver política de cookies
               </Link>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[29rem]">
-              <Button variant="outline" onClick={() => save(optionalDisabled)}>
-                Rechazar opcionales
-              </Button>
-              <Button variant="outline" onClick={() => setSettingsOpen(true)}>
-                <Settings2 className="size-4" /> Configurar
+            <div className="flex flex-wrap gap-1.5 md:max-w-[19rem] md:justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-3 text-xs"
+                onClick={() => save(optionalDisabled)}
+              >
+                Rechazar
               </Button>
               <Button
-                className="bg-black text-white hover:bg-black/75"
+                size="sm"
+                variant="outline"
+                className="h-8 px-3 text-xs"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings2 className="size-3.5" /> Configurar
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 bg-black px-3 text-xs text-white hover:bg-black/75"
                 onClick={() => save({ analytics: true, preferences: true, marketing: true })}
               >
-                Aceptar todas
+                Aceptar
               </Button>
             </div>
           </div>
