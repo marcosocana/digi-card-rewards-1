@@ -57,7 +57,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n, type Language } from "@/lib/i18n";
 import { setSelectedLocationIds, useSession, type OrgRole } from "@/lib/session";
-import { WhatsAppFloating } from "@/components/app/whatsapp-floating";
 
 interface NavItem {
   to: string;
@@ -451,28 +450,71 @@ export function AppShell({ children }: { children: ReactNode }) {
         collapsed ? "lg:grid-cols-[4.75rem_1fr]" : "lg:grid-cols-[15rem_1fr]",
       )}
     >
-      <WhatsAppFloating message="Hola, necesito ayuda con mi cuenta de Fideleo." />
       <aside className="hidden lg:block lg:h-screen lg:sticky lg:top-0">{sidebar}</aside>
 
-      <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b bg-card px-4 py-3">
-        <button onClick={() => setOpen(true)} aria-label={t("Abrir menú")}>
-          <Menu className="size-5" />
-        </button>
-        <Link to="/panel" onClick={() => setOpen(false)} aria-label="Fideleo">
-          <img
-            src="/logo.svg"
-            alt="Fideleo"
-            className="h-4 w-auto max-w-20 object-contain dark:hidden"
-          />
-          <img
-            src="/logo-dark.svg"
-            alt="Fideleo"
-            className="hidden h-4 w-auto max-w-20 object-contain dark:block"
-          />
-        </Link>
-        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={t("Cambiar tema")}>
-          {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
+      <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b bg-card px-3 py-2.5">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setOpen(true)} aria-label={t("Abrir menú")}>
+            <Menu className="size-5" />
+          </button>
+          <Link to="/panel" onClick={() => setOpen(false)} aria-label="Fideleo">
+            <img src="/isotipo.svg" alt="Fideleo" width={121} height={121} className="size-9" />
+          </Link>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={t("Cambiar tema")}>
+            {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label={t("Ayuda")}>
+                <CircleHelp className="size-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("¿Necesitas ayuda?")}</DialogTitle>
+                <DialogDescription>
+                  {t("Ponte en contacto con el equipo de Fideleo y te ayudaremos con tu cuenta.")}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button asChild variant="outline" className="h-auto justify-start py-4">
+                  <a href="mailto:fideleo.app@gmail.com">
+                    <span className="text-left">
+                      <span className="block text-xs text-muted-foreground">Email</span>
+                      <span className="block">fideleo.app@gmail.com</span>
+                    </span>
+                  </a>
+                </Button>
+                <Button asChild variant="outline" className="h-auto justify-start py-4">
+                  <a href="https://wa.me/34695834018" target="_blank" rel="noopener noreferrer">
+                    <span className="text-left">
+                      <span className="block text-xs text-muted-foreground">WhatsApp</span>
+                      <span className="block">695 83 40 18</span>
+                    </span>
+                  </a>
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+            <SelectTrigger
+              className="size-9 justify-center border-0 px-0 shadow-none [&>svg:last-child]:hidden"
+              aria-label={t("Seleccionar idioma")}
+              title={t("Seleccionar idioma")}
+            >
+              <Languages className="size-4" />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="es">Español</SelectItem>
+              <SelectItem value="ca">Català</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden">
