@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/_authenticated/panel/onboarding")({
+export const Route = createFileRoute("/_authenticated/_onboarding/panel/onboarding")({
   component: OnboardingPage,
 });
 
