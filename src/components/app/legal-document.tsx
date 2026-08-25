@@ -39,7 +39,7 @@ export function LegalDocumentLayout({
       <article className="mx-auto max-w-3xl rounded-[2rem] bg-white p-6 shadow-sm sm:p-10">
         <div className="flex items-center justify-between gap-4 border-b pb-6">
           <Link to={backTo} className="flex items-center gap-2" aria-label="Volver">
-            <img src="/isotipo.svg" alt="" className="size-8" />
+            <img src="/isotipo.svg" alt={`Isotipo de ${entity.name}`} className="size-8" />
             <span className="text-sm font-semibold">{entity.name}</span>
           </Link>
           <span className="text-xs text-black/45">Actualizado: 24/08/2026</span>

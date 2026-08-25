@@ -29,6 +29,7 @@ export const Route = createFileRoute("/solicitar-demo")({
           "Cuéntanos sobre tu negocio y descubre cómo Fideleo puede ayudarte a fidelizar clientes.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://www.fideleo.store/solicitar-demo" }],
   }),
   component: DemoPage,
 });

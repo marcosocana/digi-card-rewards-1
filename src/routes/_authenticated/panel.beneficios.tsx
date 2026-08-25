@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { PageSkeleton } from "@/components/app/brand-loader";
 
 export const Route = createFileRoute("/_authenticated/panel/beneficios")({
   component: BeneficiosPage,
@@ -46,7 +47,7 @@ function BeneficiosPage() {
     maximum: "",
   });
   const [gift, setGift] = useState({ amount: "25", recipient_name: "", recipient_email: "" });
-  const { data, refetch } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["benefits", orgId],
     enabled: Boolean(orgId),
     queryFn: async () => {
@@ -110,6 +111,7 @@ function BeneficiosPage() {
     toast.success("Tarjeta regalo emitida");
     void refetch();
   };
+  if (isLoading) return <PageSkeleton variant="cards" />;
   return (
     <>
       <PageHeader

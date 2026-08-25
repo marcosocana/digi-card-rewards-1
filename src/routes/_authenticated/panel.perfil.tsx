@@ -12,6 +12,7 @@ import { useSession, sessionQueryKey } from "@/lib/session";
 import { roleLabel } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTransactionalEmail } from "@/lib/transactional-email";
+import { PageSkeleton } from "@/components/app/brand-loader";
 
 export const Route = createFileRoute("/_authenticated/panel/perfil")({ component: PerfilPage });
 
@@ -22,7 +23,7 @@ function PerfilPage() {
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ["my-profile", session?.userId],
     enabled: Boolean(session?.userId),
     queryFn: async () => {
@@ -87,6 +88,8 @@ function PerfilPage() {
       toast.success("Contraseña actualizada");
     }
   };
+
+  if (isLoading) return <PageSkeleton variant="form" />;
 
   return (
     <>

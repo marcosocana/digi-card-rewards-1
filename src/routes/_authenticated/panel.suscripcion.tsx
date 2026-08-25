@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { getHigherSubscriptionPlans, getSubscriptionPlan } from "@/lib/subscription-plans";
+import { PageSkeleton } from "@/components/app/brand-loader";
 
 export const Route = createFileRoute("/_authenticated/panel/suscripcion")({
   component: SubscriptionPage,
@@ -23,7 +24,7 @@ function SubscriptionPage() {
   const plan = getSubscriptionPlan(session?.planCode);
   const canUpgrade = getHigherSubscriptionPlans(session?.planCode).length > 0;
 
-  const { data: subscription } = useQuery({
+  const { data: subscription, isLoading } = useQuery({
     queryKey: ["subscription-detail", session?.org?.organization_id],
     enabled: Boolean(session?.org?.organization_id),
     queryFn: async () => {
@@ -57,6 +58,8 @@ function SubscriptionPage() {
         new Date(subscription.subscription_current_period_end),
       )
     : null;
+
+  if (isLoading) return <PageSkeleton variant="detail" />;
 
   return (
     <>

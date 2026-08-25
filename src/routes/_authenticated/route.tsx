@@ -3,6 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Área privada — Fideleo" },
+      {
+        name: "description",
+        content: "Área privada para gestionar programas de fidelización en Fideleo.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {

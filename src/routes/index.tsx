@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { subscriptionPlans } from "@/lib/subscription-plans";
 import { CookieConsent, openCookieSettingsEvent } from "@/components/app/cookie-consent";
+import { WhatsAppFloating } from "@/components/app/whatsapp-floating";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/")({
         content: "La plataforma de fidelización digital para captar, conocer y recuperar clientes.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://www.fideleo.store/" }],
   }),
   component: HomePage,
 });
@@ -148,6 +150,7 @@ function HomePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-white text-[#111111]">
+      <WhatsAppFloating message="Hola, quiero saber cómo puede ayudar Fideleo a fidelizar los clientes de mi negocio." />
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-50 transition-all duration-300",
@@ -428,7 +431,7 @@ function HomePage() {
             >
               <img
                 src={testimonial.image}
-                alt={testimonial.name}
+                alt={`${testimonial.name}, responsable de ${testimonial.business}`}
                 loading="lazy"
                 className="h-64 w-full object-cover sm:h-full"
               />
@@ -555,6 +558,9 @@ function HomePage() {
               </li>
               <li>
                 <Link to="/auth">Acceso</Link>
+              </li>
+              <li>
+                <Link to="/solicitar-demo">Solicitar una demo</Link>
               </li>
             </ul>
           </div>

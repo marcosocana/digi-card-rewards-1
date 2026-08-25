@@ -140,6 +140,8 @@ function PortalPage() {
               alt="Código QR de tu tarjeta"
               className="mx-auto mt-5 size-44 rounded-lg bg-white p-2"
             />
+          ) : data.short_code ? (
+            <Skeleton className="mx-auto mt-5 size-44 rounded-lg" />
           ) : null}
           {data.short_code ? (
             <p className="mt-2 font-mono text-sm tracking-[0.3em]">{data.short_code}</p>

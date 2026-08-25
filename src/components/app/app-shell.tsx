@@ -57,6 +57,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n, type Language } from "@/lib/i18n";
 import { setSelectedLocationIds, useSession, type OrgRole } from "@/lib/session";
+import { WhatsAppFloating } from "@/components/app/whatsapp-floating";
 
 interface NavItem {
   to: string;
@@ -450,6 +451,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         collapsed ? "lg:grid-cols-[4.75rem_1fr]" : "lg:grid-cols-[15rem_1fr]",
       )}
     >
+      <WhatsAppFloating message="Hola, necesito ayuda con mi cuenta de Fideleo." />
       <aside className="hidden lg:block lg:h-screen lg:sticky lg:top-0">{sidebar}</aside>
 
       <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b bg-card px-4 py-3">

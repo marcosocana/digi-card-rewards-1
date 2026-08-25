@@ -16,23 +16,45 @@ import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#fff8fc] px-5 py-12 text-[#111]">
+      <div className="absolute -left-24 top-16 size-72 rounded-full bg-[#dff7ff] blur-2xl" />
+      <div className="absolute -right-20 bottom-10 size-80 rounded-full bg-[#f8b9e7]/65 blur-2xl" />
+      <section className="relative w-full max-w-2xl rounded-[2.25rem] border border-black/10 bg-white p-8 text-center shadow-[0_24px_80px_-35px_rgba(0,0,0,.28)] sm:p-12">
+        <Link to="/" aria-label="Fideleo, volver al inicio" className="inline-flex">
+          <img src="/logo.svg" alt="Fideleo" width={210} height={47} className="h-8 w-auto" />
+        </Link>
+        <p className="mt-10 text-sm font-extrabold uppercase tracking-[.24em] text-primary">
+          Error 404
         </p>
-        <div className="mt-6">
+        <h1 className="mt-3 text-4xl font-semibold tracking-[-.05em] sm:text-6xl">
+          Esta página se nos ha escapado.
+        </h1>
+        <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-black/60">
+          El enlace puede haber cambiado o ya no estar disponible. Puedes volver al inicio,
+          solicitar una demo o acceder a tu cuenta.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-full bg-[#111] px-6 py-3 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
           >
-            Go home
+            Volver al inicio
+          </Link>
+          <Link
+            to="/solicitar-demo"
+            className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white px-6 py-3 text-sm font-bold transition-colors hover:bg-black/5"
+          >
+            Solicitar una demo
+          </Link>
+          <Link
+            to="/auth"
+            className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white px-6 py-3 text-sm font-bold transition-colors hover:bg-black/5"
+          >
+            Iniciar sesión
           </Link>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
@@ -47,10 +69,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          No hemos podido cargar esta página
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Ha ocurrido un error inesperado. Puedes volver a intentarlo o regresar al inicio.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -60,13 +82,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Volver a intentarlo
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Ir al inicio
           </a>
         </div>
       </div>

@@ -63,6 +63,12 @@ export function PublicClubExperience({
           <p className="mt-2 text-sm text-muted-foreground">
             Revisa el enlace o pregunta en el establecimiento.
           </p>
+          <Link
+            to="/"
+            className="mt-5 inline-flex text-sm font-semibold underline underline-offset-4"
+          >
+            Conocer Fideleo
+          </Link>
         </div>
       </main>
     );
@@ -158,7 +164,10 @@ export function PublicClubExperience({
           </Link>
         </div>
         <p className="mt-4">
-          Programa gestionado con <strong>Fideleo</strong>
+          Programa gestionado con{" "}
+          <Link to="/" className="font-semibold underline underline-offset-4">
+            Fideleo
+          </Link>
         </p>
       </footer>
     </main>
