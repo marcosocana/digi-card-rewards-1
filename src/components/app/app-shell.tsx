@@ -241,8 +241,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const selectedLocationLabel = !selectedLocations.length
     ? t("Todos los locales")
     : selectedLocations.length === 1
-      ? (session?.locations.find((location) => location.id === selectedLocations[0])?.name ??
-        t("1 local"))
+      ? (() => {
+          const location = session?.locations.find(
+            (location) => location.id === selectedLocations[0],
+          );
+          return location ? formatLocationLabel(location, session?.isSuperadmin) : t("1 local");
+        })()
       : t("{count} locales", { count: selectedLocations.length });
 
   const toggleSidebar = () => {
@@ -320,7 +324,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <ChevronDown className={cn("size-4 opacity-55", collapsed && "lg:hidden")} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-60">
+            <DropdownMenuContent
+              align="start"
+              className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto"
+            >
               <DropdownMenuCheckboxItem
                 checked={!selectedLocations.length}
                 onSelect={(event) => event.preventDefault()}
@@ -335,7 +342,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onSelect={(event) => event.preventDefault()}
                   onCheckedChange={() => toggleLocation(location.id)}
                 >
-                  {location.name}
+                  {formatLocationLabel(location, session.isSuperadmin)}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>
@@ -349,7 +356,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <MapPin className="size-4 shrink-0" />
             <span className={cn("truncate", collapsed && "lg:hidden")}>
-              {session.locations[0].name}
+              {formatLocationLabel(session.locations[0], session.isSuperadmin)}
             </span>
           </p>
         ) : null}
@@ -635,4 +642,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
+}
+
+function formatLocationLabel(
+  location: { name: string; organizationName?: string },
+  includeOrganization = false,
+) {
+  return includeOrganization && location.organizationName
+    ? `${location.organizationName} · ${location.name}`
+    : location.name;
 }

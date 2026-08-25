@@ -11,6 +11,13 @@ export interface Membership {
   full_name: string | null;
 }
 
+export interface SessionLocation {
+  id: string;
+  name: string;
+  slug: string;
+  organizationName?: string;
+}
+
 export interface SessionInfo {
   userId: string;
   email: string | null;
@@ -21,7 +28,7 @@ export interface SessionInfo {
   planCode: string | null;
   subscriptionStatus: string | null;
   hasActivePlan: boolean;
-  locations: { id: string; name: string; slug: string }[];
+  locations: SessionLocation[];
 }
 
 export const sessionQueryKey = ["session-info"];
@@ -56,10 +63,22 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
     plan_code: string | null;
     subscription_status: string;
   } | null;
-  let locations: { id: string; name: string; slug: string }[] = [];
+  let locations: SessionLocation[] = [];
 
-  if (ou) {
-    if (ou.role === "admin" || isSuperadmin) {
+  if (isSuperadmin) {
+    const { data } = await supabase
+      .from("locations")
+      .select("id, name, slug, organizations(display_name)")
+      .eq("status", "active")
+      .order("name");
+    locations = (data ?? []).map((location) => ({
+      id: location.id,
+      name: location.name,
+      slug: location.slug,
+      organizationName: (location.organizations as { display_name: string } | null)?.display_name,
+    }));
+  } else if (ou) {
+    if (ou.role === "admin") {
       const { data } = await supabase
         .from("locations")
         .select("id, name, slug")
