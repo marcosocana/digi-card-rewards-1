@@ -37,6 +37,7 @@ import {
   redeemCoupon,
   consumeGiftCard,
   consumeCashback,
+  syncGoogleWallet,
   type ScanResult,
 } from "@/lib/operations";
 
@@ -53,6 +54,16 @@ function CajaPage() {
   const [locationId, setLocationId] = useState<string>("");
   const [mode, setMode] = useState<Mode>("scan");
   const [manualCode, setManualCode] = useState("");
+
+  const syncCustomerWallet = async (membershipId: string) => {
+    try {
+      await syncGoogleWallet(membershipId);
+    } catch (walletError) {
+      toast.warning("La operación se guardó, pero Google Wallet quedó pendiente", {
+        description: (walletError as Error).message,
+      });
+    }
+  };
   const [matches, setMatches] = useState<ScanResult[]>([]);
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -159,6 +170,7 @@ function CajaPage() {
         ticketReference: ticket || null,
         idempotencyKey: idemRef.current,
       });
+      await syncCustomerWallet(scan.membership_id);
       const earned = res.earned_rewards?.map((reward) => reward.name).join(", ");
       toast.success(
         res.duplicate ? "Operación ya registrada" : `+${num(res.points_awarded)} ${unit}`,
@@ -237,6 +249,7 @@ function CajaPage() {
     setBusy(true);
     try {
       const result = await consumeCashback(scan.membership_id, locationId, amountCents);
+      await syncCustomerWallet(scan.membership_id);
       toast.success("Cashback utilizado", {
         description: `Saldo restante: ${eur(result.resulting_balance_cents)}`,
       });
@@ -259,6 +272,7 @@ function CajaPage() {
         locationId,
         idempotencyKey: crypto.randomUUID(),
       });
+      await syncCustomerWallet(scan.membership_id);
       toast.success(`Canje: ${res.reward_name}`, {
         description: `Saldo: ${num(res.resulting_balance)} puntos`,
       });

@@ -110,6 +110,18 @@ export const reverseTransaction = (transactionId: string, reason: string) =>
 export const requestWalletUpdate = (membershipId: string) =>
   rpc<{ ok: boolean }>("request_wallet_update", { _membership_id: membershipId });
 
+export const syncGoogleWallet = async (membershipId: string) => {
+  const { data, error } = await supabase.functions.invoke<{
+    synced?: boolean;
+    balance?: number;
+    reason?: string;
+    error?: string;
+  }>("sync-google-wallet", { body: { membershipId } });
+  if (error) throw new Error(errorLabel(error.message));
+  if (data?.error) throw new Error(errorLabel(data.error));
+  return data ?? { synced: false, reason: "EMPTY_RESPONSE" };
+};
+
 export const redeemCoupon = (membershipId: string, couponCode: string, locationId: string) =>
   rpc<{ title: string; discount_type: string; discount_value: number }>("redeem_coupon", {
     _membership_id: membershipId,

@@ -21,7 +21,12 @@ import {
 } from "@/components/ui/dialog";
 import { useSession } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
-import { adjustPoints, requestWalletUpdate, reverseTransaction } from "@/lib/operations";
+import {
+  adjustPoints,
+  requestWalletUpdate,
+  reverseTransaction,
+  syncGoogleWallet,
+} from "@/lib/operations";
 
 export const Route = createFileRoute("/_authenticated/panel/clientes/$membershipId")({
   component: ClienteDetalle,
@@ -94,6 +99,13 @@ function ClienteDetalle() {
     try {
       const res = await adjustPoints({ membershipId, delta: value, reason: reason.trim() });
       toast.success(`Nuevo saldo: ${num(res.resulting_balance)} puntos`);
+      try {
+        await syncGoogleWallet(membershipId);
+      } catch (walletError) {
+        toast.warning("Los puntos se guardaron, pero Google Wallet quedó pendiente", {
+          description: (walletError as Error).message,
+        });
+      }
       setOpen(false);
       setDelta("");
       setReason("");
@@ -110,6 +122,13 @@ function ClienteDetalle() {
     try {
       const res = await reverseTransaction(id, motive.trim());
       toast.success(`Movimiento anulado. Saldo: ${num(res.resulting_balance)} puntos`);
+      try {
+        await syncGoogleWallet(membershipId);
+      } catch (walletError) {
+        toast.warning("El saldo se actualizó, pero Google Wallet quedó pendiente", {
+          description: (walletError as Error).message,
+        });
+      }
       void refetch();
     } catch (e) {
       toast.error((e as Error).message);
@@ -119,7 +138,9 @@ function ClienteDetalle() {
   const syncWallet = async () => {
     try {
       await requestWalletUpdate(membershipId);
-      toast.success("Actualización de tarjeta solicitada");
+      const result = await syncGoogleWallet(membershipId);
+      if (result.synced) toast.success("Tarjeta de Google Wallet actualizada");
+      else toast.info("Este cliente todavía no tiene una tarjeta de Google Wallet instalada");
       void refetch();
     } catch (e) {
       toast.error((e as Error).message);

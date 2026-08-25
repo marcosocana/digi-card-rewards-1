@@ -11,6 +11,11 @@ entrypoint = "./functions/generate-google-wallet/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/generate-google-wallet/*.html" ]
 
+[functions.sync-google-wallet]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sync-google-wallet/index.ts"
+
 [functions.send-google-wallet-notification]
 enabled = true
 verify_jwt = true
