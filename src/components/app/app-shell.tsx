@@ -450,7 +450,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="size-5" />
           </button>
           <Link to="/panel" onClick={() => setOpen(false)} aria-label="Fideleo">
-            <img src="/isotipo.svg" alt="Fideleo" width={121} height={121} className="size-9" />
+            <img
+              src="/isotipo.svg"
+              alt="Fideleo"
+              width={121}
+              height={121}
+              className="size-9 dark:hidden"
+            />
+            <img
+              src="/isotipo-dark.svg"
+              alt="Fideleo"
+              width={121}
+              height={121}
+              className="hidden size-9 dark:block"
+            />
           </Link>
         </div>
         <div className="flex items-center gap-0.5">
