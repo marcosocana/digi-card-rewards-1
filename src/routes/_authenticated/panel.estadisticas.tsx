@@ -8,6 +8,7 @@ import { eur, num } from "@/lib/format";
 import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/app/metric-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ActivityLog } from "@/components/app/activity-log";
 import {
   Select,
   SelectContent,
@@ -276,6 +277,7 @@ function EstadisticasPage() {
               </ol>
             </section>
           </div>
+          <ActivityLog />
         </>
       )}
     </>

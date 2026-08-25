@@ -315,7 +315,7 @@ function ResumenPage() {
               label="Compras registradas"
               value={num(data?.purchases)}
               icon={<Receipt className="size-4" />}
-              to="/panel/actividad"
+              to="/panel/estadisticas"
             />
             <MetricCard
               label="Ticket medio"

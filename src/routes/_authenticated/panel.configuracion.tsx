@@ -1,17 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Ban,
-  Copy,
-  ExternalLink,
-  ImagePlus,
-  KeyRound,
-  LoaderCircle,
-  Rocket,
-  Save,
-  X,
-} from "lucide-react";
+import { Ban, Copy, ExternalLink, ImagePlus, KeyRound, LoaderCircle, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminScope } from "@/lib/session";
@@ -293,7 +283,6 @@ function ConfiguracionPage() {
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="business">Negocio</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
-          <TabsTrigger value="publish">Publicar club</TabsTrigger>
           <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="integrations">Integraciones</TabsTrigger>
           <TabsTrigger value="privacy">Privacidad</TabsTrigger>
@@ -448,25 +437,6 @@ function ConfiguracionPage() {
                   </Link>
                 </Button>
               ) : null}
-            </div>
-          </div>
-        </TabsContent>
-        <TabsContent value="publish" className="surface p-5 sm:p-7">
-          <div className="flex max-w-3xl flex-col gap-5 sm:flex-row sm:items-start">
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
-              <Rocket className="size-5" />
-            </span>
-            <div>
-              <h2 className="font-display text-xl font-bold">
-                Configuración y publicación del club
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Completa la identidad, la mecánica de puntos, las recompensas y los establecimientos
-                antes de publicar la experiencia para tus clientes.
-              </p>
-              <Button asChild className="mt-5">
-                <Link to="/panel/onboarding">Abrir configuración guiada</Link>
-              </Button>
             </div>
           </div>
         </TabsContent>

@@ -144,13 +144,6 @@ const nav: NavItem[] = [
     group: "Analítica",
   },
   {
-    to: "/panel/actividad",
-    label: "Actividad",
-    icon: Settings2,
-    roles: ["admin"],
-    group: "Analítica",
-  },
-  {
     to: "/panel/establecimientos",
     label: "Establecimientos",
     icon: Building2,
