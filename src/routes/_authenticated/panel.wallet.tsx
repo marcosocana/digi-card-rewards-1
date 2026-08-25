@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Clock3, ImagePlus, LoaderCircle, QrCode, Save, X } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  EllipsisVertical,
+  ImagePlus,
+  LoaderCircle,
+  QrCode,
+  Save,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
@@ -13,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/session";
 import { num } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { qrPngDataUrl } from "@/lib/qr";
 
 export const Route = createFileRoute("/_authenticated/panel/wallet")({
   component: WalletPage,
@@ -392,7 +402,7 @@ function WalletPage() {
                   }
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 ${provider === "google" ? "sm:col-span-2" : ""}`}>
                 <Label htmlFor="wallet-background">{t("Color de la tarjeta")}</Label>
                 <Input
                   id="wallet-background"
@@ -402,18 +412,25 @@ function WalletPage() {
                     setDesign((current) => ({ ...current, backgroundColor: event.target.value }))
                   }
                 />
+                {provider === "google" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Google elige automáticamente texto claro u oscuro para mantener el contraste.
+                  </p>
+                ) : null}
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="wallet-text">{t("Color del texto")}</Label>
-                <Input
-                  id="wallet-text"
-                  type="color"
-                  value={design.textColor}
-                  onChange={(event) =>
-                    setDesign((current) => ({ ...current, textColor: event.target.value }))
-                  }
-                />
-              </div>
+              {provider === "apple" ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="wallet-text">{t("Color del texto")}</Label>
+                  <Input
+                    id="wallet-text"
+                    type="color"
+                    value={design.textColor}
+                    onChange={(event) =>
+                      setDesign((current) => ({ ...current, textColor: event.target.value }))
+                    }
+                  />
+                </div>
+              ) : null}
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="wallet-points-label">{t("Etiqueta del saldo")}</Label>
                 <Input
@@ -450,63 +467,206 @@ function WalletPage() {
                 {t("En tiempo real")}
               </span>
             </div>
-            <div className="mx-auto max-w-md overflow-hidden rounded-[1.65rem] shadow-2xl ring-1 ring-black/10">
-              <div
-                className="relative min-h-[26rem] overflow-hidden p-6"
-                style={{ backgroundColor: design.backgroundColor, color: design.textColor }}
-              >
-                <div className="flex min-h-12 items-center justify-between gap-4">
-                  {design.logoUrl ? (
-                    <img
-                      src={design.logoUrl}
-                      alt={t("Vista previa del logo")}
-                      className="max-h-12 max-w-36 object-contain object-left"
-                    />
-                  ) : (
-                    <span className="font-display text-xl font-bold">
-                      {design.programName || "Fideleo"}
-                    </span>
-                  )}
-                  <span className="text-right text-xs font-semibold opacity-75">
-                    {t("Tarjeta de fidelidad")}
-                  </span>
-                </div>
-                {design.heroUrl ? (
-                  <img
-                    src={design.heroUrl}
-                    alt={t("Vista previa de la imagen destacada")}
-                    className="mt-5 h-32 w-full rounded-2xl object-cover"
-                  />
-                ) : (
-                  <div className="mt-5 h-32 rounded-2xl bg-white/15" />
-                )}
-                <div className="mt-6 flex items-end justify-between gap-5">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-[.14em] opacity-65">
-                      {design.pointsLabel || t("Puntos")}
-                    </p>
-                    <p className="mt-1 text-4xl font-bold">6 / 10</p>
-                  </div>
-                  <div className="rounded-xl bg-white p-2 text-black">
-                    <QrCode className="size-16" strokeWidth={1.6} />
-                  </div>
-                </div>
-                <div className="mt-7 border-t border-current/20 pt-4">
-                  <p className="text-xs uppercase tracking-[.14em] opacity-65">{t("Cliente")}</p>
-                  <p className="mt-1 font-semibold">Lucía García</p>
-                </div>
-              </div>
-            </div>
+            {provider === "google" ? (
+              <GoogleWalletPreview
+                design={design}
+                issuerName={data?.organization.display_name ?? "Fideleo"}
+              />
+            ) : (
+              <AppleWalletPreview design={design} />
+            )}
             <p className="mx-auto mt-4 max-w-md text-center text-xs leading-relaxed text-muted-foreground">
-              {t(
-                "La posición final puede variar ligeramente según el dispositivo y la versión de Wallet.",
-              )}
+              {provider === "google"
+                ? "La vista reproduce la plantilla predeterminada de fidelización. Google controla la tipografía, el contraste y los ajustes finales según el dispositivo."
+                : t(
+                    "La posición final puede variar ligeramente según el dispositivo y la versión de Wallet.",
+                  )}
             </p>
           </section>
         </div>
       </section>
     </>
   );
+}
+
+function GoogleWalletPreview({ design, issuerName }: { design: WalletDesign; issuerName: string }) {
+  const [qrUrl, setQrUrl] = useState("");
+  const textColor = walletContrastColor(design.backgroundColor);
+  const subduedText = textColor === "#FFFFFF" ? "rgba(255,255,255,.72)" : "rgba(0,0,0,.62)";
+
+  useEffect(() => {
+    let mounted = true;
+    void qrPngDataUrl("F7D4K2", "#000000").then((url) => {
+      if (mounted) setQrUrl(url);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-md rounded-[2rem] bg-[#eef2f7] p-3 shadow-inner ring-1 ring-black/5 sm:p-5 dark:bg-[#17191d] dark:ring-white/10">
+      <div className="mb-3 flex items-center justify-between px-1 text-[#3c4043] dark:text-[#e8eaed]">
+        <span className="text-sm font-semibold">Google Wallet</span>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide dark:bg-white/10">
+          Datos de ejemplo
+        </span>
+      </div>
+      <div
+        className="overflow-hidden rounded-[1.35rem] shadow-xl ring-1 ring-black/10"
+        style={{ backgroundColor: design.backgroundColor, color: textColor }}
+      >
+        <div className="flex items-center gap-3 p-5 pb-4">
+          <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/95 ring-1 ring-black/5">
+            {design.logoUrl ? (
+              <img
+                src={design.logoUrl}
+                alt="Vista previa del logotipo del programa"
+                className="size-full object-contain p-1.5"
+              />
+            ) : (
+              <span className="text-lg font-bold text-neutral-800">
+                {(design.programName || issuerName || "F").trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-xs font-medium" style={{ color: subduedText }}>
+              {issuerName}
+            </p>
+            <p className="mt-1 truncate text-base font-semibold">
+              {design.programName || issuerName}
+            </p>
+          </div>
+          <EllipsisVertical className="size-5 shrink-0 opacity-70" aria-hidden />
+        </div>
+
+        <div className="px-5 pb-5 pt-2">
+          <p
+            className="text-[11px] font-medium uppercase tracking-wide"
+            style={{ color: subduedText }}
+          >
+            {design.pointsLabel || "Puntos"}
+          </p>
+          <p className="mt-0.5 text-3xl font-semibold leading-none">320</p>
+        </div>
+
+        <div className="flex flex-col items-center px-5 py-5">
+          <div className="rounded-xl bg-white p-2.5 shadow-sm">
+            {qrUrl ? (
+              <img src={qrUrl} alt="Código QR de ejemplo del pase" className="size-28" />
+            ) : (
+              <QrCode className="size-28 text-black" strokeWidth={1.5} />
+            )}
+          </div>
+          <p className="mt-2 font-mono text-xs font-medium tracking-[.18em]">F7D4K2</p>
+        </div>
+
+        {design.heroUrl ? (
+          <img
+            src={design.heroUrl}
+            alt="Vista previa de la imagen principal del pase"
+            className="aspect-[1032/336] w-full object-cover"
+          />
+        ) : null}
+
+        <div className="grid grid-cols-2 gap-4 p-5">
+          <WalletField label="Cliente" value="Lucía García" subduedColor={subduedText} />
+          <WalletField
+            label="N.º de socio"
+            value="…7F2A"
+            subduedColor={subduedText}
+            align="right"
+          />
+        </div>
+      </div>
+      <div className="mx-auto mt-3 h-1.5 w-28 rounded-full bg-[#3c4043]/20 dark:bg-white/20" />
+    </div>
+  );
+}
+
+function WalletField({
+  label,
+  value,
+  subduedColor,
+  align = "left",
+}: {
+  label: string;
+  value: string;
+  subduedColor: string;
+  align?: "left" | "right";
+}) {
+  return (
+    <div className={align === "right" ? "text-right" : "text-left"}>
+      <p
+        className="text-[10px] font-medium uppercase tracking-wide"
+        style={{ color: subduedColor }}
+      >
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function AppleWalletPreview({ design }: { design: WalletDesign }) {
+  return (
+    <div className="mx-auto max-w-md overflow-hidden rounded-[1.65rem] shadow-2xl ring-1 ring-black/10">
+      <div
+        className="relative min-h-[26rem] overflow-hidden p-6"
+        style={{ backgroundColor: design.backgroundColor, color: design.textColor }}
+      >
+        <div className="flex min-h-12 items-center justify-between gap-4">
+          {design.logoUrl ? (
+            <img
+              src={design.logoUrl}
+              alt="Vista previa del logotipo"
+              className="max-h-12 max-w-36 object-contain object-left"
+            />
+          ) : (
+            <span className="font-display text-xl font-bold">
+              {design.programName || "Fideleo"}
+            </span>
+          )}
+          <span className="text-right text-xs font-semibold opacity-75">Tarjeta de fidelidad</span>
+        </div>
+        {design.heroUrl ? (
+          <img
+            src={design.heroUrl}
+            alt="Vista previa de la imagen destacada"
+            className="mt-5 h-32 w-full rounded-2xl object-cover"
+          />
+        ) : (
+          <div className="mt-5 h-32 rounded-2xl bg-white/15" />
+        )}
+        <div className="mt-6 flex items-end justify-between gap-5">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[.14em] opacity-65">
+              {design.pointsLabel || "Puntos"}
+            </p>
+            <p className="mt-1 text-4xl font-bold">6 / 10</p>
+          </div>
+          <div className="rounded-xl bg-white p-2 text-black">
+            <QrCode className="size-16" strokeWidth={1.6} />
+          </div>
+        </div>
+        <div className="mt-7 border-t border-current/20 pt-4">
+          <p className="text-xs uppercase tracking-[.14em] opacity-65">Cliente</p>
+          <p className="mt-1 font-semibold">Lucía García</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function walletContrastColor(hex: string) {
+  const normalized = hex.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return "#FFFFFF";
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+  return luminance > 0.6 ? "#202124" : "#FFFFFF";
 }
 
 function WalletProviderIcon({ provider }: { provider: WalletProvider }) {
