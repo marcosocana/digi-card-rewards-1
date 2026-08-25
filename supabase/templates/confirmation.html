@@ -73,10 +73,39 @@
                   Verifica tu email
                 </h1>
                 <p style="margin: 0 0 16px; color: #363636; font-size: 16px; line-height: 1.65">
-                  Confirma esta dirección para activar tu cuenta de Fideleo.
+                  Confirma esta dirección para activar tu cuenta de Fideleo. Introduce este código
+                  en la pantalla de registro:
                 </p>
 
-                <div style="margin: 28px 0">
+                <div
+                  style="
+                    margin: 28px 0;
+                    border: 1px solid #111111;
+                    border-radius: 18px;
+                    background: #f5f5f2;
+                    padding: 22px;
+                    text-align: center;
+                  "
+                >
+                  <p
+                    style="
+                      margin: 0;
+                      color: #111111;
+                      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                      font-size: 32px;
+                      font-weight: 800;
+                      letter-spacing: 0.18em;
+                    "
+                  >
+                    {{ .Token }}
+                  </p>
+                </div>
+
+                <p style="margin: 0 0 16px; color: #363636; font-size: 14px; line-height: 1.65">
+                  También puedes verificar tu email directamente con este botón:
+                </p>
+
+                <div style="margin: 20px 0 28px">
                   <a
                     href="{{ .ConfirmationURL }}"
                     style="
