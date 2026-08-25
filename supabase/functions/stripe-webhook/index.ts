@@ -52,7 +52,7 @@ type StripeSubscription = {
   status: string;
   customer?: string | { id?: string };
   current_period_end?: number;
-  metadata?: { organization_id?: string; plan_code?: string };
+  metadata?: { organization_id?: string; plan_code?: string; purchaser_user_id?: string };
   items?: { data?: Array<{ current_period_end?: number; price?: { id?: string } }> };
 };
 
@@ -109,6 +109,30 @@ Deno.serve(async (request) => {
       return Object.entries(prices).find(([, configured]) => configured === priceId)?.[0] || null;
     };
 
+    const sendOnboardingEmail = async (organizationId: string, subscriptionId: string) => {
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+        method: "POST",
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "subscription_onboarding",
+          organizationId,
+          subscriptionId,
+        }),
+      });
+      if (!response.ok) {
+        console.error(
+          "Onboarding email failed",
+          response.status,
+          (await response.text()).slice(0, 300),
+        );
+        throw new Error("No se pudo enviar el acceso al onboarding");
+      }
+    };
+
     const syncSubscription = async (
       subscription: StripeSubscription,
       organizationHint?: string,
@@ -140,17 +164,25 @@ Deno.serve(async (request) => {
         },
       );
       if (!response.ok) throw new Error("No se pudo actualizar el acceso de la organización");
+      return { organizationId, status, planCode };
     };
 
     const object = event.data?.object;
-    if (event.type === "checkout.session.completed" && object?.subscription) {
+    if (
+      event.type === "checkout.session.completed" &&
+      object?.subscription &&
+      object?.payment_status === "paid"
+    ) {
       const subscription = await fetchSubscription(
         typeof object.subscription === "string" ? object.subscription : object.subscription.id,
       );
-      await syncSubscription(
+      const synced = await syncSubscription(
         subscription,
         object.metadata?.organization_id || object.client_reference_id,
       );
+      if (["active", "trialing"].includes(synced.status) && synced.planCode) {
+        await sendOnboardingEmail(synced.organizationId, subscription.id);
+      }
     } else if (event.type?.startsWith("customer.subscription.")) {
       await syncSubscription(object);
     } else if (
@@ -162,7 +194,14 @@ Deno.serve(async (request) => {
       const subscription = await fetchSubscription(
         typeof subscriptionValue === "string" ? subscriptionValue : subscriptionValue.id,
       );
-      await syncSubscription(subscription);
+      const synced = await syncSubscription(subscription);
+      if (
+        event.type === "invoice.paid" &&
+        ["active", "trialing"].includes(synced.status) &&
+        synced.planCode
+      ) {
+        await sendOnboardingEmail(synced.organizationId, subscription.id);
+      }
     }
 
     const stored = await fetch(`${supabaseUrl}/rest/v1/stripe_webhook_events`, {

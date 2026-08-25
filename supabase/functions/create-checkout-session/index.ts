@@ -184,15 +184,17 @@ Deno.serve(async (request) => {
     checkoutParams.set("line_items[0][quantity]", "1");
     checkoutParams.set(
       "success_url",
-      `${appUrl}/panel?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      `${appUrl}/panel/onboarding?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     );
     checkoutParams.set("cancel_url", `${appUrl}/panel?checkout=cancelled`);
     checkoutParams.set("locale", "es");
     checkoutParams.set("allow_promotion_codes", "true");
     checkoutParams.set("metadata[organization_id]", organization.id);
     checkoutParams.set("metadata[plan_code]", planCode);
+    checkoutParams.set("metadata[purchaser_user_id]", user.id);
     checkoutParams.set("subscription_data[metadata][organization_id]", organization.id);
     checkoutParams.set("subscription_data[metadata][plan_code]", planCode);
+    checkoutParams.set("subscription_data[metadata][purchaser_user_id]", user.id);
     checkoutParams.set(
       "integration_identifier",
       `fideleo_${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`,

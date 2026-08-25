@@ -15,6 +15,10 @@ export const Route = createFileRoute("/auth")({
     oauth: search.oauth === "1",
     tab: search.tab === "signup" ? ("signup" as const) : ("signin" as const),
     email: typeof search.email === "string" ? search.email.slice(0, 254) : "",
+    next:
+      typeof search.next === "string" && search.next.startsWith("/panel")
+        ? search.next.slice(0, 500)
+        : "/panel",
   }),
   head: () => ({
     meta: [
@@ -53,6 +57,7 @@ const demoUsers = [
 
 function AuthPage() {
   const search = Route.useSearch();
+  const destination = search.next;
   const welcomeHandled = useRef(false);
   const [activeTab, setActiveTab] = useState<"signin" | "signup">(search.tab);
   const [email, setEmail] = useState(search.email);
@@ -91,7 +96,7 @@ function AuthPage() {
           console.error("No se pudo enviar el email de bienvenida", emailError);
         }
       }
-      window.location.assign("/panel");
+      window.location.assign(destination);
     };
 
     void finishOAuth();
@@ -100,7 +105,7 @@ function AuthPage() {
       cancelled = true;
       listener.subscription.unsubscribe();
     };
-  }, [search.oauth]);
+  }, [destination, search.oauth]);
 
   useEffect(() => {
     if (!search.confirmed || welcomeHandled.current) return;
@@ -116,7 +121,7 @@ function AuthPage() {
         console.error("No se pudo enviar el email de bienvenida", emailError);
       }
       toast.success("Email verificado", { description: "Tu cuenta de Fideleo ya está activa." });
-      window.location.assign("/panel");
+      window.location.assign(destination);
     };
 
     void finishConfirmation();
@@ -127,7 +132,7 @@ function AuthPage() {
       cancelled = true;
       listener.subscription.unsubscribe();
     };
-  }, [search.confirmed]);
+  }, [destination, search.confirmed]);
 
   const signInWithCredentials = async (loginEmail: string, loginPassword: string) => {
     setLoading(true);
@@ -140,7 +145,7 @@ function AuthPage() {
       toast.error("No hemos podido iniciar sesión", { description: error.message });
       return;
     }
-    window.location.assign("/panel");
+    window.location.assign(destination);
   };
 
   const signIn = async (e: React.FormEvent) => {
@@ -154,7 +159,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth?oauth=1`,
+        redirectTo: `${window.location.origin}/auth?oauth=1&next=${encodeURIComponent(destination)}`,
         queryParams: { prompt: "select_account" },
       },
     });
@@ -174,7 +179,7 @@ function AuthPage() {
         password,
         fullName: fullName.trim(),
         businessName: businessName.trim(),
-        redirectTo: `${window.location.origin}/auth?confirmed=1`,
+        redirectTo: `${window.location.origin}/auth?confirmed=1&next=${encodeURIComponent(destination)}`,
       },
     });
     setLoading(false);
@@ -204,7 +209,9 @@ function AuthPage() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: normalizedEmail,
-      options: { emailRedirectTo: `${window.location.origin}/auth?confirmed=1` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth?confirmed=1&next=${encodeURIComponent(destination)}`,
+      },
     });
     setLoading(false);
     if (error) {

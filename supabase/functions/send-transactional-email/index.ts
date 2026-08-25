@@ -104,17 +104,23 @@ Deno.serve(async (request) => {
     if (!supabaseUrl || !anonKey || !serviceKey || !resendApiKey || !fromEmail) {
       throw new Error("El servicio de email todavía no está configurado");
     }
-    if (!authorization) return json({ error: "Sesión requerida" }, 401);
-
-    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: anonKey, Authorization: authorization },
-    });
-    if (!userResponse.ok) return json({ error: "Sesión no válida" }, 401);
-    const user = (await userResponse.json()) as AuthUser;
-    if (!user.id || !user.email) return json({ error: "Usuario no válido" }, 401);
-
     const payload = (await request.json()) as Record<string, unknown>;
     const kind = clean(payload.kind, 40);
+    if (!authorization) return json({ error: "Sesión requerida" }, 401);
+    const internalRequest = authorization === `Bearer ${serviceKey}`;
+    if (internalRequest && kind !== "subscription_onboarding") {
+      return json({ error: "Tipo de correo interno no permitido" }, 403);
+    }
+
+    let user: AuthUser | null = null;
+    if (!internalRequest) {
+      const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: { apikey: anonKey, Authorization: authorization },
+      });
+      if (!userResponse.ok) return json({ error: "Sesión no válida" }, 401);
+      user = (await userResponse.json()) as AuthUser;
+      if (!user.id || !user.email) return json({ error: "Usuario no válido" }, 401);
+    }
     const databaseHeaders = {
       apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
@@ -129,16 +135,16 @@ Deno.serve(async (request) => {
       return rows[0] ?? null;
     };
 
-    let recipient = user.email.trim().toLowerCase();
+    let recipient = user?.email.trim().toLowerCase() ?? "";
     let eventKey = "";
     let content: EmailContent;
 
     if (kind === "account_welcome") {
       const profile = await selectOne<{ full_name: string | null }>(
-        `profiles?id=eq.${encodeURIComponent(user.id)}&select=full_name&limit=1`,
+        `profiles?id=eq.${encodeURIComponent(user!.id)}&select=full_name&limit=1`,
       );
-      const name = profile?.full_name || user.user_metadata?.full_name || "";
-      eventKey = `account_welcome:${user.id}`;
+      const name = profile?.full_name || user!.user_metadata?.full_name || "";
+      eventKey = `account_welcome:${user!.id}`;
       content = {
         subject: "Tu cuenta de Fideleo ya está activa",
         preheader: "Ya puedes acceder a tu panel de Fideleo.",
@@ -165,10 +171,10 @@ Deno.serve(async (request) => {
       if (!invitation?.invited_email) return json({ error: "Invitación no encontrada" }, 404);
       const [callerMembership, superadmin, organization] = await Promise.all([
         selectOne<{ role: string }>(
-          `organization_users?organization_id=eq.${encodeURIComponent(invitation.organization_id)}&user_id=eq.${encodeURIComponent(user.id)}&status=eq.active&select=role&limit=1`,
+          `organization_users?organization_id=eq.${encodeURIComponent(invitation.organization_id)}&user_id=eq.${encodeURIComponent(user!.id)}&status=eq.active&select=role&limit=1`,
         ),
         selectOne<{ platform_role: string }>(
-          `profiles?id=eq.${encodeURIComponent(user.id)}&platform_role=eq.superadmin&select=platform_role&limit=1`,
+          `profiles?id=eq.${encodeURIComponent(user!.id)}&platform_role=eq.superadmin&select=platform_role&limit=1`,
         ),
         selectOne<{ display_name: string }>(
           `organizations?id=eq.${encodeURIComponent(invitation.organization_id)}&select=display_name&limit=1`,
@@ -242,10 +248,69 @@ Deno.serve(async (request) => {
           url: `${appUrl}/mi-tarjeta/${encodeURIComponent(membership.public_id)}`,
         },
       };
+    } else if (kind === "subscription_onboarding") {
+      if (!internalRequest) return json({ error: "Operación no permitida" }, 403);
+      const organizationId = clean(payload.organizationId, 80);
+      const subscriptionId = clean(payload.subscriptionId, 255);
+      if (!/^[0-9a-f-]{36}$/i.test(organizationId) || !subscriptionId) {
+        return json({ error: "Suscripción no válida" }, 400);
+      }
+      const organization = await selectOne<{
+        display_name: string;
+        plan_code: string | null;
+        subscription_status: string;
+      }>(
+        `organizations?id=eq.${encodeURIComponent(organizationId)}&select=display_name,plan_code,subscription_status&limit=1`,
+      );
+      if (
+        !organization ||
+        !["active", "trialing"].includes(organization.subscription_status) ||
+        !["basic", "pro", "ultra"].includes(organization.plan_code || "")
+      ) {
+        return json({ error: "El plan todavía no está activo" }, 409);
+      }
+      const administrator = await selectOne<{
+        user_id: string | null;
+        invited_email: string | null;
+        full_name: string | null;
+      }>(
+        `organization_users?organization_id=eq.${encodeURIComponent(organizationId)}&role=eq.admin&status=eq.active&select=user_id,invited_email,full_name&order=created_at.asc&limit=1`,
+      );
+      const profile = administrator?.user_id
+        ? await selectOne<{ email: string; full_name: string | null }>(
+            `profiles?id=eq.${encodeURIComponent(administrator.user_id)}&select=email,full_name&limit=1`,
+          )
+        : null;
+      recipient = (profile?.email || administrator?.invited_email || "").trim().toLowerCase();
+      if (!recipient) return json({ error: "Administrador sin email" }, 409);
+
+      const planNames: Record<string, string> = {
+        basic: "Basic",
+        pro: "Pro",
+        ultra: "Ultra",
+      };
+      const locationLimits: Record<string, number> = { basic: 1, pro: 3, ultra: 15 };
+      const planCode = organization.plan_code!;
+      const locationLimit = locationLimits[planCode];
+      const name = profile?.full_name || administrator?.full_name || "";
+      eventKey = `subscription_onboarding:${subscriptionId}`;
+      content = {
+        subject: `Tu plan ${planNames[planCode]} de Fideleo ya está activo`,
+        preheader: "Empieza a configurar tu negocio y tu programa de fidelización.",
+        title: "Ya puedes dar de alta tu negocio",
+        greeting: name ? `Hola, ${name}.` : "Hola.",
+        paragraphs: [
+          `El pago se ha confirmado y tu plan ${planNames[planCode]} ya está activo para ${organization.display_name}.`,
+          `Como administrador puedes completar ahora la configuración y dar de alta hasta ${locationLimit} establecimiento${locationLimit === 1 ? "" : "s"}.`,
+          "El asistente te guiará por los datos del negocio, establecimientos, identidad visual, programa y tarjeta digital.",
+        ],
+        cta: { label: "Empezar el onboarding", url: `${appUrl}/panel/onboarding` },
+        note: "Accede con el mismo email utilizado para crear tu cuenta de Fideleo.",
+      };
     } else if (kind === "password_changed") {
       const eventId = clean(payload.eventId, 80);
       if (!/^[0-9a-f-]{36}$/i.test(eventId)) return json({ error: "Evento no válido" }, 400);
-      eventKey = `password_changed:${user.id}:${eventId}`;
+      eventKey = `password_changed:${user!.id}:${eventId}`;
       content = {
         subject: "Tu contraseña de Fideleo ha cambiado",
         preheader: "Confirmación de cambio de contraseña.",

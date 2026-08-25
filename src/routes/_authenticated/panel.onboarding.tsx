@@ -1,6 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, ChevronLeft, ChevronRight, Download, Upload } from "lucide-react";
+import {
+  Building2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Plus,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -11,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getSubscriptionPlan } from "@/lib/subscription-plans";
 import {
   Select,
   SelectContent,
@@ -23,16 +33,41 @@ export const Route = createFileRoute("/_authenticated/panel/onboarding")({
   component: OnboardingPage,
 });
 
-const labels = ["Negocio", "Identidad", "Programa", "Tarjeta", "Publicación"];
+const labels = ["Negocio y locales", "Identidad", "Programa", "Tarjeta", "Publicación"];
+
+type LocationForm = {
+  id?: string;
+  name: string;
+  addressLine: string;
+  city: string;
+  postalCode: string;
+};
+
+const emptyLocation = (): LocationForm => ({
+  name: "",
+  addressLine: "",
+  city: "",
+  postalCode: "",
+});
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 function OnboardingPage() {
   const { data: session } = useSession();
   const orgId = session?.org?.organization_id;
+  const locationLimit = getSubscriptionPlan(session?.planCode)?.maxLocations ?? 1;
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [qr, setQr] = useState("");
   const [ids, setIds] = useState({ program: "", campaign: "", slug: "" });
+  const [locations, setLocations] = useState<LocationForm[]>([emptyLocation()]);
   const [form, setForm] = useState({
     displayName: "",
     category: "",
@@ -57,7 +92,7 @@ function OnboardingPage() {
   useEffect(() => {
     if (!orgId) return;
     void (async () => {
-      const [organization, branding, program, campaign] = await Promise.all([
+      const [organization, branding, program, campaign, savedLocations] = await Promise.all([
         supabase.from("organizations").select("*").eq("id", orgId).single(),
         supabase
           .from("organization_branding")
@@ -78,8 +113,14 @@ function OnboardingPage() {
           .order("created_at")
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("locations")
+          .select("id, name, address_line, city, postal_code")
+          .eq("organization_id", orgId)
+          .is("archived_at", null)
+          .order("created_at"),
       ]);
-      if (organization.error || program.error) {
+      if (organization.error || program.error || savedLocations.error) {
         toast.error("No se pudo cargar el onboarding");
         setLoading(false);
         return;
@@ -89,6 +130,17 @@ function OnboardingPage() {
       const loyalty = program.data;
       setStep(org.onboarding_completed_at ? 5 : (org.onboarding_step ?? 1));
       setIds({ program: loyalty?.id ?? "", campaign: campaign.data?.id ?? "", slug: org.slug });
+      setLocations(
+        savedLocations.data?.length
+          ? savedLocations.data.map((location) => ({
+              id: location.id,
+              name: location.name,
+              addressLine: location.address_line ?? "",
+              city: location.city ?? "",
+              postalCode: location.postal_code ?? "",
+            }))
+          : [emptyLocation()],
+      );
       setForm((current) => ({
         ...current,
         displayName: org.display_name ?? "",
@@ -156,7 +208,18 @@ function OnboardingPage() {
           return;
         }
       }
-      const response = await supabase
+      if (
+        !locations.length ||
+        locations.length > locationLimit ||
+        locations.some((location) => location.name.trim().length < 2)
+      ) {
+        setSaving(false);
+        toast.error(
+          `Añade entre 1 y ${locationLimit} establecimiento${locationLimit === 1 ? "" : "s"} con un nombre válido`,
+        );
+        return;
+      }
+      const organizationResponse = await supabase
         .from("organizations")
         .update({
           display_name: form.displayName.trim(),
@@ -166,10 +229,72 @@ function OnboardingPage() {
           contact_email: form.email.trim(),
           website: form.website || null,
           instagram: form.instagram || null,
-          onboarding_step: 2,
         })
         .eq("id", orgId);
-      error = response.error;
+      error = organizationResponse.error;
+
+      const persistedLocations = [...locations];
+      for (let index = 0; index < persistedLocations.length && !error; index += 1) {
+        const location = persistedLocations[index];
+        if (!location) continue;
+        if (location.id) {
+          const response = await supabase
+            .from("locations")
+            .update({
+              name: location.name.trim(),
+              address_line: location.addressLine || null,
+              city: location.city || null,
+              postal_code: location.postalCode || null,
+            })
+            .eq("id", location.id)
+            .eq("organization_id", orgId);
+          error = response.error;
+          continue;
+        }
+
+        const response = await supabase
+          .from("locations")
+          .insert({
+            organization_id: orgId,
+            name: location.name.trim(),
+            slug: `${slugify(location.name) || "local"}-${crypto.randomUUID().slice(0, 6)}`,
+            address_line: location.addressLine || null,
+            city: location.city || null,
+            postal_code: location.postalCode || null,
+            status: "active",
+          })
+          .select("id")
+          .single();
+        error = response.error;
+        if (!response.data || error) continue;
+        persistedLocations[index] = { ...location, id: response.data.id };
+        if (ids.program) {
+          const link = await supabase
+            .from("program_locations")
+            .upsert(
+              { program_id: ids.program, location_id: response.data.id },
+              { onConflict: "program_id,location_id" },
+            );
+          error = link.error;
+        }
+        if (!error && ids.campaign) {
+          const link = await supabase
+            .from("campaign_locations")
+            .upsert(
+              { campaign_id: ids.campaign, location_id: response.data.id },
+              { onConflict: "campaign_id,location_id" },
+            );
+          error = link.error;
+        }
+      }
+      if (!error) {
+        setLocations(persistedLocations);
+        const progress = await supabase
+          .from("organizations")
+          .update({ onboarding_step: 2 })
+          .eq("id", orgId);
+        error = progress.error;
+      }
     } else if (step === 2) {
       const response = await supabase.from("organization_branding").upsert({
         organization_id: orgId,
@@ -260,7 +385,16 @@ function OnboardingPage() {
         ))}
       </ol>
       <section className="surface p-5 sm:p-7">
-        {step === 1 ? <BusinessStep form={form} set={set} /> : null}
+        {step === 1 ? (
+          <BusinessStep
+            form={form}
+            set={set}
+            locations={locations}
+            setLocations={setLocations}
+            locationLimit={locationLimit}
+            planName={getSubscriptionPlan(session?.planCode)?.name ?? "tu plan"}
+          />
+        ) : null}
         {step === 2 ? <BrandStep form={form} set={set} upload={upload} /> : null}
         {step === 3 ? <ProgramStep form={form} set={set} /> : null}
         {step === 4 ? <WalletStep form={form} set={set} /> : null}
@@ -314,7 +448,21 @@ function useOnboardingFormShape() {
 }
 type Setter = (key: keyof Form, value: string) => void;
 
-function BusinessStep({ form, set }: { form: Form; set: Setter }) {
+function BusinessStep({
+  form,
+  set,
+  locations,
+  setLocations,
+  locationLimit,
+  planName,
+}: {
+  form: Form;
+  set: Setter;
+  locations: LocationForm[];
+  setLocations: Dispatch<SetStateAction<LocationForm[]>>;
+  locationLimit: number;
+  planName: string;
+}) {
   return (
     <div>
       <h2 className="font-display text-xl font-semibold">Información del negocio</h2>
@@ -340,6 +488,75 @@ function BusinessStep({ form, set }: { form: Form; set: Setter }) {
             />
           </div>
         ))}
+      </div>
+      <div className="mt-8 border-t pt-7">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="flex items-center gap-2 font-display text-lg font-semibold">
+              <Building2 className="size-5" /> Establecimientos
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Plan {planName}: {locations.length} de {locationLimit} establecimiento
+              {locationLimit === 1 ? "" : "s"} configurados.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={locations.length >= locationLimit}
+            onClick={() => setLocations((current) => [...current, emptyLocation()])}
+          >
+            <Plus className="size-4" /> Añadir establecimiento
+          </Button>
+        </div>
+        <div className="mt-5 space-y-4">
+          {locations.map((location, index) => (
+            <div key={location.id ?? index} className="rounded-2xl border p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">Establecimiento {index + 1}</p>
+                {!location.id && locations.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setLocations((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index),
+                      )
+                    }
+                  >
+                    <X className="size-4" /> Quitar
+                  </Button>
+                ) : null}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    ["name", "Nombre"],
+                    ["addressLine", "Dirección"],
+                    ["city", "Ciudad"],
+                    ["postalCode", "Código postal"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key} className="space-y-1.5">
+                    <Label htmlFor={`location-${index}-${key}`}>{label}</Label>
+                    <Input
+                      id={`location-${index}-${key}`}
+                      value={location[key]}
+                      onChange={(event) =>
+                        setLocations((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index ? { ...item, [key]: event.target.value } : item,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

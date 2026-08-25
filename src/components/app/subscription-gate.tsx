@@ -30,7 +30,7 @@ export function SubscriptionGate() {
         if (data?.hasActivePlan) {
           window.clearInterval(timer);
           setCheckingPayment(false);
-          window.history.replaceState({}, "", "/panel");
+          window.history.replaceState({}, "", window.location.pathname);
           toast.success(t("Plan activado"));
         } else if (attempts >= 12) {
           window.clearInterval(timer);
