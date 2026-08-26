@@ -1,7 +1,6 @@
-const defaultPublicOrigin = "https://fideleovdos.vercel.app";
+const publicOrigin = "https://fideleo.store";
 
-export const getPublicAppOrigin = () =>
-  (import.meta.env.VITE_PUBLIC_APP_URL?.trim() || defaultPublicOrigin).replace(/\/$/, "");
+export const getPublicAppOrigin = () => publicOrigin;
 
 export const getCaptureUrl = (organizationSlug: string, locationSlug?: string) => {
   const path = locationSlug
