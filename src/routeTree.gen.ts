@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AceptarInvitacionRouteImport } from './routes/aceptar-invitacion'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as SolicitarDemoRouteImport } from './routes/solicitar-demo'
 import { Route as AuthenticatedOnboardingRouteRouteImport } from './routes/_authenticated/_onboarding/route'
@@ -50,6 +51,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AceptarInvitacionRoute = AceptarInvitacionRouteImport.update({
+  id: '/aceptar-invitacion',
+  path: '/aceptar-invitacion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -231,6 +237,7 @@ const ClubBusinessSlugLegalDocumentRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aceptar-invitacion': typeof AceptarInvitacionRoute
   '/auth': typeof AuthRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/panel': typeof AuthenticatedPanelRouteWithChildren
@@ -264,6 +271,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aceptar-invitacion': typeof AceptarInvitacionRoute
   '/auth': typeof AuthRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/plataforma': typeof AuthenticatedPlataformaRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/aceptar-invitacion': typeof AceptarInvitacionRoute
   '/auth': typeof AuthRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/_authenticated/_onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/aceptar-invitacion'
     | '/auth'
     | '/solicitar-demo'
     | '/panel'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/aceptar-invitacion'
     | '/auth'
     | '/solicitar-demo'
     | '/plataforma'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/aceptar-invitacion'
     | '/auth'
     | '/solicitar-demo'
     | '/_authenticated/_onboarding'
@@ -436,6 +448,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AceptarInvitacionRoute: typeof AceptarInvitacionRoute
   AuthRoute: typeof AuthRoute
   SolicitarDemoRoute: typeof SolicitarDemoRoute
   ClubBusinessSlugRoute: typeof ClubBusinessSlugRouteWithChildren
@@ -459,6 +472,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aceptar-invitacion': {
+      id: '/aceptar-invitacion'
+      path: '/aceptar-invitacion'
+      fullPath: '/aceptar-invitacion'
+      preLoaderRoute: typeof AceptarInvitacionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -776,6 +796,7 @@ const ClubBusinessSlugRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AceptarInvitacionRoute: AceptarInvitacionRoute,
   AuthRoute: AuthRoute,
   SolicitarDemoRoute: SolicitarDemoRoute,
   ClubBusinessSlugRoute: ClubBusinessSlugRouteWithChildren,

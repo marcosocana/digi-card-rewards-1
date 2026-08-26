@@ -80,8 +80,8 @@ const emailHtml = ({
   <div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(content.message)}</div>
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f5f2"><tr><td align="center" style="padding:36px 16px">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px">
-      <tr><td style="border:1px solid #111111;border-bottom:0;border-radius:28px 28px 0 0;background:#f8b9e7;padding:28px 34px">
-        <img src="https://www.fideleo.store/logo.svg" width="168" height="38" alt="Fideleo" style="display:block;width:168px;height:auto;border:0">
+      <tr><td style="border:1px solid #111111;border-bottom:0;border-radius:28px 28px 0 0;background:#f8b9e7;padding:28px 34px;color:#111111;font-size:24px;font-weight:800;letter-spacing:-.04em">
+        Fideleo
       </td></tr>
       <tr><td style="border:1px solid #111111;border-radius:0 0 28px 28px;background:#ffffff;padding:38px 34px">
         <p style="margin:0 0 14px;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase">${escapeHtml(content.eyebrow)}</p>

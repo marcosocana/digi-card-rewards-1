@@ -162,11 +162,12 @@ Deno.serve(async (request) => {
       const invitation = await selectOne<{
         id: string;
         organization_id: string;
+        user_id: string | null;
         invited_email: string | null;
         full_name: string | null;
         role: string;
       }>(
-        `organization_users?id=eq.${encodeURIComponent(invitationId)}&select=id,organization_id,invited_email,full_name,role&limit=1`,
+        `organization_users?id=eq.${encodeURIComponent(invitationId)}&select=id,organization_id,user_id,invited_email,full_name,role&limit=1`,
       );
       if (!invitation?.invited_email) return json({ error: "Invitación no encontrada" }, 404);
       const [callerMembership, superadmin, organization] = await Promise.all([
@@ -184,18 +185,68 @@ Deno.serve(async (request) => {
         return json({ error: "No tienes permisos para enviar esta invitación" }, 403);
       }
       recipient = invitation.invited_email.trim().toLowerCase();
+
+      // A new team member must be created through Supabase Auth. Auth invokes
+      // send-auth-email, which delivers the branded invitation through Resend.
+      if (!invitation.user_id) {
+        eventKey = `team_auth_invitation:${invitation.id}`;
+        const alreadyInvited = await selectOne<{ id: string }>(
+          `transactional_email_deliveries?event_key=eq.${encodeURIComponent(eventKey)}&select=id&limit=1`,
+        );
+        if (alreadyInvited) return json({ ok: true, duplicate: true });
+
+        const redirectTo = `${appUrl}/aceptar-invitacion`;
+        const inviteResponse = await fetch(
+          `${supabaseUrl}/auth/v1/invite?redirect_to=${encodeURIComponent(redirectTo)}`,
+          {
+            method: "POST",
+            headers: databaseHeaders,
+            body: JSON.stringify({
+              email: recipient,
+              data: {
+                full_name: invitation.full_name || "",
+                organization_name: organization?.display_name || "",
+                organization_role: invitation.role,
+              },
+            }),
+          },
+        );
+        if (!inviteResponse.ok) {
+          const inviteError = (await inviteResponse.json()) as { message?: string; msg?: string };
+          console.error("Supabase Auth invite failed", inviteResponse.status, inviteError);
+          throw new Error(
+            inviteError.message || inviteError.msg || "No se pudo crear la invitación",
+          );
+        }
+
+        const logResponse = await fetch(`${supabaseUrl}/rest/v1/transactional_email_deliveries`, {
+          method: "POST",
+          headers: { ...databaseHeaders, Prefer: "return=minimal" },
+          body: JSON.stringify({
+            event_key: eventKey,
+            kind,
+            recipient,
+            provider_message_id: null,
+          }),
+        });
+        if (!logResponse.ok && logResponse.status !== 409) {
+          console.error("No se pudo registrar la invitación", await logResponse.text());
+        }
+        return json({ ok: true });
+      }
+
       eventKey = `team_invitation:${invitation.id}`;
-      const signupUrl = `${appUrl}/auth?email=${encodeURIComponent(recipient)}&tab=signup`;
+      const signupUrl = `${appUrl}/auth?email=${encodeURIComponent(recipient)}`;
       content = {
-        subject: `${organization?.display_name || "Un negocio"} te invita a Fideleo`,
-        preheader: "Crea tu cuenta para acceder al panel de gestión.",
+        subject: "Te han invitado a Fideleo",
+        preheader: "Accede a la plataforma con tu cuenta.",
         title: "Te han invitado a Fideleo",
         greeting: invitation.full_name ? `Hola, ${invitation.full_name}.` : "Hola.",
         paragraphs: [
           `${organization?.display_name || "Un negocio"} te ha dado de alta en su equipo con el rol de ${roleNames[invitation.role] || invitation.role}.`,
-          "Crea tu cuenta con este mismo email para que Fideleo asigne automáticamente tus permisos y establecimientos.",
+          "Tu email ya corresponde a una cuenta de Fideleo. Inicia sesión para acceder con tus nuevos permisos y establecimientos.",
         ],
-        cta: { label: "Crear mi cuenta", url: signupUrl },
+        cta: { label: "Acceder a Fideleo", url: signupUrl },
         note: "Si no esperabas esta invitación, puedes ignorar este mensaje.",
       };
     } else if (kind === "membership_welcome") {
