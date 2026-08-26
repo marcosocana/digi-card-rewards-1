@@ -208,12 +208,27 @@ function WalletPage() {
         : {}),
     };
     const { error } = await supabase.from("organization_branding").upsert(payload);
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error(t("No se pudo guardar"), { description: error.message });
       return;
     }
-    toast.success(t("Diseño de Wallet actualizado"));
+    if (provider === "google") {
+      const { data: syncResult, error: syncError } = await supabase.functions.invoke<{
+        updated?: boolean;
+        error?: string;
+      }>("sync-google-wallet-design", { body: { organizationId: orgId } });
+      if (syncError || !syncResult?.updated) {
+        setSaving(false);
+        toast.warning(t("Diseño guardado, pero Google Wallet no pudo actualizarse"), {
+          description: syncResult?.error ?? syncError?.message,
+        });
+        void refetch();
+        return;
+      }
+    }
+    setSaving(false);
+    toast.success(t("Diseño de Wallet actualizado para todas las tarjetas"));
     void refetch();
   };
 

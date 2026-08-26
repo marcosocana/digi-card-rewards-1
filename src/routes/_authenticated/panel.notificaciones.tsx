@@ -125,7 +125,7 @@ function NotificacionesPage() {
       return {
         notifications: notifications.data ?? [],
         segments: segments.data ?? [],
-        limit: organization.data?.notification_daily_limit ?? 1,
+        limit: organization.data?.notification_daily_limit ?? 3,
         manualToday,
         segmentCounts,
         locations: locations.data ?? [],
@@ -238,7 +238,7 @@ function NotificacionesPage() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button disabled={!canMutate || (data?.manualToday ?? 0) >= (data?.limit ?? 1)}>
+              <Button disabled={!canMutate || (data?.manualToday ?? 0) >= (data?.limit ?? 3)}>
                 <Plus className="size-4" /> Nueva notificación
               </Button>
             </DialogTrigger>
