@@ -279,7 +279,7 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
             {legalLink("privacidad", "política de privacidad")}.
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm text-black/55">
+        <label className="flex items-start gap-3 text-sm">
           <Checkbox checked={marketing} onCheckedChange={(value) => setMarketing(value === true)} />
           <span>
             Quiero recibir novedades y promociones de {ctx.organization.display_name}. Este
