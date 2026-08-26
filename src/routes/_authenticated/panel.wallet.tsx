@@ -19,6 +19,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAdminScope } from "@/lib/session";
 import { num } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -40,6 +49,18 @@ const defaultDesign = {
 
 type WalletProvider = "google" | "apple";
 type WalletDesign = typeof defaultDesign;
+type HeroCrop = {
+  file: File;
+  previewUrl: string;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+};
+
+const GOOGLE_HERO_WIDTH = 1032;
+const GOOGLE_HERO_HEIGHT = 336;
+const GOOGLE_HERO_ASPECT = GOOGLE_HERO_WIDTH / GOOGLE_HERO_HEIGHT;
 
 function WalletPage() {
   const { session, organizationId: orgId, isSuperadmin, isGlobal } = useAdminScope();
@@ -48,6 +69,15 @@ function WalletPage() {
   const [provider, setProvider] = useState<WalletProvider>("google");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"logoUrl" | "heroUrl" | null>(null);
+  const [heroCrop, setHeroCrop] = useState<HeroCrop | null>(null);
+  const [cropApplying, setCropApplying] = useState(false);
+
+  useEffect(() => {
+    const previewUrl = heroCrop?.previewUrl;
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [heroCrop?.previewUrl]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["wallet-passes", orgId, isSuperadmin],
@@ -176,6 +206,114 @@ function WalletPage() {
     toast.success(t("Imagen preparada"));
   };
 
+  const closeHeroCrop = () => {
+    if (heroCrop) URL.revokeObjectURL(heroCrop.previewUrl);
+    setHeroCrop(null);
+  };
+
+  const prepareHeroCrop = async (file: File) => {
+    const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+    if (!allowedTypes.has(file.type)) {
+      toast.error(t("Formato no compatible"), { description: t("Utiliza PNG, JPG o WebP.") });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t("La imagen no puede superar 5 MB"));
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.src = previewUrl;
+    try {
+      await image.decode();
+    } catch {
+      URL.revokeObjectURL(previewUrl);
+      toast.error(t("No se ha podido leer la imagen"));
+      return;
+    }
+
+    if (image.naturalWidth < GOOGLE_HERO_WIDTH || image.naturalHeight < GOOGLE_HERO_HEIGHT) {
+      URL.revokeObjectURL(previewUrl);
+      toast.error(t("La imagen es demasiado pequeña"), {
+        description: t("Utiliza una imagen de al menos 1032 × 336 px para evitar ampliarla."),
+      });
+      return;
+    }
+
+    if (image.naturalWidth === GOOGLE_HERO_WIDTH && image.naturalHeight === GOOGLE_HERO_HEIGHT) {
+      URL.revokeObjectURL(previewUrl);
+      await uploadAsset(file, "heroUrl");
+      return;
+    }
+
+    closeHeroCrop();
+    setHeroCrop({
+      file,
+      previewUrl,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      x: 50,
+      y: 50,
+    });
+  };
+
+  const applyHeroCrop = async () => {
+    if (!heroCrop || cropApplying) return;
+    setCropApplying(true);
+    try {
+      const image = new Image();
+      image.src = heroCrop.previewUrl;
+      await image.decode();
+
+      const sourceAspect = heroCrop.width / heroCrop.height;
+      let sourceX = 0;
+      let sourceY = 0;
+      let sourceWidth = heroCrop.width;
+      let sourceHeight = heroCrop.height;
+      if (sourceAspect > GOOGLE_HERO_ASPECT) {
+        sourceWidth = heroCrop.height * GOOGLE_HERO_ASPECT;
+        sourceX = (heroCrop.width - sourceWidth) * (heroCrop.x / 100);
+      } else if (sourceAspect < GOOGLE_HERO_ASPECT) {
+        sourceHeight = heroCrop.width / GOOGLE_HERO_ASPECT;
+        sourceY = (heroCrop.height - sourceHeight) * (heroCrop.y / 100);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = GOOGLE_HERO_WIDTH;
+      canvas.height = GOOGLE_HERO_HEIGHT;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("CANVAS_NOT_AVAILABLE");
+      context.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        GOOGLE_HERO_WIDTH,
+        GOOGLE_HERO_HEIGHT,
+      );
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          (result) => (result ? resolve(result) : reject(new Error("IMAGE_EXPORT_FAILED"))),
+          "image/webp",
+          0.9,
+        ),
+      );
+      const croppedFile = new File([blob], "wallet-hero.webp", { type: "image/webp" });
+      closeHeroCrop();
+      await uploadAsset(croppedFile, "heroUrl");
+    } catch (error) {
+      toast.error(t("No se ha podido recortar la imagen"), {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setCropApplying(false);
+    }
+  };
+
   const saveDesign = async () => {
     if (!orgId || !design.programName.trim() || !design.pointsLabel.trim()) {
       toast.error(t("Completa el nombre del programa y la etiqueta de puntos"));
@@ -247,7 +385,9 @@ function WalletPage() {
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = "";
-            if (file) void uploadAsset(file, kind);
+            if (!file) return;
+            if (provider === "google" && kind === "heroUrl") void prepareHeroCrop(file);
+            else void uploadAsset(file, kind);
           }}
         />
         <Button asChild type="button" variant="outline" disabled={uploading !== null}>
@@ -277,6 +417,86 @@ function WalletPage() {
 
   return (
     <>
+      <Dialog
+        open={Boolean(heroCrop)}
+        onOpenChange={(open) => {
+          if (!open && !cropApplying) closeHeroCrop();
+        }}
+      >
+        <DialogContent className="max-w-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("Encuadra la imagen de Google Wallet")}</DialogTitle>
+            <DialogDescription>
+              {t(
+                "Solo se guardará el contenido visible dentro de la franja. La imagen no se ampliará ni perderá resolución.",
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {heroCrop ? (
+            <div className="space-y-5">
+              <div className="overflow-hidden rounded-xl bg-muted ring-1 ring-black/10">
+                <div className="aspect-[1032/336] w-full overflow-hidden">
+                  <img
+                    src={heroCrop.previewUrl}
+                    alt={t("Vista previa del recorte de la imagen")}
+                    className="size-full object-cover"
+                    style={{ objectPosition: `${heroCrop.x}% ${heroCrop.y}%` }}
+                  />
+                </div>
+              </div>
+              {heroCrop.width / heroCrop.height > GOOGLE_HERO_ASPECT ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label>{t("Posición horizontal")}</Label>
+                    <span className="text-xs text-muted-foreground">{Math.round(heroCrop.x)}%</span>
+                  </div>
+                  <Slider
+                    value={[heroCrop.x]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    onValueChange={([x]) =>
+                      setHeroCrop((current) => (current ? { ...current, x } : current))
+                    }
+                  />
+                </div>
+              ) : heroCrop.width / heroCrop.height < GOOGLE_HERO_ASPECT ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label>{t("Posición vertical")}</Label>
+                    <span className="text-xs text-muted-foreground">{Math.round(heroCrop.y)}%</span>
+                  </div>
+                  <Slider
+                    value={[heroCrop.y]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    onValueChange={([y]) =>
+                      setHeroCrop((current) => (current ? { ...current, y } : current))
+                    }
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t("La imagen ya tiene la proporción correcta y solo se reducirá de tamaño.")}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t("Salida final: 1032 × 336 px. No se permite zoom ni ampliación.")}
+              </p>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={cropApplying} onClick={closeHeroCrop}>
+              {t("Cancelar")}
+            </Button>
+            <Button type="button" disabled={cropApplying} onClick={() => void applyHeroCrop()}>
+              {cropApplying ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              {cropApplying ? t("Preparando…") : t("Usar este encuadre")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <PageHeader
         title="Wallet"
         description={t("Consulta el uso de cada Wallet y personaliza el aspecto de las tarjetas.")}
