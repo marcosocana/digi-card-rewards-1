@@ -4,6 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getMembershipPortal, getWalletInstallState } from "@/lib/operations";
 import { Button } from "@/components/ui/button";
@@ -30,6 +39,9 @@ function PortalPage() {
   const { publicId } = Route.useParams();
   const [qr, setQr] = useState<string | null>(null);
   const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
+  const [walletVerificationOpen, setWalletVerificationOpen] = useState(false);
+  const [walletVerificationSent, setWalletVerificationSent] = useState(false);
+  const [walletVerificationCode, setWalletVerificationCode] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["portal", publicId],
@@ -51,21 +63,13 @@ function PortalPage() {
     }
   };
 
-  const addToGoogleWallet = async () => {
-    if (!data || googleWalletLoading) return;
-
-    const walletWindow = window.open("about:blank", "_blank");
-    if (walletWindow) walletWindow.opener = null;
-    setGoogleWalletLoading(true);
-
+  const generateGoogleWallet = async (accessToken: string, walletWindow: Window | null) => {
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session?.user.id)
-        throw new Error("Tu sesión ha caducado. Verifica de nuevo tu email.");
       const { data: walletData, error } = await supabase.functions.invoke<{
         url?: string;
         error?: string;
       }>("generate-google-wallet", {
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: {
           membershipPublicId: data.membership.public_id,
         },
@@ -75,7 +79,7 @@ function PortalPage() {
       if (!walletData?.url) throw new Error(walletData?.error ?? "La función no devolvió una URL.");
 
       if (walletWindow) walletWindow.location.href = walletData.url;
-      else window.open(walletData.url, "_blank", "noopener,noreferrer");
+      else window.location.href = walletData.url;
     } catch (error) {
       walletWindow?.close();
       let message = error instanceof Error ? error.message : "Inténtalo de nuevo más tarde.";
@@ -90,6 +94,79 @@ function PortalPage() {
       }
       toast.error("No se pudo añadir la tarjeta a Google Wallet", {
         description: message,
+      });
+    }
+  };
+
+  const sendWalletVerification = async () => {
+    const email = data?.customer.email.trim().toLowerCase();
+    if (!email) throw new Error("No se ha encontrado el email del titular.");
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    if (error) throw error;
+    setWalletVerificationSent(true);
+    toast.success("Código enviado", {
+      description: "Revisa tu email para confirmar que eres el titular de la tarjeta.",
+    });
+  };
+
+  const addToGoogleWallet = async () => {
+    if (!data || googleWalletLoading) return;
+    const walletWindow = window.open("about:blank", "_blank");
+    if (walletWindow) walletWindow.opener = null;
+    setGoogleWalletLoading(true);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const session = sessionData.session;
+      const sessionEmail = session?.user.email?.trim().toLowerCase();
+      const customerEmail = data.customer.email.trim().toLowerCase();
+
+      if (session?.access_token && sessionEmail === customerEmail) {
+        await generateGoogleWallet(session.access_token, walletWindow);
+        return;
+      }
+
+      walletWindow?.close();
+      setWalletVerificationOpen(true);
+      if (!walletVerificationSent) await sendWalletVerification();
+    } catch (error) {
+      walletWindow?.close();
+      toast.error("No hemos podido verificar tu email", {
+        description: error instanceof Error ? error.message : "Inténtalo de nuevo más tarde.",
+      });
+    } finally {
+      setGoogleWalletLoading(false);
+    }
+  };
+
+  const verifyWalletOwner = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!data || walletVerificationCode.trim().length < 6) {
+      toast.error("Introduce el código recibido por email");
+      return;
+    }
+    const walletWindow = window.open("about:blank", "_blank");
+    if (walletWindow) walletWindow.opener = null;
+    setGoogleWalletLoading(true);
+    try {
+      const { data: verificationData, error } = await supabase.auth.verifyOtp({
+        email: data.customer.email.trim().toLowerCase(),
+        token: walletVerificationCode.trim(),
+        type: "email",
+      });
+      if (error || !verificationData.session?.access_token) {
+        throw error ?? new Error("No se ha podido iniciar la sesión del titular.");
+      }
+      setWalletVerificationOpen(false);
+      setWalletVerificationCode("");
+      await generateGoogleWallet(verificationData.session.access_token, walletWindow);
+    } catch (error) {
+      walletWindow?.close();
+      toast.error("El código no es válido o ha caducado", {
+        description: error instanceof Error ? error.message : undefined,
       });
     } finally {
       setGoogleWalletLoading(false);
@@ -118,6 +195,55 @@ function PortalPage() {
 
   return (
     <main className="min-h-screen bg-secondary px-5 py-10">
+      <Dialog open={walletVerificationOpen} onOpenChange={setWalletVerificationOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Verifica que eres el titular</DialogTitle>
+            <DialogDescription>
+              Hemos enviado un código de 6 dígitos a {data.customer.email}. Introdúcelo para añadir
+              esta tarjeta a Google Wallet.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={verifyWalletOwner}>
+            <div className="space-y-2">
+              <Label htmlFor="wallet-verification-code">Código de verificación</Label>
+              <Input
+                id="wallet-verification-code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                value={walletVerificationCode}
+                onChange={(event) =>
+                  setWalletVerificationCode(event.target.value.replace(/\s/g, ""))
+                }
+                className="h-12 text-center text-xl tracking-[.35em]"
+                placeholder="000000"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={googleWalletLoading}>
+              {googleWalletLoading ? "Verificando…" : "Verificar y añadir a Wallet"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              disabled={googleWalletLoading}
+              onClick={() => {
+                setGoogleWalletLoading(true);
+                void sendWalletVerification()
+                  .catch((error: unknown) =>
+                    toast.error("No hemos podido reenviar el código", {
+                      description: error instanceof Error ? error.message : undefined,
+                    }),
+                  )
+                  .finally(() => setGoogleWalletLoading(false));
+              }}
+            >
+              Reenviar código
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <div className="mx-auto w-full max-w-md space-y-4">
         <div className="surface bg-sidebar p-6 text-center text-sidebar-foreground">
           <p className="text-xs uppercase tracking-wide text-sidebar-foreground/70">

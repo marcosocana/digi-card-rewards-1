@@ -200,7 +200,7 @@ Deno.serve(async (request) => {
     const logoUrl =
       branding?.wallet_logo_url ??
       branding?.logo_url ??
-      `${Deno.env.get("WALLET_PUBLIC_BASE_URL") ?? "https://fideleovdos.vercel.app"}/isotipo.svg`;
+      `${Deno.env.get("WALLET_PUBLIC_BASE_URL") ?? "https://fideleo.store"}/isotipo.svg`;
     const classBody: Record<string, unknown> = {
       id: classId,
       issuerName: organizationName,
