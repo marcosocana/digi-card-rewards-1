@@ -2744,6 +2744,16 @@ export type Database = {
         }
         Returns: Json
       }
+      invite_organization_user: {
+        Args: {
+          _email: string
+          _full_name: string
+          _location_ids?: string[]
+          _organization_id: string
+          _role: Database["public"]["Enums"]["org_role"]
+        }
+        Returns: string
+      }
       membership_service_payload: {
         Args: { _location_id: string; _membership_id: string }
         Returns: Json

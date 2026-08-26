@@ -101,39 +101,20 @@ function EquipoPage() {
       toast.error(t("Asigna al menos un establecimiento"));
       return;
     }
-    const { data: invited, error } = await supabase
-      .from("organization_users")
-      .insert({
-        organization_id: orgId,
-        invited_email: form.email.trim().toLowerCase(),
-        full_name: form.full_name.trim() || null,
-        role: form.role as "staff",
-        can_adjust_points: form.role === "manager",
-        status: "active",
-      })
-      .select("id")
-      .single();
+    const { data: invitationId, error } = await supabase.rpc("invite_organization_user", {
+      _organization_id: orgId,
+      _email: form.email.trim().toLowerCase(),
+      _full_name: form.full_name.trim(),
+      _role: form.role as "admin" | "manager" | "staff",
+      _location_ids: form.role === "admin" ? [] : form.location_ids,
+    });
     if (error) {
       toast.error(t("No se pudo invitar"), { description: error.message });
       return;
     }
-    if (form.role !== "admin" && form.location_ids.length && invited) {
-      const { error: assignmentError } = await supabase.from("user_location_assignments").insert(
-        form.location_ids.map((locationId) => ({
-          organization_user_id: invited.id,
-          location_id: locationId,
-        })),
-      );
-      if (assignmentError) {
-        toast.error(t("Usuario creado, pero no se pudo asignar el establecimiento"), {
-          description: assignmentError.message,
-        });
-        return;
-      }
-    }
     try {
-      if (invited) {
-        await sendTransactionalEmail({ kind: "team_invitation", invitationId: invited.id });
+      if (invitationId) {
+        await sendTransactionalEmail({ kind: "team_invitation", invitationId });
       }
     } catch (emailError) {
       toast.warning(t("Invitación guardada, pero el email no pudo enviarse"), {
