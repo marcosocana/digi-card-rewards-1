@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,9 +108,12 @@ function AuthPage() {
   const search = Route.useSearch();
   const destination = search.next;
   const welcomeHandled = useRef(false);
+  const demoHandled = useRef(false);
   const [activeTab, setActiveTab] = useState<"signin" | "signup">(search.tab);
   const [email, setEmail] = useState(search.email);
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState(
+    search.email === "admin.pro@demo.fideleo.app" ? "admin.pro@demo.fideleo.app" : "",
+  );
   const [newPassword, setNewPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -201,33 +204,38 @@ function AuthPage() {
     };
   }, [businessName, destination, search.confirmed]);
 
-  const signInWithCredentials = async (
-    loginEmail: string,
-    loginPassword: string,
-    nextDestination = destination,
-  ) => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-    if (error) {
-      setLoading(false);
-      toast.error("No hemos podido iniciar sesión", { description: error.message });
-      return;
-    }
-    try {
-      await ensureBusinessAccount();
-    } catch (accountError) {
-      setLoading(false);
-      toast.error("No hemos podido preparar tu cuenta", {
-        description: accountError instanceof Error ? accountError.message : "Inténtalo de nuevo",
+  const signInWithCredentials = useCallback(
+    async (loginEmail: string, loginPassword: string, nextDestination = destination) => {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
       });
-      return;
-    }
-    setLoading(false);
-    window.location.assign(nextDestination);
-  };
+      if (error) {
+        setLoading(false);
+        toast.error("No hemos podido iniciar sesión", { description: error.message });
+        return;
+      }
+      try {
+        await ensureBusinessAccount();
+      } catch (accountError) {
+        setLoading(false);
+        toast.error("No hemos podido preparar tu cuenta", {
+          description: accountError instanceof Error ? accountError.message : "Inténtalo de nuevo",
+        });
+        return;
+      }
+      setLoading(false);
+      window.location.assign(nextDestination);
+    },
+    [destination],
+  );
+
+  useEffect(() => {
+    if (search.email !== "admin.pro@demo.fideleo.app" || demoHandled.current) return;
+    demoHandled.current = true;
+    void signInWithCredentials("admin.pro@demo.fideleo.app", "admin.pro@demo.fideleo.app");
+  }, [search.email, signInWithCredentials]);
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();

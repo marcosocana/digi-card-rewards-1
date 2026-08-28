@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import {
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { subscriptionPlans } from "@/lib/subscription-plans";
 import { CookieConsent, openCookieSettingsEvent } from "@/components/app/cookie-consent";
 import { WhatsAppFloating } from "@/components/app/whatsapp-floating";
+import { qrPngDataUrl } from "@/lib/qr";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -124,6 +125,9 @@ const testimonials = [
   },
 ];
 
+const clubExamplePath = "/club/cafe-norte";
+const backofficeExamplePath = "/auth?email=admin.pro%40demo.fideleo.app";
+
 function BrandMark({
   onDark = false,
   compactOnMobile = false,
@@ -156,12 +160,43 @@ function BrandMark({
 
 function HomePage() {
   const [scrolled, setScrolled] = useState(false);
+  const [clubQr, setClubQr] = useState("");
+  const testimonialsTrackRef = useRef<HTMLDivElement>(null);
+  const testimonialsPausedRef = useRef(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    void qrPngDataUrl(`${window.location.origin}${clubExamplePath}`, "#111111").then(setClubQr);
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let frame = 0;
+    let previousTime = 0;
+    const move = (time: number) => {
+      const track = testimonialsTrackRef.current;
+      if (track && !testimonialsPausedRef.current) {
+        const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
+        track.scrollLeft += elapsed * 0.035;
+        const firstCard = track.children[0] as HTMLElement | undefined;
+        const firstDuplicate = track.children[testimonials.length] as HTMLElement | undefined;
+        const cycleWidth =
+          firstCard && firstDuplicate ? firstDuplicate.offsetLeft - firstCard.offsetLeft : 0;
+        if (cycleWidth && track.scrollLeft >= cycleWidth) track.scrollLeft -= cycleWidth;
+      }
+      previousTime = time;
+      frame = window.requestAnimationFrame(move);
+    };
+
+    frame = window.requestAnimationFrame(move);
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   return (
@@ -295,6 +330,46 @@ function HomePage() {
         </div>
       </section>
 
+      <section className="bg-[#fff0d8] px-5 py-20 lg:px-10 lg:py-24">
+        <div className="mx-auto grid max-w-[1440px] items-center gap-10 rounded-[2.5rem] bg-white p-7 shadow-sm sm:p-10 lg:grid-cols-[1fr_auto] lg:p-14">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#c93c9f]">
+              Ejemplo de club
+            </p>
+            <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-.05em] sm:text-6xl">
+              Descubre la experiencia de tus clientes.
+            </h2>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-black/60">
+              Escanea el QR o abre el Club Café Norte para ver cómo un cliente consulta sus puntos,
+              recompensas y tarjeta digital.
+            </p>
+            <Button asChild size="lg" className="mt-8 h-13 rounded-full bg-black px-8 text-white">
+              <a href={clubExamplePath} target="_blank" rel="noreferrer">
+                Ver ejemplo <ArrowRight />
+              </a>
+            </Button>
+          </div>
+          <a
+            href={clubExamplePath}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Abrir el Club Café Norte de ejemplo en una pestaña nueva"
+            className="group mx-auto rounded-[2rem] bg-[#ffe65c] p-5 transition-transform hover:-translate-y-1 sm:p-7"
+          >
+            <div className="rounded-[1.4rem] bg-white p-4 shadow-sm">
+              {clubQr ? (
+                <img src={clubQr} alt="QR del Club Café Norte de ejemplo" className="size-48" />
+              ) : (
+                <div className="size-48 animate-pulse rounded-xl bg-black/5" />
+              )}
+            </div>
+            <p className="mt-4 text-center text-sm font-semibold group-hover:underline">
+              Escanea o pulsa el QR
+            </p>
+          </a>
+        </div>
+      </section>
+
       <section id="precios" className="bg-[#111] px-5 py-24 text-white lg:px-10 lg:py-32">
         <div className="mx-auto max-w-[1440px]">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-[#f8b9e7]">Precios</p>
@@ -368,6 +443,11 @@ function HomePage() {
                   </li>
                 ))}
               </ul>
+              <Button asChild size="lg" className="mt-9 h-13 rounded-full bg-black px-8 text-white">
+                <a href={backofficeExamplePath}>
+                  Ver ejemplo <ArrowRight />
+                </a>
+              </Button>
             </div>
             <AnalyticsPreview />
           </div>
@@ -375,22 +455,32 @@ function HomePage() {
       </section>
 
       <section className="px-5 py-24 lg:px-10 lg:py-32">
-        <div className="mx-auto max-w-[1440px]">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-[2rem] bg-[#f4efff] p-8">
+        <div className="mx-auto max-w-[1440px] overflow-x-auto pb-3">
+          <div className="grid min-w-[70rem] grid-cols-5 gap-4">
+            <div className="rounded-[2rem] bg-[#f4efff] p-7">
               <Users className="size-8" />
-              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">12.500+</p>
-              <p className="mt-2 text-lg">clientes ya forman parte de clubes Fideleo</p>
+              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">12.500+</p>
+              <p className="mt-2">clientes en clubes Fideleo</p>
             </div>
-            <div className="rounded-[2rem] bg-[#ffe65c] p-8">
+            <div className="rounded-[2rem] bg-[#ffe65c] p-7">
               <Store className="size-8" />
-              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">48</p>
-              <p className="mt-2 text-lg">locales fidelizan a sus clientes cada día</p>
+              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">48</p>
+              <p className="mt-2">locales fidelizan cada día</p>
             </div>
-            <div className="rounded-[2rem] bg-[#ffd9ee] p-8">
+            <div className="rounded-[2rem] bg-[#ffd9ee] p-7">
               <Gift className="size-8" />
-              <p className="mt-14 text-6xl font-semibold tracking-[-.06em]">31.800</p>
-              <p className="mt-2 text-lg">premios y productos canjeados</p>
+              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">31.800</p>
+              <p className="mt-2">premios y productos canjeados</p>
+            </div>
+            <div className="rounded-[2rem] bg-[#dff7ff] p-7">
+              <ScanLine className="size-8" />
+              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">2,4×</p>
+              <p className="mt-2">visitas por cliente recurrente</p>
+            </div>
+            <div className="rounded-[2rem] bg-[#e7f8ed] p-7">
+              <BadgeCheck className="size-8" />
+              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">64%</p>
+              <p className="mt-2">tasa de clientes recurrentes</p>
             </div>
           </div>
         </div>
@@ -411,38 +501,52 @@ function HomePage() {
             </p>
           </div>
         </div>
-        <div className="mt-14 flex snap-x snap-mandatory gap-6 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2.5rem))] pb-8">
-          {testimonials.map((testimonial) => (
-            <article
-              key={`${testimonial.name}-${testimonial.business}`}
-              className="grid w-[88vw] max-w-[44rem] shrink-0 snap-center overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm sm:grid-cols-[15rem_1fr]"
-            >
-              <img
-                src={testimonial.image}
-                alt={`${testimonial.name}, responsable de ${testimonial.business}`}
-                loading="lazy"
-                className="h-64 w-full object-cover sm:h-full"
-              />
-              <div className="flex min-h-[22rem] flex-col p-7 sm:p-9">
-                <div className="flex gap-1" aria-label="5 de 5 estrellas">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star
-                      key={index}
-                      className="size-5 fill-[#ff9d3d] text-[#ff9d3d]"
-                      aria-hidden
-                    />
-                  ))}
+        <div className="relative mt-14">
+          <div
+            ref={testimonialsTrackRef}
+            className="flex gap-6 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2.5rem))] pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onMouseEnter={() => (testimonialsPausedRef.current = true)}
+            onMouseLeave={() => (testimonialsPausedRef.current = false)}
+            onTouchStart={() => (testimonialsPausedRef.current = true)}
+            onTouchEnd={() => (testimonialsPausedRef.current = false)}
+            onFocusCapture={() => (testimonialsPausedRef.current = true)}
+            onBlurCapture={() => (testimonialsPausedRef.current = false)}
+          >
+            {[...testimonials, ...testimonials].map((testimonial, testimonialIndex) => (
+              <article
+                key={`${testimonial.name}-${testimonial.business}-${testimonialIndex}`}
+                aria-hidden={testimonialIndex >= testimonials.length}
+                className="grid w-[88vw] max-w-[44rem] shrink-0 overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm sm:grid-cols-[15rem_1fr]"
+              >
+                <img
+                  src={testimonial.image}
+                  alt={`${testimonial.name}, responsable de ${testimonial.business}`}
+                  loading="lazy"
+                  className="h-64 w-full object-cover sm:h-full"
+                />
+                <div className="flex min-h-[22rem] flex-col p-7 sm:p-9">
+                  <div className="flex gap-1" aria-label="5 de 5 estrellas">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        className="size-5 fill-[#ff9d3d] text-[#ff9d3d]"
+                        aria-hidden
+                      />
+                    ))}
+                  </div>
+                  <blockquote className="mt-7 text-xl font-medium leading-relaxed">
+                    “{testimonial.quote}”
+                  </blockquote>
+                  <div className="mt-auto border-t border-black/10 pt-6">
+                    <p className="font-semibold">{testimonial.name}</p>
+                    <p className="text-sm text-black/50">{testimonial.business}</p>
+                  </div>
                 </div>
-                <blockquote className="mt-7 text-xl font-medium leading-relaxed">
-                  “{testimonial.quote}”
-                </blockquote>
-                <div className="mt-auto border-t border-black/10 pt-6">
-                  <p className="font-semibold">{testimonial.name}</p>
-                  <p className="text-sm text-black/50">{testimonial.business}</p>
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-white to-transparent sm:w-28" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white to-transparent sm:w-28" />
         </div>
         <p className="mx-auto mt-2 max-w-[1440px] px-5 text-xs text-black/40 lg:px-10">
           Imágenes y contenidos provisionales, pendientes de sustituir por casos propios de Fideleo.
@@ -477,6 +581,22 @@ function HomePage() {
                 "¿Mi equipo puede usarlo desde la barra?",
                 "Sí. El escáner está optimizado para móvil y tablet, e incluye búsqueda alternativa por nombre, email, teléfono o número de socio.",
               ],
+              [
+                "¿Puedo personalizar el club con mi marca?",
+                "Sí. Puedes configurar el nombre del programa, el logo, los colores, la portada y los textos que verá el cliente.",
+              ],
+              [
+                "¿Los puntos pueden compartirse entre locales?",
+                "Sí. Puedes crear un programa común para varios establecimientos y decidir en cuáles se acumulan y canjean los puntos.",
+              ],
+              [
+                "¿Puedo saber qué locales y campañas funcionan mejor?",
+                "Sí. El backoffice muestra métricas por periodo y establecimiento para comparar actividad, recurrencia, recompensas y resultados.",
+              ],
+              [
+                "¿Puedo limitar lo que ve cada miembro del equipo?",
+                "Sí. Los permisos diferencian administradores, responsables y empleados, y pueden limitar el acceso a establecimientos concretos.",
+              ],
             ].map(([question, answer]) => (
               <details key={question} className="group py-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-xl font-semibold">
@@ -508,9 +628,9 @@ function HomePage() {
               size="lg"
               className="h-13 rounded-full bg-black px-8 text-white hover:bg-black/75"
             >
-              <Link to="/auth">
-                Probar el backoffice <ArrowRight />
-              </Link>
+              <a href={backofficeExamplePath}>
+                Ver ejemplo Backoffice <ArrowRight />
+              </a>
             </Button>
             <Button
               asChild
