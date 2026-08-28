@@ -435,9 +435,8 @@ function HomePage() {
                   key={item.title}
                   className={cn(
                     item.color,
-                    "group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10 lg:col-span-2 lg:min-h-0 lg:w-full lg:max-w-none lg:rounded-[1.5rem] lg:p-6",
-                    itemIndex === 3 && "lg:col-start-2",
-                    itemIndex === 4 && "lg:col-start-4",
+                    "group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10 lg:min-h-0 lg:w-full lg:max-w-none lg:rounded-[1.5rem] lg:p-6",
+                    itemIndex < 3 ? "lg:col-span-2" : "lg:col-span-3",
                   )}
                 >
                   <div className="flex items-start justify-between">
@@ -1018,77 +1017,105 @@ function ProductPreview() {
   );
 }
 
-function MiniMetric({ label, value, trend }: { label: string; value: string; trend: string }) {
-  return (
-    <div className="rounded-xl border bg-white p-3">
-      <p className="text-[9px] text-black/40">{label}</p>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <p className="text-lg font-bold tracking-tight">{value}</p>
-        <span className="text-[9px] font-semibold text-[#149467]">↑ {trend}</span>
-      </div>
-    </div>
-  );
-}
-
 function AnalyticsPreview() {
-  const locations = [
-    ["Malasaña", 82],
-    ["Chamberí", 68],
-    ["Retiro", 61],
-    ["Salamanca", 54],
-    ["Chueca", 47],
-  ] as const;
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const preview = previewRef.current;
+    if (!preview) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (reducedMotion) {
+        setScrollProgress(1);
+        return;
+      }
+      const rect = preview.getBoundingClientRect();
+      const start = window.innerHeight * 0.92;
+      const end = window.innerHeight * 0.28;
+      const progress = Math.min(Math.max((start - rect.top) / (start - end), 0), 1);
+      setScrollProgress((current) => (Math.abs(current - progress) > 0.001 ? progress : current));
+    };
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+    return () => {
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
   return (
-    <div className="rounded-[2rem] bg-[#9c98aa] p-4 sm:p-7">
-      <div className="rounded-2xl bg-[#fafafd] p-4 shadow-2xl sm:p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-black/40">
-              Estadísticas / <strong className="text-black">Resumen</strong>
-            </p>
-            <h3 className="mt-2 text-2xl font-bold tracking-tight">Rendimiento del club</h3>
-          </div>
-          <span className="rounded-lg border bg-white px-3 py-2 text-xs">
-            Todas las ubicaciones
-          </span>
+    <div ref={previewRef} className="relative mx-auto w-full max-w-3xl">
+      <div
+        className="mx-auto max-w-[12.5rem] rounded-[2px] bg-white p-2 shadow-[0_24px_60px_rgba(17,17,17,.16)] will-change-transform lg:hidden"
+        style={{
+          opacity: 0.72 + scrollProgress * 0.28,
+          transform: `translateY(${(1 - scrollProgress) * 20}px)`,
+        }}
+      >
+        <div className="mb-1.5 flex items-center gap-1 px-1.5 pt-0.5" aria-hidden="true">
+          <span className="size-1.5 rounded-full bg-[#f8b9e7]" />
+          <span className="size-1.5 rounded-full bg-[#ffe65c]" />
+          <span className="size-1.5 rounded-full bg-black/15" />
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-2">
-          <MiniMetric label="Retención" value="64%" trend="5,2%" />
-          <MiniMetric label="Ticket medio" value="12,80 €" trend="3,8%" />
-          <MiniMetric label="Canjes" value="184" trend="11%" />
+        <img
+          src="/backoffice-preview/dashboard-mobile.jpg"
+          alt="Dashboard móvil del backoffice Fideleo con métricas y actividad reciente"
+          width={387}
+          height={760}
+          loading="lazy"
+          className="w-full rounded-[2px] border border-black/[.06]"
+        />
+      </div>
+
+      <div className="relative hidden h-[31rem] lg:block">
+        <div
+          className="absolute inset-x-0 top-0 rounded-[2px] bg-white p-3 shadow-[0_30px_80px_rgba(17,17,17,.16)] will-change-transform"
+          style={{
+            opacity: 0.68 + scrollProgress * 0.32,
+            transform: `translateY(${(1 - scrollProgress) * 28}px) scale(${0.97 + scrollProgress * 0.03})`,
+          }}
+        >
+          <div className="mb-3 flex items-center gap-2 px-2 pt-1" aria-hidden="true">
+            <span className="size-2.5 rounded-full bg-[#f8b9e7]" />
+            <span className="size-2.5 rounded-full bg-[#ffe65c]" />
+            <span className="size-2.5 rounded-full bg-black/15" />
+          </div>
+          <img
+            src="/backoffice-preview/dashboard-web.jpg"
+            alt="Dashboard web del backoffice Fideleo con la actividad de tres establecimientos"
+            width={1800}
+            height={1035}
+            loading="lazy"
+            className="w-full rounded-[2px] border border-black/[.06]"
+          />
         </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-[1.35fr_.65fr]">
-          <div className="rounded-xl border bg-white p-4">
-            <p className="text-xs font-semibold">Ingresos registrados</p>
-            <div className="mt-5 space-y-3">
-              {locations.map(([name, width]) => (
-                <div key={name}>
-                  <div className="flex justify-between text-[10px]">
-                    <span>{name}</span>
-                    <span>{width}%</span>
-                  </div>
-                  <div className="mt-1 h-2 rounded-full bg-black/5">
-                    <div
-                      className="h-full rounded-full bg-[#df5ab6]"
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-xl border bg-white p-4">
-            <p className="text-xs font-semibold">Clientes</p>
-            <div
-              className="mx-auto mt-5 grid size-28 place-items-center rounded-full"
-              style={{ background: "conic-gradient(#df5ab6 0 64%, #d9dbea 64% 100%)" }}
-            >
-              <div className="grid size-20 place-items-center rounded-full bg-white text-xl font-bold">
-                64%
-              </div>
-            </div>
-            <p className="mt-3 text-center text-[10px] text-black/45">Clientes recurrentes</p>
-          </div>
+
+        <div
+          className="absolute -right-5 top-24 w-[23%] rounded-[2px] bg-white p-2 shadow-[0_28px_70px_rgba(17,17,17,.24)] will-change-transform"
+          style={{
+            opacity: 0.58 + scrollProgress * 0.42,
+            transform: `translateY(${(1 - scrollProgress) * 58}px) rotate(${(1 - scrollProgress) * 3}deg)`,
+          }}
+        >
+          <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-black/10" aria-hidden="true" />
+          <img
+            src="/backoffice-preview/dashboard-mobile.jpg"
+            alt="Vista móvil del dashboard de Fideleo"
+            width={387}
+            height={760}
+            loading="lazy"
+            className="w-full rounded-[2px] border border-black/[.06]"
+          />
         </div>
       </div>
     </div>
