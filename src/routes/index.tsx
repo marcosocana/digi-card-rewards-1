@@ -260,12 +260,8 @@ function HomePage() {
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
       if (track && isDesktop && !howAutoPausedRef.current && !howProgrammaticRef.current) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        track.scrollLeft += elapsed * 0.022;
-        const firstCard = track.children[0] as HTMLElement | undefined;
-        const firstDuplicate = track.children[howItWorks.length] as HTMLElement | undefined;
-        const cycleWidth =
-          firstCard && firstDuplicate ? firstDuplicate.offsetLeft - firstCard.offsetLeft : 0;
-        if (cycleWidth && track.scrollLeft >= cycleWidth) track.scrollLeft -= cycleWidth;
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        track.scrollLeft = Math.min(track.scrollLeft + elapsed * 0.022, maxScroll);
       }
       previousTime = time;
       frame = window.requestAnimationFrame(move);
@@ -437,7 +433,7 @@ function HomePage() {
           <div className="relative -mx-5 mt-14 lg:left-1/2 lg:mx-0 lg:w-screen lg:-translate-x-1/2">
             <div
               ref={howTrackRef}
-              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:snap-none lg:px-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] [&::-webkit-scrollbar]:hidden"
+              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:snap-none lg:pl-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] lg:pr-[calc(50vw-13rem)] [&::-webkit-scrollbar]:hidden"
               onTouchStart={() => (howAutoPausedRef.current = true)}
               onTouchEnd={() => (howAutoPausedRef.current = false)}
               onFocusCapture={() => (howAutoPausedRef.current = true)}
@@ -457,18 +453,15 @@ function HomePage() {
                     nearest = index;
                   }
                 });
-                const normalized = nearest % howItWorks.length;
-                setCurrentHowStep((current) => (current === normalized ? current : normalized));
+                setCurrentHowStep((current) => (current === nearest ? current : nearest));
               }}
             >
-              {[...howItWorks, ...howItWorks].map((item, itemIndex) => (
+              {howItWorks.map((item) => (
                 <article
-                  key={`${item.title}-${itemIndex}`}
-                  aria-hidden={itemIndex >= howItWorks.length}
+                  key={item.title}
                   className={cn(
                     item.color,
                     "group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10 lg:max-w-[26rem] lg:p-8",
-                    itemIndex >= howItWorks.length && "hidden lg:flex",
                   )}
                 >
                   <div className="flex items-start justify-between">
@@ -496,7 +489,7 @@ function HomePage() {
             <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-28 bg-gradient-to-r from-white to-transparent lg:block" />
             <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-28 bg-gradient-to-l from-white to-transparent lg:block" />
           </div>
-          <div className="mt-8 flex flex-col items-center gap-5 lg:mt-12 lg:gap-7">
+          <div className="mt-8 flex flex-col items-center gap-5 lg:hidden">
             <div className="flex items-center justify-center gap-6 sm:gap-10 lg:gap-16">
               <button
                 type="button"
