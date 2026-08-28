@@ -85,6 +85,8 @@ const testimonials = [
     name: "Sofía",
     business: "Bar Casa Andrea",
     image: "/testimonials/bar-casa-andrea.png",
+    avatar: "CA",
+    avatarClassName: "bg-[#ffe65c] text-black",
     quote:
       "Me gusta tener los puntos de Casa Andrea siempre en el móvil. Así sé cuánto me falta para mi próxima recompensa cada vez que vuelvo.",
   },
@@ -92,6 +94,8 @@ const testimonials = [
     name: "María",
     business: "Latteo Coffee",
     image: "/testimonials/latteo-coffee.png",
+    avatar: "L",
+    avatarClassName: "bg-[#2388f4] text-white",
     quote:
       "La tarjeta de Latteo Coffee es muy cómoda: pido mi café, enseño el móvil y los puntos se actualizan al momento.",
   },
@@ -99,6 +103,8 @@ const testimonials = [
     name: "Marcos",
     business: "Peluquería Álex",
     image: "/testimonials/peluqueria-alex.png",
+    avatar: "Á",
+    avatarClassName: "bg-[#111111] text-white",
     quote:
       "En Peluquería Álex cada visita cuenta. Llevar la tarjeta digital conmigo hace que acumular puntos sea sencillo y no tenga que guardar nada más.",
   },
@@ -106,6 +112,8 @@ const testimonials = [
     name: "Rocío",
     business: "Get Smashed Burger",
     image: "/testimonials/get-smashed-burger.png",
+    avatar: "GS",
+    avatarClassName: "bg-[#7de8c1] text-black",
     quote:
       "Con la tarjeta de Get Smashed Burger veo mis puntos de un vistazo y siempre tengo un motivo más para volver por mi burger favorita.",
   },
@@ -490,7 +498,7 @@ function HomePage() {
         <div className="relative mt-14">
           <div
             ref={testimonialsTrackRef}
-            className="flex gap-6 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2.5rem))] pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-8 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2rem))] pb-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             onMouseEnter={() => (testimonialsPausedRef.current = true)}
             onMouseLeave={() => (testimonialsPausedRef.current = false)}
             onTouchStart={() => (testimonialsPausedRef.current = true)}
@@ -502,30 +510,43 @@ function HomePage() {
               <article
                 key={`${testimonial.name}-${testimonial.business}-${testimonialIndex}`}
                 aria-hidden={testimonialIndex >= testimonials.length}
-                className="grid w-[88vw] max-w-[44rem] shrink-0 overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm sm:grid-cols-[15rem_1fr]"
+                className="grid w-[calc(100vw-2.5rem)] max-w-[86rem] shrink-0 gap-8 overflow-hidden rounded-[3rem] border border-black/[.06] bg-white p-6 shadow-[0_10px_35px_rgba(17,17,17,.09)] sm:p-10 lg:grid-cols-[minmax(18rem,28rem)_1fr] lg:gap-20 lg:p-16"
               >
                 <img
                   src={testimonial.image}
                   alt={`Tarjeta de fidelización de ${testimonial.name} para ${testimonial.business}`}
                   loading="lazy"
-                  className="h-[30rem] w-full bg-[#f5f5f5] object-contain sm:h-full"
+                  className="aspect-[7/11] h-auto w-full self-center rounded-[2.75rem] object-cover shadow-sm"
                 />
-                <div className="flex min-h-[22rem] flex-col p-7 sm:p-9">
-                  <div className="flex gap-1" aria-label="5 de 5 estrellas">
+                <div className="flex min-h-full flex-col py-2 lg:py-12">
+                  <div className="flex gap-2" aria-label="5 de 5 estrellas">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <Star
                         key={index}
-                        className="size-5 fill-[#ff9d3d] text-[#ff9d3d]"
+                        className="size-7 fill-[#ff6b00] text-[#ff6b00] sm:size-8"
                         aria-hidden
                       />
                     ))}
                   </div>
-                  <blockquote className="mt-7 text-xl font-medium leading-relaxed">
+                  <blockquote className="mt-9 max-w-[44rem] text-2xl font-medium leading-[1.55] sm:text-3xl lg:mt-10 lg:text-[2.1rem]">
                     “{testimonial.quote}”
                   </blockquote>
-                  <div className="mt-auto border-t border-black/10 pt-6">
-                    <p className="font-semibold">{testimonial.name}</p>
-                    <p className="text-sm text-black/50">{testimonial.business}</p>
+                  <div className="mt-12 flex items-center gap-5 lg:mt-auto lg:gap-7">
+                    <span
+                      className={cn(
+                        "grid size-20 shrink-0 place-items-center rounded-full text-xl font-bold sm:size-24 sm:text-2xl lg:size-28",
+                        testimonial.avatarClassName,
+                      )}
+                      aria-hidden="true"
+                    >
+                      {testimonial.avatar}
+                    </span>
+                    <div>
+                      <p className="text-xl font-semibold sm:text-2xl">{testimonial.name}</p>
+                      <p className="mt-1 text-base text-black/55 sm:text-xl">
+                        {testimonial.business}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </article>
