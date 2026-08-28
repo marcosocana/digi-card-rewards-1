@@ -45,8 +45,8 @@ const howItWorks = [
   {
     number: "01",
     icon: QrCode,
-    title: "El cliente conoce Fideleo",
-    text: "El cliente llega a tu local y conoce Fideleo a través de carteles, soportes, la carta o por el camarero. Lo importante es que nos conozca.",
+    title: "El cliente conoce tu programa de fidelización",
+    text: "El cliente conoce el programa de fidelización de tu negocio a través de carteles, soportes, la carta o por el camarero o dependiente.",
     color: "bg-[#dff7ff]",
   },
   {
@@ -60,14 +60,14 @@ const howItWorks = [
     number: "03",
     icon: WalletCards,
     title: "Añade su tarjeta al móvil",
-    text: "Puede añadir directamente la tarjeta de Fideleo a su móvil para tenerla siempre a mano y enseñarla cada vez que consuma.",
+    text: "Puede añadir directamente la tarjeta de fidelización de tu negocio a su móvil para tenerla siempre a mano y enseñarla cada vez que consuma.",
     color: "bg-[#fff0d8]",
   },
   {
     number: "04",
     icon: ScanLine,
     title: "El equipo suma los puntos",
-    text: "El camarero escanea la tarjeta con nuestro sistema y contabiliza los puntos de forma rápida y segura.",
+    text: "El camarero o dependiente de tu negocio escanea la tarjeta y suma los puntos de forma rápida y segura.",
     color: "bg-[#e7f8ed]",
   },
   {
@@ -139,7 +139,7 @@ function BrandMark({
           alt=""
           width={121}
           height={121}
-          className="size-10 lg:hidden"
+          className="size-10"
           aria-hidden="true"
         />
       ) : null}
@@ -179,7 +179,7 @@ function HomePage() {
             scrolled ? "py-3" : "py-5",
           )}
         >
-          <Link to="/" aria-label="Fideleo, inicio">
+          <Link to="/" aria-label="Fideleo, inicio" className="flex items-center gap-2.5">
             <BrandMark compactOnMobile />
           </Link>
           <nav
