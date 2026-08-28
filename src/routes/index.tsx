@@ -9,7 +9,6 @@ import {
   Gift,
   QrCode,
   ScanLine,
-  Sparkles,
   Star,
   Users,
   Store,
@@ -733,83 +732,96 @@ function HomePage() {
 }
 
 function ProductPreview() {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [walletProgress, setWalletProgress] = useState(0);
+  const walletPasses = [
+    {
+      image: "/testimonials/bar-casa-andrea.png",
+      alt: "Tarjeta de fidelización de Bar Casa Andrea",
+      stacked: [-70, -47, -16],
+      spread: [-135, -47, -18],
+    },
+    {
+      image: "/testimonials/latteo-coffee.png",
+      alt: "Tarjeta de fidelización de Latteo Coffee",
+      stacked: [-60, -53, -7],
+      spread: [-90, -55, -8],
+    },
+    {
+      image: "/testimonials/peluqueria-alex.png",
+      alt: "Tarjeta de fidelización de Peluquería Álex",
+      stacked: [-50, -56, 4],
+      spread: [-45, -56, 5],
+    },
+    {
+      image: "/testimonials/get-smashed-burger.png",
+      alt: "Tarjeta de fidelización de Get Smashed Burger",
+      stacked: [-40, -50, 15],
+      spread: [0, -47, 17],
+    },
+  ] as const;
+
+  useEffect(() => {
+    const preview = previewRef.current;
+    if (!preview) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (reducedMotion) {
+        setWalletProgress(1);
+        return;
+      }
+
+      const hero = preview.closest("section");
+      if (!hero) return;
+      const heroRect = hero.getBoundingClientRect();
+      const range = Math.max(heroRect.height * 0.58, 1);
+      const progress = Math.min(Math.max(-heroRect.top / range, 0), 1);
+      setWalletProgress((current) => (Math.abs(current - progress) > 0.001 ? progress : current));
+    };
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+    return () => {
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const interpolate = (start: number, end: number) => start + (end - start) * walletProgress;
+
   return (
-    <div className="relative z-10 mx-auto w-full max-w-2xl lg:translate-x-10">
-      <div className="rounded-[2rem] border-[8px] border-black bg-[#f7f7fb] p-3 shadow-[0_30px_80px_rgba(0,0,0,.2)] sm:p-5">
-        <div className="flex items-center gap-3 border-b border-black/10 pb-4">
-          <span className="grid size-9 place-items-center rounded-lg bg-black text-white">
-            <Sparkles className="size-4" />
-          </span>
-          <span className="text-sm font-bold">FIDELEO</span>
-          <div className="ml-auto hidden h-9 w-1/2 items-center rounded-lg border bg-white px-3 text-xs text-black/40 sm:flex">
-            Buscar cliente...
-          </div>
-        </div>
-        <div className="grid gap-3 pt-4 sm:grid-cols-[8rem_1fr]">
-          <aside className="hidden space-y-2 text-xs sm:block">
-            {["Resumen", "Escáner", "Clientes", "Notificaciones", "Estadísticas"].map(
-              (item, index) => (
-                <div
-                  key={item}
-                  className={`rounded-lg px-3 py-2.5 ${index === 0 ? "bg-[#f8d9ef] font-semibold" : "text-black/45"}`}
-                >
-                  {item}
-                </div>
-              ),
-            )}
-          </aside>
-          <div>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-[10px] text-black/40">Café Norte · Últimos 30 días</p>
-                <p className="text-xl font-bold tracking-tight">Buenos días, Lucía</p>
-              </div>
-              <span className="rounded-full bg-[#ddf8ec] px-2 py-1 text-[9px] font-semibold text-[#167a52]">
-                ● En directo
-              </span>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <MiniMetric label="Clientes activos" value="842" trend="+12%" />
-              <MiniMetric label="Ventas asociadas" value="31.480 €" trend="+8,4%" />
-            </div>
-            <div className="mt-2 rounded-xl border bg-white p-4">
-              <div className="flex justify-between text-[10px]">
-                <span className="font-semibold">Evolución de visitas</span>
-                <span className="text-black/35">30 días</span>
-              </div>
-              <div className="mt-5 flex h-24 items-end gap-1.5">
-                {[36, 52, 44, 68, 61, 75, 58, 84, 73, 91, 82, 100].map((height, index) => (
-                  <span
-                    key={index}
-                    className="flex-1 rounded-t bg-[#df5ab6]"
-                    style={{ height: `${height}%`, opacity: 0.5 + index / 24 }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="mt-2 flex items-center gap-3 rounded-xl bg-[#d9f4ff] p-3">
-              <span className="grid size-8 place-items-center rounded-full bg-white">
-                <Gift className="size-4" />
-              </span>
-              <div>
-                <p className="text-[10px] font-semibold">Oportunidad de fidelización</p>
-                <p className="text-[9px] text-black/50">
-                  46 clientes están a una visita de su recompensa.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="absolute -bottom-8 -left-5 hidden w-52 rounded-2xl border bg-white p-4 shadow-xl sm:block">
-        <p className="text-[10px] font-semibold">Tarjeta actualizada</p>
-        <div className="mt-3 rounded-xl bg-black p-3 text-white">
-          <p className="text-[8px] text-white/55">CAFÉ NORTE CLUB</p>
-          <p className="mt-6 text-sm font-semibold">75 / 100 puntos</p>
-          <div className="mt-2 h-1.5 rounded-full bg-white/20">
-            <div className="h-full w-3/4 rounded-full bg-[#f8b9e7]" />
-          </div>
-        </div>
+    <div
+      ref={previewRef}
+      className="relative z-10 mx-auto h-[30rem] w-full max-w-2xl sm:h-[36rem] lg:translate-x-8"
+      aria-label="Tarjetas digitales de fidelización"
+    >
+      <div className="absolute inset-0 rounded-full bg-white/20 blur-3xl" aria-hidden="true" />
+      <div className="relative h-full w-full">
+        {walletPasses.map((pass, index) => {
+          const x = interpolate(pass.stacked[0], pass.spread[0]);
+          const y = interpolate(pass.stacked[1], pass.spread[1]);
+          const rotation = interpolate(pass.stacked[2], pass.spread[2]);
+          return (
+            <img
+              key={pass.image}
+              src={pass.image}
+              alt={pass.alt}
+              className="hero-wallet-pass absolute left-1/2 top-1/2 w-[10rem] drop-shadow-[0_24px_28px_rgba(17,17,17,.22)] sm:w-[13rem]"
+              style={{
+                zIndex: index + 1,
+                transform: `translate(${x}%, ${y}%) rotate(${rotation}deg)`,
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );

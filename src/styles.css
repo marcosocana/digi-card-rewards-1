@@ -218,6 +218,11 @@
   }
 }
 
+.hero-wallet-pass {
+  transform-origin: 50% 92%;
+  will-change: transform;
+}
+
 .brand-loader-mark {
   animation: brand-loader-float 1.7s ease-in-out infinite;
 }
