@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import {
+  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Check,
-  CircleDollarSign,
   Gift,
   QrCode,
   ScanLine,
@@ -118,6 +118,39 @@ const testimonials = [
   },
 ];
 
+const kpis = [
+  {
+    icon: Users,
+    value: "12.500+",
+    label: "clientes en clubes Fideleo",
+    color: "bg-[#f4efff]",
+  },
+  {
+    icon: Store,
+    value: "48",
+    label: "locales fidelizan cada día",
+    color: "bg-[#ffe65c]",
+  },
+  {
+    icon: Gift,
+    value: "31.800",
+    label: "premios y productos canjeados",
+    color: "bg-[#ffd9ee]",
+  },
+  {
+    icon: ScanLine,
+    value: "2,4×",
+    label: "visitas por cliente recurrente",
+    color: "bg-[#dff7ff]",
+  },
+  {
+    icon: BadgeCheck,
+    value: "64%",
+    label: "tasa de clientes recurrentes",
+    color: "bg-[#e7f8ed]",
+  },
+] as const;
+
 const clubExamplePath = "/club/cafe-norte";
 const backofficeExamplePath = "/auth?email=admin.pro%40demo.fideleo.app";
 
@@ -154,8 +187,33 @@ function BrandMark({
 function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [clubQr, setClubQr] = useState("");
+  const [currentHowStep, setCurrentHowStep] = useState(0);
+  const howTrackRef = useRef<HTMLDivElement>(null);
+  const howProgrammaticRef = useRef(false);
+  const howScrollTimerRef = useRef<number | null>(null);
+  const kpiTrackRef = useRef<HTMLDivElement>(null);
+  const kpiPausedRef = useRef(false);
   const testimonialsTrackRef = useRef<HTMLDivElement>(null);
   const testimonialsPausedRef = useRef(false);
+
+  const scrollHowTo = useCallback((index: number) => {
+    const track = howTrackRef.current;
+    const card = track?.children[index] as HTMLElement | undefined;
+    if (!track || !card) return;
+    howProgrammaticRef.current = true;
+    if (howScrollTimerRef.current) window.clearTimeout(howScrollTimerRef.current);
+    const left = card.offsetLeft - track.offsetLeft - (track.clientWidth - card.clientWidth) / 2;
+    track.scrollTo({ left, behavior: "smooth" });
+    howScrollTimerRef.current = window.setTimeout(() => {
+      howProgrammaticRef.current = false;
+    }, 700);
+  }, []);
+
+  const selectHowStep = (index: number) => {
+    const next = (index + howItWorks.length) % howItWorks.length;
+    setCurrentHowStep(next);
+    scrollHowTo(next);
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -166,6 +224,49 @@ function HomePage() {
 
   useEffect(() => {
     void qrPngDataUrl(`${window.location.origin}${clubExamplePath}`, "#111111").then(setClubQr);
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => {
+      setCurrentHowStep((current) => {
+        const next = (current + 1) % howItWorks.length;
+        scrollHowTo(next);
+        return next;
+      });
+    }, 12_000);
+    return () => window.clearInterval(timer);
+  }, [scrollHowTo]);
+
+  useEffect(
+    () => () => {
+      if (howScrollTimerRef.current) window.clearTimeout(howScrollTimerRef.current);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let frame = 0;
+    let previousTime = 0;
+    const move = (time: number) => {
+      const track = kpiTrackRef.current;
+      if (track && !kpiPausedRef.current) {
+        const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
+        track.scrollLeft += elapsed * 0.03;
+        const firstCard = track.children[0] as HTMLElement | undefined;
+        const firstDuplicate = track.children[kpis.length] as HTMLElement | undefined;
+        const cycleWidth =
+          firstCard && firstDuplicate ? firstDuplicate.offsetLeft - firstCard.offsetLeft : 0;
+        if (cycleWidth && track.scrollLeft >= cycleWidth) track.scrollLeft -= cycleWidth;
+      }
+      previousTime = time;
+      frame = window.requestAnimationFrame(move);
+    };
+
+    frame = window.requestAnimationFrame(move);
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -292,14 +393,31 @@ function HomePage() {
       <section id="como-funciona" className="px-5 py-24 lg:px-10 lg:py-32">
         <div className="mx-auto max-w-[1440px]">
           <div className="max-w-4xl">
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#c93c9f]">
-              Del primer contacto a la recompensa
-            </p>
-            <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">
-              Cómo funciona Fideleo
+            <h2 className="text-4xl font-semibold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">
+              Cómo funciona
             </h2>
           </div>
-          <div className="-mx-5 mt-14 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 lg:-mx-10 lg:px-10">
+          <div
+            ref={howTrackRef}
+            className="-mx-5 mt-14 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:-mx-10 lg:px-10 [&::-webkit-scrollbar]:hidden"
+            onScroll={(event) => {
+              if (howProgrammaticRef.current) return;
+              const track = event.currentTarget;
+              const center = track.scrollLeft + track.clientWidth / 2;
+              let nearest = 0;
+              let distance = Number.POSITIVE_INFINITY;
+              Array.from(track.children).forEach((child, index) => {
+                const card = child as HTMLElement;
+                const cardCenter = card.offsetLeft - track.offsetLeft + card.clientWidth / 2;
+                const nextDistance = Math.abs(center - cardCenter);
+                if (nextDistance < distance) {
+                  distance = nextDistance;
+                  nearest = index;
+                }
+              });
+              setCurrentHowStep((current) => (current === nearest ? current : nearest));
+            }}
+          >
             {howItWorks.map((item) => (
               <article
                 key={item.title}
@@ -320,16 +438,54 @@ function HomePage() {
               </article>
             ))}
           </div>
+          <div className="mt-8 flex flex-col items-center gap-5 lg:mt-12 lg:gap-7">
+            <div className="flex items-center justify-center gap-6 sm:gap-10 lg:gap-16">
+              <button
+                type="button"
+                onClick={() => selectHowStep(currentHowStep - 1)}
+                className="grid size-14 place-items-center rounded-full border border-black/20 bg-white shadow-sm transition hover:bg-black hover:text-white sm:size-16 lg:size-20"
+                aria-label="Ver paso anterior"
+              >
+                <ArrowLeft className="size-6 lg:size-8" />
+              </button>
+              <p className="min-w-24 text-center text-2xl font-semibold tabular-nums sm:text-3xl lg:min-w-36 lg:text-4xl">
+                {String(currentHowStep + 1).padStart(2, "0")}
+                <span className="ml-2 font-normal text-black/40">
+                  / {String(howItWorks.length).padStart(2, "0")}
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={() => selectHowStep(currentHowStep + 1)}
+                className="grid size-14 place-items-center rounded-full bg-[#f8b9e7] transition hover:bg-black hover:text-white sm:size-16 lg:size-20"
+                aria-label="Ver paso siguiente"
+              >
+                <ArrowRight className="size-6 lg:size-8" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2.5" aria-label="Selector de pasos">
+              {howItWorks.map((item, index) => (
+                <button
+                  key={item.number}
+                  type="button"
+                  onClick={() => selectHowStep(index)}
+                  className={cn(
+                    "h-2.5 rounded-full transition-all duration-300",
+                    index === currentHowStep ? "w-10 bg-[#c93c9f]" : "w-2.5 bg-black/15",
+                  )}
+                  aria-label={"Ir al paso " + (index + 1)}
+                  aria-current={index === currentHowStep ? "step" : undefined}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="bg-[#fff0d8] px-5 py-20 lg:px-10 lg:py-24">
         <div className="mx-auto grid max-w-[1440px] items-center gap-10 rounded-[2.5rem] bg-white p-7 shadow-sm sm:p-10 lg:grid-cols-[1fr_auto] lg:p-14">
           <div className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#c93c9f]">
-              Ejemplo de club
-            </p>
-            <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-.05em] sm:text-6xl">
+            <h2 className="text-4xl font-semibold leading-[.98] tracking-[-.05em] sm:text-6xl">
               Descubre la experiencia de tus clientes.
             </h2>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-black/60">
@@ -365,25 +521,18 @@ function HomePage() {
 
       <section id="precios" className="bg-[#111] px-5 py-24 text-white lg:px-10 lg:py-32">
         <div className="mx-auto max-w-[1440px]">
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#f8b9e7]">Precios</p>
-          <h2 className="mt-4 max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
+          <h2 className="max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
             Un plan para cada etapa de tu negocio.
           </h2>
-          <div className="mt-14 grid gap-5 lg:grid-cols-3">
+          <div className="-mx-5 mt-14 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-5 [scrollbar-width:none] lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
             {subscriptionPlans.map((plan) => (
               <article
                 key={plan.name}
                 className={cn(
                   plan.color,
-                  "flex min-h-[31rem] flex-col rounded-[2rem] p-7 text-black sm:p-9",
-                  plan.featured && "ring-4 ring-white",
+                  "flex min-h-[31rem] w-[84vw] max-w-[23rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 text-black sm:p-9 lg:w-auto lg:max-w-none",
                 )}
               >
-                {plan.featured ? (
-                  <span className="mb-5 w-fit rounded-full bg-black px-3 py-1 text-xs font-bold text-white">
-                    Más elegido
-                  </span>
-                ) : null}
                 <h3 className="text-3xl font-semibold">{plan.name}</h3>
                 <p className="mt-5 text-5xl font-semibold tracking-[-.06em]">{plan.price}</p>
                 <p className="mt-1 text-sm text-black/55">al mes · IVA no incluido</p>
@@ -413,10 +562,7 @@ function HomePage() {
         <div className="mx-auto max-w-[1440px]">
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[.18em]">
-                Control sin complejidad
-              </p>
-              <h2 className="mt-4 text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
+              <h2 className="text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
                 Una visión clara de lo que hace volver a tus clientes.
               </h2>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-black/65">
@@ -448,44 +594,34 @@ function HomePage() {
       </section>
 
       <section className="px-5 py-24 lg:px-10 lg:py-32">
-        <div className="mx-auto max-w-[1440px] overflow-x-auto pb-3">
-          <div className="grid min-w-[70rem] grid-cols-5 gap-4">
-            <div className="rounded-[2rem] bg-[#f4efff] p-7">
-              <Users className="size-8" />
-              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">12.500+</p>
-              <p className="mt-2">clientes en clubes Fideleo</p>
-            </div>
-            <div className="rounded-[2rem] bg-[#ffe65c] p-7">
-              <Store className="size-8" />
-              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">48</p>
-              <p className="mt-2">locales fidelizan cada día</p>
-            </div>
-            <div className="rounded-[2rem] bg-[#ffd9ee] p-7">
-              <Gift className="size-8" />
-              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">31.800</p>
-              <p className="mt-2">premios y productos canjeados</p>
-            </div>
-            <div className="rounded-[2rem] bg-[#dff7ff] p-7">
-              <ScanLine className="size-8" />
-              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">2,4×</p>
-              <p className="mt-2">visitas por cliente recurrente</p>
-            </div>
-            <div className="rounded-[2rem] bg-[#e7f8ed] p-7">
-              <BadgeCheck className="size-8" />
-              <p className="mt-12 text-4xl font-semibold tracking-[-.06em]">64%</p>
-              <p className="mt-2">tasa de clientes recurrentes</p>
-            </div>
+        <div className="mx-auto hidden max-w-[1440px] md:block">
+          <div className="grid grid-cols-5 gap-4">
+            {kpis.map((kpi) => (
+              <KpiCard key={kpi.label} kpi={kpi} />
+            ))}
           </div>
+        </div>
+        <div
+          ref={kpiTrackRef}
+          className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-3 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden"
+          onTouchStart={() => (kpiPausedRef.current = true)}
+          onTouchEnd={() => (kpiPausedRef.current = false)}
+        >
+          {[...kpis, ...kpis].map((kpi, index) => (
+            <KpiCard
+              key={kpi.label + "-" + index}
+              kpi={kpi}
+              compact
+              ariaHidden={index >= kpis.length}
+            />
+          ))}
         </div>
       </section>
 
       <section id="testimonios" className="bg-[#f7f3ff] py-24 lg:py-32">
         <div className="mx-auto max-w-[1440px] px-5 lg:px-10">
           <div className="max-w-4xl">
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#8754c9]">
-              Testimonios
-            </p>
-            <h2 className="mt-4 text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
+            <h2 className="text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
               Negocios que convierten cada visita en una relación.
             </h2>
             <p className="mt-5 max-w-2xl text-black/60">
@@ -498,8 +634,6 @@ function HomePage() {
           <div
             ref={testimonialsTrackRef}
             className="flex gap-6 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2rem))] pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            onMouseEnter={() => (testimonialsPausedRef.current = true)}
-            onMouseLeave={() => (testimonialsPausedRef.current = false)}
             onTouchStart={() => (testimonialsPausedRef.current = true)}
             onTouchEnd={() => (testimonialsPausedRef.current = false)}
             onFocusCapture={() => (testimonialsPausedRef.current = true)}
@@ -509,13 +643,13 @@ function HomePage() {
               <article
                 key={`${testimonial.name}-${testimonial.business}-${testimonialIndex}`}
                 aria-hidden={testimonialIndex >= testimonials.length}
-                className="grid w-[calc(100vw-2.5rem)] max-w-[44rem] shrink-0 gap-6 overflow-hidden rounded-[2rem] border border-black/[.06] bg-white p-5 shadow-[0_8px_24px_rgba(17,17,17,.08)] sm:grid-cols-[15rem_1fr] sm:gap-10 sm:p-8"
+                className="grid w-[calc(100vw-2.5rem)] max-w-[44rem] shrink-0 gap-6 overflow-hidden rounded-[2rem] border border-black/[.06] bg-white p-5 shadow-[0_8px_24px_rgba(17,17,17,.08)] sm:grid-cols-[11rem_1fr] sm:gap-8 sm:p-8"
               >
                 <img
                   src={testimonial.image}
                   alt={`Tarjeta de fidelización de ${testimonial.name} para ${testimonial.business}`}
                   loading="lazy"
-                  className="aspect-[7/11] h-auto w-full self-center rounded-[1.75rem] object-cover shadow-sm"
+                  className="aspect-[7/11] h-auto w-full max-w-[12rem] place-self-center rounded-[1.5rem] object-cover shadow-sm sm:max-w-none"
                 />
                 <div className="flex min-h-full flex-col py-1 sm:py-4">
                   <div className="flex gap-1" aria-label="5 de 5 estrellas">
@@ -557,10 +691,7 @@ function HomePage() {
       <section id="preguntas" className="border-t border-black/10 px-5 py-24 lg:px-10 lg:py-32">
         <div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[.7fr_1.3fr]">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#c93c9f]">
-              Preguntas frecuentes
-            </p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
+            <h2 className="text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
               Lo importante, claro desde el principio.
             </h2>
           </div>
@@ -600,13 +731,15 @@ function HomePage() {
               ],
             ].map(([question, answer]) => (
               <details key={question} className="group py-6">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-xl font-semibold">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-lg font-semibold">
                   {question}
                   <span className="text-2xl font-normal transition-transform group-open:rotate-45">
                     +
                   </span>
                 </summary>
-                <p className="max-w-2xl pt-4 leading-relaxed text-black/60">{answer}</p>
+                <p className="max-w-2xl pt-4 text-sm leading-relaxed text-black/60 sm:text-base">
+                  {answer}
+                </p>
               </details>
             ))}
           </div>
@@ -615,8 +748,7 @@ function HomePage() {
 
       <section id="demo" className="px-5 pb-5 lg:px-10 lg:pb-10">
         <div className="mx-auto max-w-[1440px] overflow-hidden rounded-[2.5rem] bg-[#f8b9e7] px-6 py-16 text-center sm:px-10 lg:py-24">
-          <CircleDollarSign className="mx-auto size-10" />
-          <h2 className="mx-auto mt-6 max-w-4xl text-5xl font-semibold leading-[.93] tracking-[-.06em] sm:text-7xl">
+          <h2 className="mx-auto max-w-4xl text-5xl font-semibold leading-[.93] tracking-[-.06em] sm:text-7xl">
             Empieza a convertir clientes ocasionales en habituales.
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-black/65">
@@ -728,6 +860,38 @@ function HomePage() {
       </footer>
       <CookieConsent />
     </main>
+  );
+}
+
+function KpiCard({
+  kpi,
+  compact = false,
+  ariaHidden = false,
+}: {
+  kpi: (typeof kpis)[number];
+  compact?: boolean;
+  ariaHidden?: boolean;
+}) {
+  return (
+    <article
+      aria-hidden={ariaHidden}
+      className={cn(
+        kpi.color,
+        "rounded-[2rem]",
+        compact ? "w-[58vw] max-w-[13rem] shrink-0 p-5" : "p-7",
+      )}
+    >
+      <kpi.icon className={compact ? "size-6" : "size-8"} />
+      <p
+        className={cn(
+          "font-semibold tracking-[-.06em]",
+          compact ? "mt-7 text-3xl" : "mt-12 text-4xl",
+        )}
+      >
+        {kpi.value}
+      </p>
+      <p className={cn("mt-2", compact && "text-sm leading-snug")}>{kpi.label}</p>
+    </article>
   );
 }
 

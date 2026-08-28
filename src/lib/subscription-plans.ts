@@ -19,7 +19,7 @@ export const subscriptionPlans = [
     price: "44,95 €",
     maxLocations: 3,
     color: "bg-[#f8b9e7]",
-    featured: true,
+    featured: false,
     features: [
       "Hasta 3 establecimientos",
       "Hasta 5.000 clientes",
