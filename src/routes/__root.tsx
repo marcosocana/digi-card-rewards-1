@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
-  Link,
   createRootRouteWithContext,
   useRouter,
   HeadContent,
@@ -13,50 +12,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
-
-function NotFoundComponent() {
-  return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#fff8fc] px-5 py-12 text-[#111]">
-      <div className="absolute -left-24 top-16 size-72 rounded-full bg-[#dff7ff] blur-2xl" />
-      <div className="absolute -right-20 bottom-10 size-80 rounded-full bg-[#f8b9e7]/65 blur-2xl" />
-      <section className="relative w-full max-w-2xl rounded-[2.25rem] border border-black/10 bg-white p-8 text-center shadow-[0_24px_80px_-35px_rgba(0,0,0,.28)] sm:p-12">
-        <Link to="/" aria-label="Fideleo, volver al inicio" className="inline-flex">
-          <img src="/logo.svg" alt="Fideleo" width={210} height={47} className="h-8 w-auto" />
-        </Link>
-        <p className="mt-10 text-sm font-extrabold uppercase tracking-[.24em] text-primary">
-          Error 404
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-.05em] sm:text-6xl">
-          Esta página se nos ha escapado.
-        </h1>
-        <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-black/60">
-          El enlace puede haber cambiado o ya no estar disponible. Puedes volver al inicio,
-          solicitar una demo o acceder a tu cuenta.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-full bg-[#111] px-6 py-3 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
-          >
-            Volver al inicio
-          </Link>
-          <Link
-            to="/solicitar-demo"
-            className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white px-6 py-3 text-sm font-bold transition-colors hover:bg-black/5"
-          >
-            Solicitar una demo
-          </Link>
-          <Link
-            to="/auth"
-            className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white px-6 py-3 text-sm font-bold transition-colors hover:bg-black/5"
-          >
-            Iniciar sesión
-          </Link>
-        </div>
-      </section>
-    </main>
-  );
-}
+import { NotFoundPage } from "@/components/app/not-found-page";
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
@@ -131,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
-  notFoundComponent: NotFoundComponent,
+  notFoundComponent: NotFoundPage,
   errorComponent: ErrorComponent,
 });
 

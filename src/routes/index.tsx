@@ -48,7 +48,7 @@ const howItWorks = [
     title: "El cliente conoce tu programa de fidelización",
     text: "El cliente conoce el programa de fidelización de tu negocio a través de carteles, soportes, la carta o por el camarero o dependiente.",
     color: "bg-[#dff7ff]",
-    image: "/how-it-works/01-descubre.jpg",
+    image: "/how-it-works/01-descubre-handdrawn-v2.jpg",
     imageAlt: "Una clienta descubre el programa de fidelización al entrar en una cafetería",
   },
   {
@@ -57,7 +57,7 @@ const howItWorks = [
     title: "Se registra en un minuto",
     text: "Al escanear el QR accede a un espacio con el logo y los colores del local, donde completa un breve registro que tarda solo un minuto.",
     color: "bg-[#f3e9ff]",
-    image: "/how-it-works/02-registro.jpg",
+    image: "/how-it-works/02-registro-handdrawn-v2.jpg",
     imageAlt: "Una persona escanea un código QR y completa un registro sencillo desde el móvil",
   },
   {
@@ -66,7 +66,7 @@ const howItWorks = [
     title: "Añade su tarjeta al móvil",
     text: "Puede añadir directamente la tarjeta de fidelización de tu negocio a su móvil para tenerla siempre a mano y enseñarla cada vez que consuma.",
     color: "bg-[#fff0d8]",
-    image: "/how-it-works/03-wallet.jpg",
+    image: "/how-it-works/03-wallet-handdrawn-v2.jpg",
     imageAlt: "Una tarjeta de fidelización digital se añade a la cartera del móvil",
   },
   {
@@ -75,7 +75,7 @@ const howItWorks = [
     title: "El equipo suma los puntos",
     text: "El camarero o dependiente de tu negocio escanea la tarjeta y suma los puntos de forma rápida y segura.",
     color: "bg-[#e7f8ed]",
-    image: "/how-it-works/04-puntos.jpg",
+    image: "/how-it-works/04-puntos-handdrawn-v2.jpg",
     imageAlt: "Un empleado escanea la tarjeta digital de una clienta para añadir sus puntos",
   },
   {
@@ -84,7 +84,7 @@ const howItWorks = [
     title: "Los puntos se convierten en premios",
     text: "El cliente acumula puntos y puede convertirlos en productos gratis cuando alcance el volumen de puntos que tú decidas.",
     color: "bg-[#ffd9ee]",
-    image: "/how-it-works/05-premios.jpg",
+    image: "/how-it-works/05-premios-handdrawn-v2.jpg",
     imageAlt: "Una clienta canjea sus puntos por un café y un producto gratis",
   },
 ];
@@ -93,7 +93,7 @@ const testimonials = [
   {
     name: "Sofía",
     business: "Bar Casa Andrea",
-    image: "/testimonials/bar-casa-andrea.png",
+    image: "/testimonials/bar-casa-andrea-optimized-v2.png",
     avatar: "CA",
     avatarClassName: "bg-[#ffe65c] text-black",
     quote:
@@ -102,7 +102,7 @@ const testimonials = [
   {
     name: "María",
     business: "Latteo Coffee",
-    image: "/testimonials/latteo-coffee.png",
+    image: "/testimonials/latteo-coffee-optimized-v2.png",
     avatar: "L",
     avatarClassName: "bg-[#2388f4] text-white",
     quote:
@@ -111,7 +111,7 @@ const testimonials = [
   {
     name: "Marcos",
     business: "Peluquería Álex",
-    image: "/testimonials/peluqueria-alex.png",
+    image: "/testimonials/peluqueria-alex-optimized-v2.png",
     avatar: "Á",
     avatarClassName: "bg-[#111111] text-white",
     quote:
@@ -120,7 +120,7 @@ const testimonials = [
   {
     name: "Rocío",
     business: "Get Smashed Burger",
-    image: "/testimonials/get-smashed-burger.png",
+    image: "/testimonials/get-smashed-burger-optimized-v2.png",
     avatar: "GS",
     avatarClassName: "bg-[#7de8c1] text-black",
     quote:
@@ -256,20 +256,6 @@ function HomePage() {
     track.scrollLeft = 0;
     setCurrentHowStep(0);
   }, []);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => {
-      if (!window.matchMedia("(min-width: 1024px)").matches) return;
-      setCurrentHowStep((current) => {
-        if (current >= howItWorks.length - 1) return current;
-        const next = current + 1;
-        scrollHowTo(next);
-        return next;
-      });
-    }, 20_000);
-    return () => window.clearInterval(timer);
-  }, [scrollHowTo]);
 
   useEffect(
     () => () => {
@@ -468,8 +454,8 @@ function HomePage() {
                     <img
                       src={item.image}
                       alt={item.imageAlt}
-                      width={1000}
-                      height={750}
+                      width={800}
+                      height={600}
                       loading="lazy"
                       decoding="async"
                       className="size-full object-cover transition-transform duration-700 group-hover:scale-[1.025]"
@@ -695,6 +681,8 @@ function HomePage() {
                 <img
                   src={testimonial.image}
                   alt={`Tarjeta de fidelización de ${testimonial.name} para ${testimonial.business}`}
+                  width={520}
+                  height={817}
                   loading="lazy"
                   className="aspect-[7/11] h-auto w-full max-w-[12rem] place-self-center rounded-[1.5rem] object-cover shadow-sm sm:max-w-none"
                 />
@@ -947,25 +935,25 @@ function ProductPreview() {
   const [walletProgress, setWalletProgress] = useState(0);
   const walletPasses = [
     {
-      image: "/testimonials/bar-casa-andrea.png",
+      image: "/testimonials/bar-casa-andrea-optimized-v2.png",
       alt: "Tarjeta de fidelización de Bar Casa Andrea",
       stacked: [-70, -47, -16],
       spread: [-135, -47, -18],
     },
     {
-      image: "/testimonials/latteo-coffee.png",
+      image: "/testimonials/latteo-coffee-optimized-v2.png",
       alt: "Tarjeta de fidelización de Latteo Coffee",
       stacked: [-60, -53, -7],
       spread: [-90, -55, -8],
     },
     {
-      image: "/testimonials/peluqueria-alex.png",
+      image: "/testimonials/peluqueria-alex-optimized-v2.png",
       alt: "Tarjeta de fidelización de Peluquería Álex",
       stacked: [-50, -56, 4],
       spread: [-45, -56, 5],
     },
     {
-      image: "/testimonials/get-smashed-burger.png",
+      image: "/testimonials/get-smashed-burger-optimized-v2.png",
       alt: "Tarjeta de fidelización de Get Smashed Burger",
       stacked: [-40, -50, 15],
       spread: [0, -47, 17],
@@ -1025,6 +1013,8 @@ function ProductPreview() {
               key={pass.image}
               src={pass.image}
               alt={pass.alt}
+              width={520}
+              height={817}
               className="hero-wallet-pass absolute left-1/2 top-1/2 w-[10rem] drop-shadow-[0_24px_28px_rgba(17,17,17,.22)] sm:w-[13rem]"
               style={{
                 zIndex: index + 1,
@@ -1089,7 +1079,7 @@ function AnalyticsPreview() {
           <span className="size-1.5 rounded-full bg-black/15" />
         </div>
         <img
-          src="/backoffice-preview/dashboard-mobile.jpg"
+          src="/backoffice-preview/dashboard-mobile-optimized-v2.jpg"
           alt="Dashboard móvil del backoffice Fideleo con métricas y actividad reciente"
           width={387}
           height={760}
@@ -1112,10 +1102,10 @@ function AnalyticsPreview() {
             <span className="size-2.5 rounded-full bg-black/15" />
           </div>
           <img
-            src="/backoffice-preview/dashboard-web.jpg"
+            src="/backoffice-preview/dashboard-web-optimized-v2.jpg"
             alt="Dashboard web del backoffice Fideleo con la actividad de tres establecimientos"
-            width={1800}
-            height={1035}
+            width={1600}
+            height={920}
             loading="lazy"
             className="w-full rounded-[2px] border border-black/[.06]"
           />
@@ -1130,7 +1120,7 @@ function AnalyticsPreview() {
         >
           <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-black/10" aria-hidden="true" />
           <img
-            src="/backoffice-preview/dashboard-mobile.jpg"
+            src="/backoffice-preview/dashboard-mobile-optimized-v2.jpg"
             alt="Vista móvil del dashboard de Fideleo"
             width={387}
             height={760}
