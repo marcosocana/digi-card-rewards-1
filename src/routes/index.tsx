@@ -249,6 +249,28 @@ function HomePage() {
     return () => window.clearInterval(timer);
   }, [scrollHowTo]);
 
+  useEffect(() => {
+    const track = howTrackRef.current;
+    if (!track) return;
+
+    track.scrollLeft = 0;
+    setCurrentHowStep(0);
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => {
+      if (!window.matchMedia("(min-width: 1024px)").matches) return;
+      setCurrentHowStep((current) => {
+        if (current >= howItWorks.length - 1) return current;
+        const next = current + 1;
+        scrollHowTo(next);
+        return next;
+      });
+    }, 20_000);
+    return () => window.clearInterval(timer);
+  }, [scrollHowTo]);
+
   useEffect(
     () => () => {
       if (howScrollTimerRef.current) window.clearTimeout(howScrollTimerRef.current);
@@ -357,7 +379,7 @@ function HomePage() {
         </div>
       </header>
 
-      <section className="relative bg-[#f8b9e7] px-5 pb-16 pt-32 sm:pt-40 lg:px-10 lg:pb-24">
+      <section className="relative bg-[#f8b9e7] px-5 pb-12 pt-32 sm:pt-40 lg:px-10 lg:pb-16">
         <div className="pointer-events-none absolute -right-20 top-10 size-72 rounded-full bg-[#ffdf55] lg:size-96" />
         <div className="relative mx-auto max-w-[1440px]">
           <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr]">
@@ -401,17 +423,17 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="como-funciona" className="px-5 py-24 lg:px-10 lg:py-32">
+      <section id="como-funciona" className="px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-[1440px]">
           <div className="max-w-4xl">
             <h2 className="text-4xl font-semibold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">
               Cómo funciona
             </h2>
           </div>
-          <div className="relative -mx-5 mt-14 lg:mx-auto lg:max-w-[68rem]">
+          <div className="relative -mx-5 mt-14 lg:left-1/2 lg:mx-0 lg:w-screen lg:-translate-x-1/2">
             <div
               ref={howTrackRef}
-              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:grid lg:grid-cols-6 lg:overflow-visible lg:p-0 [&::-webkit-scrollbar]:hidden"
+              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:pl-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] lg:pr-[calc(50vw-10.875rem)] [&::-webkit-scrollbar]:hidden"
               onScroll={(event) => {
                 if (howProgrammaticRef.current) return;
                 const track = event.currentTarget;
@@ -430,13 +452,12 @@ function HomePage() {
                 setCurrentHowStep((current) => (current === nearest ? current : nearest));
               }}
             >
-              {howItWorks.map((item, itemIndex) => (
+              {howItWorks.map((item) => (
                 <article
                   key={item.title}
                   className={cn(
                     item.color,
-                    "group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10 lg:min-h-0 lg:w-full lg:max-w-none lg:rounded-[1.5rem] lg:p-6",
-                    itemIndex < 3 ? "lg:col-span-2" : "lg:col-span-3",
+                    "group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10 lg:min-h-0 lg:w-[21.75rem] lg:max-w-[21.75rem] lg:rounded-[1.5rem] lg:p-6",
                   )}
                 >
                   <div className="flex items-start justify-between">
@@ -508,7 +529,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff0d8] px-5 py-20 lg:px-10 lg:py-24">
+      <section className="bg-[#fff0d8] px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto grid max-w-[1440px] items-center gap-10 rounded-[2.5rem] bg-white p-7 shadow-sm sm:p-10 lg:grid-cols-[1fr_auto] lg:p-14">
           <div className="max-w-3xl">
             <h2 className="text-4xl font-semibold leading-[.98] tracking-[-.05em] sm:text-6xl">
@@ -545,7 +566,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="precios" className="bg-[#111] px-5 py-24 text-white lg:px-10 lg:py-32">
+      <section id="precios" className="bg-[#111] px-5 py-16 text-white lg:px-10 lg:py-20">
         <div className="mx-auto max-w-[1440px]">
           <h2 className="max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
             Un plan para cada etapa de tu negocio.
@@ -584,7 +605,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="negocios" className="bg-[#d9f4ff] px-5 py-24 lg:px-10 lg:py-32">
+      <section id="negocios" className="bg-[#d9f4ff] px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-[1440px]">
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div>
@@ -619,7 +640,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="px-5 py-24 lg:px-10 lg:py-32">
+      <section className="px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto hidden max-w-[1440px] md:block">
           <div className="grid grid-cols-5 gap-4">
             {kpis.map((kpi) => (
@@ -644,7 +665,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="testimonios" className="bg-[#f7f3ff] py-24 lg:py-32">
+      <section id="testimonios" className="bg-[#f7f3ff] py-16 lg:py-20">
         <div className="mx-auto max-w-[1440px] px-5 lg:px-10">
           <div className="max-w-4xl">
             <h2 className="text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
@@ -714,7 +735,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="preguntas" className="border-t border-black/10 px-5 py-24 lg:px-10 lg:py-32">
+      <section id="preguntas" className="border-t border-black/10 px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[.7fr_1.3fr]">
           <div>
             <h2 className="text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
