@@ -498,7 +498,7 @@ function HomePage() {
         <div className="relative mt-14">
           <div
             ref={testimonialsTrackRef}
-            className="flex gap-8 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2rem))] pb-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-6 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2rem))] pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             onMouseEnter={() => (testimonialsPausedRef.current = true)}
             onMouseLeave={() => (testimonialsPausedRef.current = false)}
             onTouchStart={() => (testimonialsPausedRef.current = true)}
@@ -510,31 +510,31 @@ function HomePage() {
               <article
                 key={`${testimonial.name}-${testimonial.business}-${testimonialIndex}`}
                 aria-hidden={testimonialIndex >= testimonials.length}
-                className="grid w-[calc(100vw-2.5rem)] max-w-[86rem] shrink-0 gap-8 overflow-hidden rounded-[3rem] border border-black/[.06] bg-white p-6 shadow-[0_10px_35px_rgba(17,17,17,.09)] sm:p-10 lg:grid-cols-[minmax(18rem,28rem)_1fr] lg:gap-20 lg:p-16"
+                className="grid w-[calc(100vw-2.5rem)] max-w-[44rem] shrink-0 gap-6 overflow-hidden rounded-[2rem] border border-black/[.06] bg-white p-5 shadow-[0_8px_24px_rgba(17,17,17,.08)] sm:grid-cols-[15rem_1fr] sm:gap-10 sm:p-8"
               >
                 <img
                   src={testimonial.image}
                   alt={`Tarjeta de fidelización de ${testimonial.name} para ${testimonial.business}`}
                   loading="lazy"
-                  className="aspect-[7/11] h-auto w-full self-center rounded-[2.75rem] object-cover shadow-sm"
+                  className="aspect-[7/11] h-auto w-full self-center rounded-[1.75rem] object-cover shadow-sm"
                 />
-                <div className="flex min-h-full flex-col py-2 lg:py-12">
-                  <div className="flex gap-2" aria-label="5 de 5 estrellas">
+                <div className="flex min-h-full flex-col py-1 sm:py-4">
+                  <div className="flex gap-1" aria-label="5 de 5 estrellas">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <Star
                         key={index}
-                        className="size-7 fill-[#ff6b00] text-[#ff6b00] sm:size-8"
+                        className="size-5 fill-[#ff6b00] text-[#ff6b00]"
                         aria-hidden
                       />
                     ))}
                   </div>
-                  <blockquote className="mt-9 max-w-[44rem] text-2xl font-medium leading-[1.55] sm:text-3xl lg:mt-10 lg:text-[2.1rem]">
+                  <blockquote className="mt-6 max-w-md text-lg font-medium leading-relaxed sm:text-xl">
                     “{testimonial.quote}”
                   </blockquote>
-                  <div className="mt-12 flex items-center gap-5 lg:mt-auto lg:gap-7">
+                  <div className="mt-8 flex items-center gap-4 sm:mt-auto">
                     <span
                       className={cn(
-                        "grid size-20 shrink-0 place-items-center rounded-full text-xl font-bold sm:size-24 sm:text-2xl lg:size-28",
+                        "grid size-14 shrink-0 place-items-center rounded-full text-base font-bold sm:size-16 sm:text-lg",
                         testimonial.avatarClassName,
                       )}
                       aria-hidden="true"
@@ -542,10 +542,8 @@ function HomePage() {
                       {testimonial.avatar}
                     </span>
                     <div>
-                      <p className="text-xl font-semibold sm:text-2xl">{testimonial.name}</p>
-                      <p className="mt-1 text-base text-black/55 sm:text-xl">
-                        {testimonial.business}
-                      </p>
+                      <p className="font-semibold sm:text-lg">{testimonial.name}</p>
+                      <p className="mt-0.5 text-sm text-black/55">{testimonial.business}</p>
                     </div>
                   </div>
                 </div>
