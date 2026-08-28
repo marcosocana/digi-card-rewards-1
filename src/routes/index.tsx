@@ -200,7 +200,6 @@ function HomePage() {
   const [currentHowStep, setCurrentHowStep] = useState(0);
   const howTrackRef = useRef<HTMLDivElement>(null);
   const howProgrammaticRef = useRef(false);
-  const howAutoPausedRef = useRef(false);
   const howScrollTimerRef = useRef<number | null>(null);
   const kpiTrackRef = useRef<HTMLDivElement>(null);
   const kpiPausedRef = useRef(false);
@@ -249,27 +248,6 @@ function HomePage() {
     }, 12_000);
     return () => window.clearInterval(timer);
   }, [scrollHowTo]);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    let frame = 0;
-    let previousTime = 0;
-    const move = (time: number) => {
-      const track = howTrackRef.current;
-      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-      if (track && isDesktop && !howAutoPausedRef.current && !howProgrammaticRef.current) {
-        const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        const maxScroll = track.scrollWidth - track.clientWidth;
-        track.scrollLeft = Math.min(track.scrollLeft + elapsed * 0.022, maxScroll);
-      }
-      previousTime = time;
-      frame = window.requestAnimationFrame(move);
-    };
-
-    frame = window.requestAnimationFrame(move);
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
 
   useEffect(
     () => () => {
@@ -430,14 +408,10 @@ function HomePage() {
               Cómo funciona
             </h2>
           </div>
-          <div className="relative -mx-5 mt-14 lg:left-1/2 lg:mx-0 lg:w-screen lg:-translate-x-1/2">
+          <div className="relative -mx-5 mt-14 lg:mx-auto lg:max-w-[68rem]">
             <div
               ref={howTrackRef}
-              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:snap-none lg:pl-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] lg:pr-[calc(50vw-13rem)] [&::-webkit-scrollbar]:hidden"
-              onTouchStart={() => (howAutoPausedRef.current = true)}
-              onTouchEnd={() => (howAutoPausedRef.current = false)}
-              onFocusCapture={() => (howAutoPausedRef.current = true)}
-              onBlurCapture={() => (howAutoPausedRef.current = false)}
+              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:grid lg:grid-cols-6 lg:overflow-visible lg:p-0 [&::-webkit-scrollbar]:hidden"
               onScroll={(event) => {
                 if (howProgrammaticRef.current) return;
                 const track = event.currentTarget;
@@ -456,19 +430,21 @@ function HomePage() {
                 setCurrentHowStep((current) => (current === nearest ? current : nearest));
               }}
             >
-              {howItWorks.map((item) => (
+              {howItWorks.map((item, itemIndex) => (
                 <article
                   key={item.title}
                   className={cn(
                     item.color,
-                    "group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10 lg:max-w-[26rem] lg:p-8",
+                    "group flex min-h-[34rem] w-[85vw] max-w-[30rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 sm:p-10 lg:col-span-2 lg:min-h-0 lg:w-full lg:max-w-none lg:rounded-[1.5rem] lg:p-6",
+                    itemIndex === 3 && "lg:col-start-2",
+                    itemIndex === 4 && "lg:col-start-4",
                   )}
                 >
                   <div className="flex items-start justify-between">
-                    <span className="text-sm font-bold">{item.number} / 05</span>
-                    <item.icon className="size-8" />
+                    <span className="text-sm font-bold lg:text-xs">{item.number} / 05</span>
+                    <item.icon className="size-8 lg:size-7" />
                   </div>
-                  <div className="mt-8 aspect-[4/3] overflow-hidden rounded-[1.5rem] border border-black/10 bg-white/35">
+                  <div className="mt-8 aspect-[4/3] overflow-hidden rounded-[1.5rem] border border-black/10 bg-white/35 lg:mt-6 lg:rounded-[1.15rem]">
                     <img
                       src={item.image}
                       alt={item.imageAlt}
@@ -479,15 +455,15 @@ function HomePage() {
                       className="size-full object-cover transition-transform duration-700 group-hover:scale-[1.025]"
                     />
                   </div>
-                  <h3 className="mt-8 max-w-lg text-3xl font-semibold leading-tight tracking-[-.04em]">
+                  <h3 className="mt-8 max-w-lg text-3xl font-semibold leading-tight tracking-[-.04em] lg:mt-6 lg:text-2xl">
                     {item.title}
                   </h3>
-                  <p className="mt-4 max-w-xl leading-relaxed text-black/65">{item.text}</p>
+                  <p className="mt-4 max-w-xl leading-relaxed text-black/65 lg:mt-3 lg:text-sm">
+                    {item.text}
+                  </p>
                 </article>
               ))}
             </div>
-            <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-28 bg-gradient-to-r from-white to-transparent lg:block" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-28 bg-gradient-to-l from-white to-transparent lg:block" />
           </div>
           <div className="mt-8 flex flex-col items-center gap-5 lg:hidden">
             <div className="flex items-center justify-center gap-6 sm:gap-10 lg:gap-16">
