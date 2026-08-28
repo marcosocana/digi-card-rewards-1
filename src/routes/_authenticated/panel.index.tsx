@@ -39,6 +39,8 @@ const localDate = (date = new Date()) => {
 
 type PeriodPreset = "today" | "yesterday" | "last_week" | "last_month" | "current_year" | "custom";
 
+const demoProOrganizationId = "d1000000-0000-4000-8000-000000000003";
+
 const getPresetRange = (preset: Exclude<PeriodPreset, "custom">) => {
   const now = new Date();
   if (preset === "today") return { from: localDate(now), to: localDate(now) };
@@ -94,6 +96,7 @@ function ResumenPage() {
     queryFn: async () => {
       const from = new Date(`${fromDate}T00:00:00`).toISOString();
       const to = new Date(`${toDate}T23:59:59.999`).toISOString();
+      const isDemoProToday = orgId === demoProOrganizationId && period === "today";
       let membersQuery = supabase
         .from("memberships")
         .select("id", { count: "exact", head: true })
@@ -145,19 +148,61 @@ function ResumenPage() {
         return allRows;
       };
 
+      const fetchDemoTodayTransactions = async () => {
+        let query = supabase
+          .from("point_transactions")
+          .select("id, type, points_delta, amount_cents, created_at, membership_id, location_id")
+          .eq("organization_id", demoProOrganizationId)
+          .in("type", ["purchase", "redemption"])
+          .order("created_at", { ascending: false })
+          .limit(1_000);
+        if (selectedLocations.length) query = query.in("location_id", selectedLocations);
+
+        const response = await query;
+        if (response.error) throw response.error;
+
+        const purchasesByLocation = new Map<string, number>();
+        const redemptionsByLocation = new Set<string>();
+        const sample = (response.data ?? []).filter((row) => {
+          if (!row.location_id) return false;
+          if (row.type === "purchase") {
+            const count = purchasesByLocation.get(row.location_id) ?? 0;
+            if (count >= 4) return false;
+            purchasesByLocation.set(row.location_id, count + 1);
+            return true;
+          }
+          if (row.type === "redemption" && !redemptionsByLocation.has(row.location_id)) {
+            redemptionsByLocation.add(row.location_id);
+            return true;
+          }
+          return false;
+        });
+
+        const now = Date.now();
+        const dayStart = new Date(`${today}T00:00:00`).getTime();
+        const elapsedToday = Math.max(now - dayStart, 60_000);
+        return sample.map((row, index) => ({
+          ...row,
+          created_at: new Date(
+            now - (elapsedToday * (index + 1)) / (sample.length + 1),
+          ).toISOString(),
+        }));
+      };
+
       let locationsQuery = supabase.from("locations").select("id, name").order("name");
       if (orgId) locationsQuery = locationsQuery.eq("organization_id", orgId);
       if (selectedLocations.length) locationsQuery = locationsQuery.in("id", selectedLocations);
 
-      const [members, newMembers, rows, locations] = await Promise.all([
+      const [members, newMembers, fetchedRows, locations] = await Promise.all([
         membersQuery,
         newMembersQuery,
-        fetchTransactions(),
+        isDemoProToday ? fetchDemoTodayTransactions() : fetchTransactions(),
         locationsQuery,
       ]);
       if (members.error) throw members.error;
       if (newMembers.error) throw newMembers.error;
       if (locations.error) throw locations.error;
+      const rows = fetchedRows;
       const purchases = rows.filter((r) => r.type === "purchase");
       const locName = new Map((locations.data ?? []).map((l) => [l.id, l.name]));
       const locationRows = (locations.data ?? [])
@@ -174,7 +219,7 @@ function ResumenPage() {
         .sort((a, b) => b.sales - a.sales);
       return {
         members: members.count ?? 0,
-        newMembers: newMembers.count ?? 0,
+        newMembers: isDemoProToday ? Math.max(newMembers.count ?? 0, 6) : (newMembers.count ?? 0),
         pointsIssued: rows
           .filter((r) => r.points_delta > 0)
           .reduce((s, r) => s + r.points_delta, 0),
