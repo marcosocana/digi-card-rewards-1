@@ -82,46 +82,32 @@ const howItWorks = [
 
 const testimonials = [
   {
-    name: "Helena",
-    business: "Manila San Sebastián",
-    image: "/testimonials/helena.jpg",
+    name: "Sofía",
+    business: "Bar Casa Andrea",
+    image: "/testimonials/bar-casa-andrea.png",
     quote:
-      "Llevar la experiencia del local al móvil nos permite cuidar al cliente también después de cada visita.",
+      "Me gusta tener los puntos de Casa Andrea siempre en el móvil. Así sé cuánto me falta para mi próxima recompensa cada vez que vuelvo.",
   },
   {
-    name: "Andrea",
-    business: "Waffle Barcelona",
-    image: "/testimonials/andrea.png",
+    name: "María",
+    business: "Latteo Coffee",
+    image: "/testimonials/latteo-coffee.png",
     quote:
-      "La tarjeta en Wallet mantiene la marca presente y convierte la siguiente visita en algo mucho más natural.",
+      "La tarjeta de Latteo Coffee es muy cómoda: pido mi café, enseño el móvil y los puntos se actualizan al momento.",
   },
   {
-    name: "Luis",
-    business: "Martivia Madrid",
-    image: "/testimonials/luis.png",
+    name: "Marcos",
+    business: "Peluquería Álex",
+    image: "/testimonials/peluqueria-alex.png",
     quote:
-      "Ahora podemos entender mejor quién repite y medir qué acciones generan una relación más duradera.",
+      "En Peluquería Álex cada visita cuenta. Llevar la tarjeta digital conmigo hace que acumular puntos sea sencillo y no tenga que guardar nada más.",
   },
   {
-    name: "Rafa",
-    business: "Padoca Burgos",
-    image: "/testimonials/rafa.png",
+    name: "Rocío",
+    business: "Get Smashed Burger",
+    image: "/testimonials/get-smashed-burger.png",
     quote:
-      "Queríamos dejar atrás las tarjetas físicas y ofrecer recompensas claras, sencillas y siempre accesibles.",
-  },
-  {
-    name: "Judit",
-    business: "Indartxu Álava",
-    image: "/testimonials/judit.png",
-    quote:
-      "Cada compra suma y eso se nota tanto en la frecuencia de visita como en el vínculo con la marca.",
-  },
-  {
-    name: "Catherina",
-    business: "Mamma Tiramisú Barcelona",
-    image: "/testimonials/catherina.png",
-    quote:
-      "Los clientes entienden sus puntos de un vistazo y vuelven sabiendo exactamente qué recompensa les espera.",
+      "Con la tarjeta de Get Smashed Burger veo mis puntos de un vistazo y siempre tengo un motivo más para volver por mi burger favorita.",
   },
 ];
 
@@ -520,9 +506,9 @@ function HomePage() {
               >
                 <img
                   src={testimonial.image}
-                  alt={`${testimonial.name}, responsable de ${testimonial.business}`}
+                  alt={`Tarjeta de fidelización de ${testimonial.name} para ${testimonial.business}`}
                   loading="lazy"
-                  className="h-64 w-full object-cover sm:h-full"
+                  className="h-[30rem] w-full bg-[#f5f5f5] object-contain sm:h-full"
                 />
                 <div className="flex min-h-[22rem] flex-col p-7 sm:p-9">
                   <div className="flex gap-1" aria-label="5 de 5 estrellas">
@@ -548,9 +534,6 @@ function HomePage() {
           <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-white to-transparent sm:w-28" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white to-transparent sm:w-28" />
         </div>
-        <p className="mx-auto mt-2 max-w-[1440px] px-5 text-xs text-black/40 lg:px-10">
-          Imágenes y contenidos provisionales, pendientes de sustituir por casos propios de Fideleo.
-        </p>
       </section>
 
       <section id="preguntas" className="border-t border-black/10 px-5 py-24 lg:px-10 lg:py-32">
