@@ -202,9 +202,7 @@ function HomePage() {
   const howProgrammaticRef = useRef(false);
   const howScrollTimerRef = useRef<number | null>(null);
   const kpiTrackRef = useRef<HTMLDivElement>(null);
-  const kpiPausedRef = useRef(false);
   const testimonialsTrackRef = useRef<HTMLDivElement>(null);
-  const testimonialsPausedRef = useRef(false);
 
   const scrollHowTo = useCallback((index: number) => {
     const track = howTrackRef.current;
@@ -271,7 +269,7 @@ function HomePage() {
     let previousTime = 0;
     const move = (time: number) => {
       const track = kpiTrackRef.current;
-      if (track && !kpiPausedRef.current) {
+      if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
         track.scrollLeft += elapsed * 0.03;
         const firstCard = track.children[0] as HTMLElement | undefined;
@@ -295,7 +293,7 @@ function HomePage() {
     let previousTime = 0;
     const move = (time: number) => {
       const track = testimonialsTrackRef.current;
-      if (track && !testimonialsPausedRef.current) {
+      if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
         track.scrollLeft += elapsed * 0.035;
         const firstCard = track.children[0] as HTMLElement | undefined;
@@ -419,7 +417,7 @@ function HomePage() {
           <div className="relative -mx-5 mt-14 lg:left-1/2 lg:mx-0 lg:w-screen lg:-translate-x-1/2">
             <div
               ref={howTrackRef}
-              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:pl-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] lg:pr-[calc(50vw-10.875rem)] [&::-webkit-scrollbar]:hidden"
+              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 [scrollbar-width:none] lg:pl-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] lg:pr-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] [&::-webkit-scrollbar]:hidden"
               onScroll={(event) => {
                 if (howProgrammaticRef.current) return;
                 const track = event.currentTarget;
@@ -636,9 +634,7 @@ function HomePage() {
         </div>
         <div
           ref={kpiTrackRef}
-          className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-3 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden"
-          onTouchStart={() => (kpiPausedRef.current = true)}
-          onTouchEnd={() => (kpiPausedRef.current = false)}
+          className="-mx-5 flex touch-pan-y gap-3 overflow-x-hidden px-5 pb-3 md:hidden"
         >
           {[...kpis, ...kpis].map((kpi, index) => (
             <KpiCard
@@ -666,11 +662,7 @@ function HomePage() {
         <div className="relative mt-14">
           <div
             ref={testimonialsTrackRef}
-            className="flex gap-6 overflow-x-auto px-[max(1.25rem,calc((100vw-1440px)/2+2rem))] pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            onTouchStart={() => (testimonialsPausedRef.current = true)}
-            onTouchEnd={() => (testimonialsPausedRef.current = false)}
-            onFocusCapture={() => (testimonialsPausedRef.current = true)}
-            onBlurCapture={() => (testimonialsPausedRef.current = false)}
+            className="flex touch-pan-y gap-6 overflow-x-hidden px-[max(1.25rem,calc((100vw-1440px)/2+2rem))] pb-8"
           >
             {[...testimonials, ...testimonials].map((testimonial, testimonialIndex) => (
               <article
@@ -684,7 +676,7 @@ function HomePage() {
                   width={520}
                   height={817}
                   loading="lazy"
-                  className="aspect-[7/11] h-auto w-full max-w-[12rem] place-self-center rounded-[1.5rem] object-cover shadow-sm sm:max-w-none"
+                  className="aspect-[7/11] h-auto w-full max-w-[12rem] place-self-center object-cover shadow-sm sm:max-w-none"
                 />
                 <div className="flex min-h-full flex-col py-1 sm:py-4">
                   <div className="flex gap-1" aria-label="5 de 5 estrellas">

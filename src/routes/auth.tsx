@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,48 @@ const ensureBusinessAccount = async (name?: string) => {
   if (error) throw error;
 };
 
+const needsGoogleRegistrationDetails = async (user: User) => {
+  const providers = Array.isArray(user.app_metadata.providers)
+    ? (user.app_metadata.providers as string[])
+    : [];
+  const usesGoogle = user.app_metadata.provider === "google" || providers.includes("google");
+  const businessName =
+    typeof user.user_metadata.business_name === "string"
+      ? user.user_metadata.business_name.trim()
+      : "";
+  if (!usesGoogle || businessName) return false;
+
+  const [profileResult, membershipResult] = await Promise.all([
+    supabase.from("profiles").select("platform_role").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("organization_users")
+      .select("role, organizations(slug, status, onboarding_completed_at)")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at")
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (profileResult.error) throw profileResult.error;
+  if (membershipResult.error) throw membershipResult.error;
+  if (profileResult.data?.platform_role === "superadmin") return false;
+
+  const membership = membershipResult.data;
+  const organization = membership?.organizations as {
+    slug: string;
+    status: string;
+    onboarding_completed_at: string | null;
+  } | null;
+  const personalSuffix = user.id.replaceAll("-", "").slice(0, 8);
+
+  return Boolean(
+    membership?.role === "admin" &&
+    organization?.slug.endsWith(`-${personalSuffix}`) &&
+    organization.status === "configuration_pending" &&
+    !organization.onboarding_completed_at,
+  );
+};
+
 function AuthPage() {
   const search = Route.useSearch();
   const destination = search.next;
@@ -143,6 +186,10 @@ function AuthPage() {
       window.localStorage.removeItem("fideleo:google-oauth-intent");
       try {
         await ensureBusinessAccount();
+        if (await needsGoogleRegistrationDetails(data.session.user)) {
+          window.location.assign(`/completar-registro?next=${encodeURIComponent(destination)}`);
+          return;
+        }
       } catch (accountError) {
         welcomeHandled.current = false;
         toast.error("No hemos podido preparar tu cuenta", {

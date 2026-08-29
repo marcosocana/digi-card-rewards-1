@@ -11,4 +11,3 @@ export const Route = createFileRoute("/404")({
   }),
   component: NotFoundPage,
 });
-

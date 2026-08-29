@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { LoaderCircle, Minus, Package, Plus, ShoppingBag } from "lucide-react";
+import { LoaderCircle, Minus, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ const products = [
     price: 19.9,
     detail: "Soporte rígido para colocar Fideleo en mesas y barra.",
     color: "bg-[#dff7ff]",
+    image: "/store-products/qr-table-branded-v3.jpg",
+    imageAlt: "Expositor de sobremesa con código QR en la barra de una cafetería",
   },
   {
     id: "qr-sticker",
@@ -22,6 +24,8 @@ const products = [
     price: 12.5,
     detail: "Diez adhesivos resistentes para escaparate, carta o mostrador.",
     color: "bg-[#f3e9ff]",
+    image: "/store-products/qr-stickers-branded-v3.jpg",
+    imageAlt: "Pack de adhesivos de colores con códigos QR",
   },
   {
     id: "counter",
@@ -29,6 +33,8 @@ const products = [
     price: 24.9,
     detail: "Cartel personalizado con tu marca y una llamada a la acción.",
     color: "bg-[#fff0d8]",
+    image: "/store-products/counter-poster-branded-v3.jpg",
+    imageAlt: "Cartel con código QR expuesto en el mostrador de un negocio",
   },
   {
     id: "cards",
@@ -36,6 +42,8 @@ const products = [
     price: 29.9,
     detail: "Pack de 100 tarjetas para entregar con la cuenta.",
     color: "bg-[#e7f8ed]",
+    image: "/store-products/info-cards-branded-v3.jpg",
+    imageAlt: "Tarjetas informativas de fidelización apiladas junto a una cuenta",
   },
   {
     id: "staff",
@@ -43,6 +51,8 @@ const products = [
     price: 39.9,
     detail: "Materiales para explicar el club y agilizar el registro.",
     color: "bg-[#ffd9ee]",
+    image: "/store-products/staff-kit-branded-v3.jpg",
+    imageAlt: "Kit de fidelización para el equipo de un local",
   },
   {
     id: "window",
@@ -50,6 +60,8 @@ const products = [
     price: 34.9,
     detail: "Vinilo removible para dar visibilidad al club desde la calle.",
     color: "bg-[#ffe65c]",
+    image: "/store-products/window-vinyl-branded-v3.jpg",
+    imageAlt: "Vinilo con código QR colocado en el escaparate de una cafetería",
   },
 ] as const;
 
@@ -112,8 +124,16 @@ function TiendaPage() {
           const quantity = quantities[product.id] ?? 0;
           return (
             <article key={product.id} className="surface flex min-h-96 flex-col overflow-hidden">
-              <div className={`${product.color} grid h-44 place-items-center`}>
-                <Package className="size-12 text-foreground/70" />
+              <div className={`${product.color} h-44 overflow-hidden`}>
+                <img
+                  src={product.image}
+                  alt={product.imageAlt}
+                  width={800}
+                  height={600}
+                  loading="lazy"
+                  decoding="async"
+                  className="size-full object-cover"
+                />
               </div>
               <div className="flex flex-1 flex-col p-5">
                 <div className="flex items-start justify-between gap-3">
