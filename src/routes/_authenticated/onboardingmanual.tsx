@@ -91,26 +91,58 @@ function ManualOnboardingPage() {
   const submit = async () => {
     if (!valid()) return;
     setSaving(true);
-    const { data, error } = await supabase.functions.invoke("admin-provision-company", {
-      body: { planCode, locations, ...form },
-    });
-    setSaving(false);
-    if (error || data?.error) {
-      toast.error("No se pudo completar el alta", { description: data?.error || error?.message });
-      return;
-    }
-    if (data.emailSent === false) {
-      toast.warning("Empresa y usuario creados, pero el email de confirmación quedó pendiente");
-    } else {
-      toast.success("Empresa, club y usuario creados", {
-        description: "El administrador ha recibido un email de confirmación.",
+    try {
+      const { data, error } = await supabase.functions.invoke<{
+        ok?: boolean;
+        code?: string;
+        error?: string;
+        emailSent?: boolean;
+      }>("admin-provision-company", {
+        body: { planCode, locations, ...form },
       });
+      let description = data?.error || error?.message;
+      if (error && "context" in error && error.context instanceof Response) {
+        try {
+          const response = (await error.context.clone().json()) as { error?: string };
+          description = response.error || description;
+        } catch {
+          // Keep the Functions client message when the response has no JSON body.
+        }
+      }
+      if (error || data?.ok === false || data?.error) {
+        toast.error(
+          data?.code === "account_exists"
+            ? "El email ya está registrado"
+            : "No se pudo completar el alta",
+          {
+            description: description || "Revisa los datos e inténtalo de nuevo.",
+            duration: 7000,
+          },
+        );
+        return;
+      }
+      if (data?.emailSent === false) {
+        toast.warning("Empresa y usuario creados, pero el email de confirmación quedó pendiente");
+      } else {
+        toast.success("Empresa, club y usuario creados", {
+          description: "El administrador ha recibido un email de confirmación.",
+        });
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ["superadmin-organizations"] }),
+      ]);
+      await navigate({ to: "/panel/empresas" });
+    } catch (submitError) {
+      toast.error("No se pudo completar el alta", {
+        description:
+          submitError instanceof Error
+            ? submitError.message
+            : "Revisa la conexión e inténtalo de nuevo.",
+      });
+    } finally {
+      setSaving(false);
     }
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
-      queryClient.invalidateQueries({ queryKey: ["superadmin-organizations"] }),
-    ]);
-    await navigate({ to: "/panel/empresas" });
   };
 
   return (
@@ -541,6 +573,9 @@ function UserStep({
             value={form.ownerEmail}
             onChange={(event) => set("ownerEmail", event.target.value)}
           />
+          <p className="text-xs text-muted-foreground">
+            Debe ser un email que todavía no tenga una cuenta en Fideleo.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label>Contraseña</Label>

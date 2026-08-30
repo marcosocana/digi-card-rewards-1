@@ -87,7 +87,12 @@ Deno.serve(async (request) => {
     });
     if (!existenceResponse.ok) throw new Error("No se pudo comprobar el email del usuario");
     if ((await existenceResponse.json()) === true) {
-      return json({ error: "Ya existe una cuenta con este email" }, 409);
+      return json({
+        ok: false,
+        code: "account_exists",
+        error:
+          "Ya existe una cuenta con este email. Utiliza otro email para el nuevo administrador.",
+      });
     }
 
     const prepareResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/admin_prepare_paid_company`, {
@@ -117,6 +122,14 @@ Deno.serve(async (request) => {
     const prepared = await prepareResponse.json();
     if (!prepareResponse.ok) {
       const message = prepared?.message || prepared?.error || "No se pudo preparar la empresa";
+      if (message === "ACCOUNT_EXISTS" || prepareResponse.status === 409) {
+        return json({
+          ok: false,
+          code: "account_exists",
+          error:
+            "Ya existe una cuenta con este email. Utiliza otro email para el nuevo administrador.",
+        });
+      }
       return json({ error: message }, prepareResponse.status);
     }
 
@@ -254,10 +267,18 @@ Deno.serve(async (request) => {
           headers: serviceHeaders,
         },
       );
-      return json(
-        { error: user?.msg || user?.message || "No se pudo crear el usuario" },
-        userResponse.status,
-      );
+      if (userResponse.status === 409 || user?.code === "email_exists") {
+        return json({
+          ok: false,
+          code: "account_exists",
+          error:
+            "Ya existe una cuenta con este email. Utiliza otro email para el nuevo administrador.",
+        });
+      }
+      return json({
+        ok: false,
+        error: user?.msg || user?.message || "No se pudo crear el usuario",
+      });
     }
 
     const confirmationResponse = await fetch(
