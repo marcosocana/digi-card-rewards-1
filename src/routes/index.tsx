@@ -198,6 +198,7 @@ function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [clubQr, setClubQr] = useState("");
   const [currentHowStep, setCurrentHowStep] = useState(0);
+  const howSectionRef = useRef<HTMLElement>(null);
   const howTrackRef = useRef<HTMLDivElement>(null);
   const howProgrammaticRef = useRef(false);
   const howScrollTimerRef = useRef<number | null>(null);
@@ -236,15 +237,49 @@ function HomePage() {
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => {
-      if (window.matchMedia("(min-width: 1024px)").matches) return;
-      setCurrentHowStep((current) => {
-        const next = (current + 1) % howItWorks.length;
-        scrollHowTo(next);
-        return next;
-      });
-    }, 12_000);
-    return () => window.clearInterval(timer);
+    const section = howSectionRef.current;
+    if (!section) return;
+
+    let timer: number | null = null;
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      timer = window.setInterval(() => {
+        setCurrentHowStep((current) => {
+          if (current >= howItWorks.length - 1) {
+            if (timer) window.clearInterval(timer);
+            timer = null;
+            return current;
+          }
+          const next = current + 1;
+          scrollHowTo(next);
+          return next;
+        });
+      }, 20_000);
+    };
+
+    if (!("IntersectionObserver" in window)) {
+      start();
+      return () => {
+        if (timer) window.clearInterval(timer);
+      };
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        start();
+        observer.disconnect();
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(section);
+
+    return () => {
+      observer.disconnect();
+      if (timer) window.clearInterval(timer);
+    };
   }, [scrollHowTo]);
 
   useEffect(() => {
@@ -271,7 +306,7 @@ function HomePage() {
       const track = kpiTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        track.scrollLeft += elapsed * 0.03;
+        track.scrollLeft += elapsed * 0.16;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[kpis.length] as HTMLElement | undefined;
         const cycleWidth =
@@ -295,7 +330,7 @@ function HomePage() {
       const track = testimonialsTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        track.scrollLeft += elapsed * 0.035;
+        track.scrollLeft += elapsed * 0.12;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[testimonials.length] as HTMLElement | undefined;
         const cycleWidth =
@@ -407,7 +442,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="como-funciona" className="px-5 py-16 lg:px-10 lg:py-20">
+      <section ref={howSectionRef} id="como-funciona" className="px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-[1440px]">
           <div className="max-w-4xl">
             <h2 className="text-4xl font-semibold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">
@@ -625,7 +660,7 @@ function HomePage() {
       </section>
 
       <section className="px-5 py-16 lg:px-10 lg:py-20">
-        <div className="mx-auto hidden max-w-[1440px] md:block">
+        <div className="mx-auto hidden max-w-[1440px] lg:block">
           <div className="grid grid-cols-5 gap-4">
             {kpis.map((kpi) => (
               <KpiCard key={kpi.label} kpi={kpi} />
@@ -634,7 +669,7 @@ function HomePage() {
         </div>
         <div
           ref={kpiTrackRef}
-          className="-mx-5 flex touch-pan-y gap-3 overflow-x-hidden px-5 pb-3 md:hidden"
+          className="-mx-5 flex touch-pan-y gap-3 overflow-x-hidden px-5 pb-3 lg:hidden"
         >
           {[...kpis, ...kpis].map((kpi, index) => (
             <KpiCard
