@@ -154,10 +154,18 @@ function NotificacionesPage() {
       toast.error("Completa título, mensaje y destinatarios");
       return;
     }
+    const effectiveLocationId =
+      locationId ?? (data?.locations.length === 1 ? data.locations[0].id : null);
+    if (!effectiveLocationId) {
+      toast.error("Selecciona un establecimiento", {
+        description: "Las notificaciones se envían siempre desde un establecimiento concreto.",
+      });
+      return;
+    }
     setBusy(true);
     const { data: result, error } = await supabase.rpc("queue_manual_notification", {
       _organization_id: orgId,
-      ...(locationId ? { _location_id: locationId } : {}),
+      _location_id: effectiveLocationId,
       _segment_id: form.segmentId,
       _title: form.title.trim(),
       _message: form.message.trim(),

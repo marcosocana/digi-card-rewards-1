@@ -100,11 +100,9 @@ const first = async <T>(url: string, headers: Record<string, string>) => {
   return rows[0] ?? null;
 };
 
-const pointsBalance = (mechanic: string, balance: number) => {
-  if (mechanic === "cashback") return `${(balance / 100).toFixed(2)} €`;
-  if (mechanic === "spend") return `${balance} €`;
-  return String(balance);
-};
+// Keep the visible loyalty balance provider-neutral: it is a number of points,
+// even when points are earned from spending or cashback rules.
+const pointsBalance = (balance: number) => String(balance);
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -185,7 +183,7 @@ Deno.serve(async (request) => {
               branding?.wallet_points_label ||
               (program.mechanic_type === "stamps" ? "Sellos" : "Puntos"),
             balance: {
-              string: pointsBalance(program.mechanic_type, membership.cached_points_balance),
+              string: pointsBalance(membership.cached_points_balance),
             },
           },
         }),

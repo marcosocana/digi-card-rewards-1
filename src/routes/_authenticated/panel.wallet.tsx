@@ -510,7 +510,11 @@ function WalletPage() {
               (setting) => setting.provider === walletProvider,
             );
             const connected = walletSetting?.mode === "live" && walletSetting?.status === "active";
-            const status = connected ? t("Conectado") : t("Incompleto");
+            const status = connected
+              ? t("Conectado")
+              : walletProvider === "apple"
+                ? t("Diseño disponible")
+                : t("Incompleto");
             return (
               <button
                 key={walletProvider}
@@ -579,17 +583,25 @@ function WalletPage() {
       </section>
 
       {!providerConnected ? (
-        <section className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+        <section
+          className={`flex gap-3 rounded-2xl border p-4 ${
+            provider === "apple"
+              ? "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-100"
+              : "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
+          }`}
+        >
           <Clock3 className="mt-0.5 size-5 shrink-0" />
           <div>
-            <p className="text-sm font-semibold">{t("Integración pendiente")}</p>
+            <p className="text-sm font-semibold">
+              {provider === "apple" ? t("Personalización disponible") : t("Integración pendiente")}
+            </p>
             <p className="mt-1 text-sm opacity-75">
               {provider === "google"
                 ? t(
                     "Google Wallet se mostrará como conectado después de validar las credenciales y generar el primer pase.",
                   )
                 : t(
-                    "Puedes adelantar el diseño visual. La emisión y actualización de pases Apple se activará cuando se incorporen sus credenciales.",
+                    "Puedes editar, guardar y revisar ahora el diseño de Apple Wallet. La emisión y actualización de pases se activará cuando se incorporen sus credenciales.",
                   )}
             </p>
           </div>

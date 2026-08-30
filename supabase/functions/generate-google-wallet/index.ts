@@ -108,11 +108,9 @@ const first = async <T>(url: string, headers: Record<string, string>) => {
   return rows[0] ?? null;
 };
 
-const pointsBalance = (mechanic: string, balance: number) => {
-  if (mechanic === "cashback") return `${(balance / 100).toFixed(2)} €`;
-  if (mechanic === "spend") return `${balance} €`;
-  return String(balance);
-};
+// Google Wallet must display the loyalty balance as points, never as money.
+// The earning mechanic controls how points accrue, not how the balance is labelled.
+const pointsBalance = (balance: number) => String(balance);
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -269,7 +267,7 @@ Deno.serve(async (request) => {
         label:
           branding?.wallet_points_label ||
           (program.mechanic_type === "stamps" ? "Sellos" : "Puntos"),
-        balance: { string: pointsBalance(program.mechanic_type, membership.cached_points_balance) },
+        balance: { string: pointsBalance(membership.cached_points_balance) },
       },
     };
 
