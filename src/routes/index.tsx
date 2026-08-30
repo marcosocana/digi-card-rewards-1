@@ -307,7 +307,7 @@ function HomePage() {
       const track = kpiTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        position += elapsed * 0.024;
+        position += elapsed * 0.028;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[kpis.length] as HTMLElement | undefined;
         const cycleWidth =
@@ -333,7 +333,7 @@ function HomePage() {
       const track = testimonialsTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        position += elapsed * 0.017;
+        position += elapsed * 0.021;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[testimonials.length] as HTMLElement | undefined;
         const cycleWidth =
@@ -434,7 +434,7 @@ function HomePage() {
       <section className="border-b border-black/10 bg-[#fff0d8] px-5 py-8 lg:px-10">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <p className="max-w-sm text-sm font-semibold">
-            Un sistema flexible para negocios que viven de sus clientes recurrentes.
+            Un sistema flexible para negocios que viven de sus clientes recurrentes
           </p>
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-lg font-semibold text-black/40">
             <span>Cafeterías</span>
@@ -556,7 +556,7 @@ function HomePage() {
         <div className="mx-auto grid max-w-[1440px] items-center gap-10 rounded-[2.5rem] bg-white p-7 shadow-sm sm:p-10 lg:grid-cols-[1fr_auto] lg:p-14">
           <div className="max-w-3xl">
             <h2 className="text-4xl font-semibold leading-[.98] tracking-[-.05em] sm:text-6xl">
-              Descubre la experiencia de tus clientes.
+              Descubre la experiencia de tus clientes
             </h2>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-black/60">
               Escanea el QR o abre el Club Café Norte para ver cómo un cliente consulta sus puntos,
@@ -592,7 +592,7 @@ function HomePage() {
       <section id="precios" className="bg-[#111] px-5 py-16 text-white lg:px-10 lg:py-20">
         <div className="mx-auto max-w-[1440px]">
           <h2 className="max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
-            Un plan para cada etapa de tu negocio.
+            Un plan para cada etapa de tu negocio
           </h2>
           <div className="-mx-5 mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-5 [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-[1224px] lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
             {subscriptionPlans.map((plan) => (
@@ -633,7 +633,7 @@ function HomePage() {
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div>
               <h2 className="text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
-                Una visión clara de lo que hace volver a tus clientes.
+                Una visión clara de lo que hace volver a tus clientes
               </h2>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-black/65">
                 Consulta rendimiento por periodo y ubicación, identifica clientes recurrentes y mide
@@ -690,7 +690,7 @@ function HomePage() {
         <div className="mx-auto max-w-[1440px] px-5 lg:px-10">
           <div className="max-w-4xl">
             <h2 className="text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
-              Negocios que convierten cada visita en una relación.
+              Negocios que convierten cada visita en una relación
             </h2>
             <p className="mt-5 max-w-2xl text-black/60">
               Historias de equipos que han simplificado su fidelización y mantienen su marca en el
@@ -758,7 +758,7 @@ function HomePage() {
         <div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[.7fr_1.3fr]">
           <div>
             <h2 className="text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
-              Lo importante, claro desde el principio.
+              Lo importante, claro desde el principio
             </h2>
           </div>
           <div className="divide-y divide-black/15 border-y border-black/15">
@@ -815,7 +815,7 @@ function HomePage() {
       <section id="demo" className="px-5 pb-5 lg:px-10 lg:pb-10">
         <div className="mx-auto max-w-[1440px] overflow-hidden rounded-[2.5rem] bg-[#f8b9e7] px-6 py-16 text-center sm:px-10 lg:py-24">
           <h2 className="mx-auto max-w-4xl text-5xl font-semibold leading-[.93] tracking-[-.06em] sm:text-7xl">
-            Empieza a convertir clientes ocasionales en habituales.
+            Empieza a convertir clientes ocasionales en habituales
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-black/65">
             Explora el backoffice con las cuentas demo o entra en la experiencia pública de Café
