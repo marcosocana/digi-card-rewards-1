@@ -245,6 +245,7 @@ function HomePage() {
     const start = () => {
       if (started) return;
       started = true;
+      const interval = window.matchMedia("(max-width: 1023px)").matches ? 40_000 : 20_000;
       timer = window.setInterval(() => {
         setCurrentHowStep((current) => {
           if (current >= howItWorks.length - 1) {
@@ -256,7 +257,7 @@ function HomePage() {
           scrollHowTo(next);
           return next;
         });
-      }, 20_000);
+      }, interval);
     };
 
     if (!("IntersectionObserver" in window)) {
