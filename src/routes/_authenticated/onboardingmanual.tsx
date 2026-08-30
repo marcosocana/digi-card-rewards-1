@@ -155,8 +155,7 @@ function ManualOnboardingPage() {
       </header>
       <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-10">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Modo dios</p>
-          <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Onboarding manual</h1>
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">Onboarding manual</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Configura el club y crea su usuario administrador.
           </p>

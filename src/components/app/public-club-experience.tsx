@@ -21,15 +21,8 @@ export function PublicClubExperience({
         .eq("status", "active")
         .maybeSingle();
       if (error || !organization) return null;
-      const { data: program } = await supabase
-        .from("loyalty_programs")
-        .select("id, public_name, description, earning_mode, earning_value, terms")
-        .eq("organization_id", organization.id)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle();
-      if (!program) return null;
       let location: { id: string; name: string } | null = null;
+      let locationProgramId: string | null = null;
       if (locationSlug) {
         const { data } = await supabase
           .from("locations")
@@ -43,12 +36,21 @@ export function PublicClubExperience({
 
         const { data: assignment } = await supabase
           .from("program_locations")
-          .select("location_id")
-          .eq("program_id", program.id)
+          .select("program_id")
           .eq("location_id", location.id)
+          .limit(1)
           .maybeSingle();
         if (!assignment) return null;
+        locationProgramId = assignment.program_id;
       }
+      let programQuery = supabase
+        .from("loyalty_programs")
+        .select("id, public_name, description, earning_mode, earning_value, terms")
+        .eq("organization_id", organization.id)
+        .eq("status", "active");
+      if (locationProgramId) programQuery = programQuery.eq("id", locationProgramId);
+      const { data: program } = await programQuery.limit(1).maybeSingle();
+      if (!program) return null;
       return {
         organization,
         program,
