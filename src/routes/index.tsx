@@ -302,16 +302,18 @@ function HomePage() {
 
     let frame = 0;
     let previousTime = 0;
+    let position = kpiTrackRef.current?.scrollLeft ?? 0;
     const move = (time: number) => {
       const track = kpiTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        track.scrollLeft += elapsed * 0.018;
+        position += elapsed * 0.024;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[kpis.length] as HTMLElement | undefined;
         const cycleWidth =
           firstCard && firstDuplicate ? firstDuplicate.offsetLeft - firstCard.offsetLeft : 0;
-        if (cycleWidth && track.scrollLeft >= cycleWidth) track.scrollLeft -= cycleWidth;
+        if (cycleWidth && position >= cycleWidth) position -= cycleWidth;
+        track.scrollLeft = position;
       }
       previousTime = time;
       frame = window.requestAnimationFrame(move);
@@ -326,16 +328,18 @@ function HomePage() {
 
     let frame = 0;
     let previousTime = 0;
+    let position = testimonialsTrackRef.current?.scrollLeft ?? 0;
     const move = (time: number) => {
       const track = testimonialsTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        track.scrollLeft += elapsed * 0.013;
+        position += elapsed * 0.017;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[testimonials.length] as HTMLElement | undefined;
         const cycleWidth =
           firstCard && firstDuplicate ? firstDuplicate.offsetLeft - firstCard.offsetLeft : 0;
-        if (cycleWidth && track.scrollLeft >= cycleWidth) track.scrollLeft -= cycleWidth;
+        if (cycleWidth && position >= cycleWidth) position -= cycleWidth;
+        track.scrollLeft = position;
       }
       previousTime = time;
       frame = window.requestAnimationFrame(move);
