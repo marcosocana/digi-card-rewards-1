@@ -40,7 +40,7 @@ const actionContent = (action: string) => {
       eyebrow: "Invitación",
       title: "Crea tu contraseña y accede",
       message:
-        "Acepta la invitación, elige una contraseña y activa tu acceso al equipo de Fideleo.",
+        "Te han dado de alta como usuario. Acepta la invitación, elige una contraseña y activa tu acceso al equipo de Fideleo.",
       button: "Crear mi contraseña",
     };
   }

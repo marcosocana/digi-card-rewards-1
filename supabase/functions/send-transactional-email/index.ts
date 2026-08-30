@@ -381,7 +381,7 @@ Deno.serve(async (request) => {
       eventKey = `manual_account_confirmation:${userId}`;
       content = {
         subject: "Tu cuenta de Fideleo ya está preparada",
-        preheader: "Tu empresa y tu club ya están configurados.",
+        preheader: "Tu empresa y tu club ya están configurados. Accede a tu panel.",
         title: "Tu alta está confirmada",
         greeting: profile.full_name ? `Hola, ${profile.full_name}.` : "Hola.",
         paragraphs: [
@@ -389,7 +389,10 @@ Deno.serve(async (request) => {
           "Tu usuario administrador está activo y el club ya tiene configurados sus establecimientos, identidad visual, programa y tarjeta digital.",
           "Puedes acceder con el email de este mensaje y la contraseña que te ha facilitado el administrador de Fideleo.",
         ],
-        cta: { label: "Acceder a Fideleo", url: `${appUrl}/auth` },
+        cta: {
+          label: "Acceder a Fideleo",
+          url: `${appUrl}/auth?email=${encodeURIComponent(recipient)}`,
+        },
         note: "Por seguridad, la contraseña no se incluye en este correo.",
       };
     } else if (kind === "password_changed") {
