@@ -489,14 +489,12 @@ function AuthPage() {
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Entrando…" : "Entrar"}
                   </Button>
-                  <button
-                    type="button"
-                    className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
-                    disabled={loading}
-                    onClick={() => void requestPasswordReset()}
+                  <Link
+                    to="/recuperar-contrasena"
+                    className="block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
                   >
                     ¿Has olvidado tu contraseña?
-                  </button>
+                  </Link>
                 </form>
               </TabsContent>
 

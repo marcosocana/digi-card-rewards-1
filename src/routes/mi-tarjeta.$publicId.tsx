@@ -320,9 +320,16 @@ function PortalPage() {
                     <p className="truncate text-xs text-muted-foreground">{r.description}</p>
                   ) : null}
                 </div>
-                <Badge variant={r.available ? "default" : "outline"}>
-                  {num(r.points_cost)} pts
-                </Badge>
+                <div className="shrink-0 text-right">
+                  <p className="text-xs text-muted-foreground">{num(r.points_cost)} pts</p>
+                  {r.available ? (
+                    <p className="text-sm font-medium text-emerald-600">Disponible</p>
+                  ) : (
+                    <p className="text-sm font-medium text-red-600">
+                      Faltan {num(Math.max(r.points_cost - data.membership.balance, 0))} puntos
+                    </p>
+                  )}
+                </div>
               </li>
             ))}
             {data.rewards.length === 0 ? (

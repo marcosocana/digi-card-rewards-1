@@ -145,7 +145,13 @@ Deno.serve(async (request) => {
       `${supabaseUrl}/rest/v1/organization_users?organization_id=eq.${membership.organization_id}&user_id=eq.${authenticatedUser.id}&status=eq.active&select=id&limit=1`,
       dbHeaders,
     );
-    if (!organizationUser) return json({ error: "FORBIDDEN" }, 403);
+    if (!organizationUser) {
+      const superadmin = await first<{ id: string }>(
+        `${supabaseUrl}/rest/v1/profiles?id=eq.${authenticatedUser.id}&platform_role=eq.superadmin&select=id&limit=1`,
+        dbHeaders,
+      );
+      if (!superadmin) return json({ error: "FORBIDDEN" }, 403);
+    }
 
     const walletPass = await first<WalletPass>(
       `${supabaseUrl}/rest/v1/wallet_passes?membership_id=eq.${membership.id}&provider=eq.google&status=neq.revoked&select=id,provider_object_id&limit=1`,

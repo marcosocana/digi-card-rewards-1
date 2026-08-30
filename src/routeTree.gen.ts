@@ -14,6 +14,7 @@ import { Route as R404RouteImport } from './routes/404'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AceptarInvitacionRouteImport } from './routes/aceptar-invitacion'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as RecuperarContrasenaRouteImport } from './routes/recuperar-contrasena'
 import { Route as SolicitarDemoRouteImport } from './routes/solicitar-demo'
 import { Route as AuthenticatedOnboardingRouteRouteImport } from './routes/_authenticated/_onboarding/route'
 import { Route as AuthenticatedCompletarRegistroRouteImport } from './routes/_authenticated/completar-registro'
@@ -70,6 +71,11 @@ const AceptarInvitacionRoute = AceptarInvitacionRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecuperarContrasenaRoute = RecuperarContrasenaRouteImport.update({
+  id: '/recuperar-contrasena',
+  path: '/recuperar-contrasena',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SolicitarDemoRoute = SolicitarDemoRouteImport.update({
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/404': typeof R404Route
   '/aceptar-invitacion': typeof AceptarInvitacionRoute
   '/auth': typeof AuthRoute
+  '/recuperar-contrasena': typeof RecuperarContrasenaRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/completar-registro': typeof AuthenticatedCompletarRegistroRoute
   '/onboardingmanual': typeof AuthenticatedOnboardingmanualRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/404': typeof R404Route
   '/aceptar-invitacion': typeof AceptarInvitacionRoute
   '/auth': typeof AuthRoute
+  '/recuperar-contrasena': typeof RecuperarContrasenaRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/completar-registro': typeof AuthenticatedCompletarRegistroRoute
   '/onboardingmanual': typeof AuthenticatedOnboardingmanualRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/404': typeof R404Route
   '/aceptar-invitacion': typeof AceptarInvitacionRoute
   '/auth': typeof AuthRoute
+  '/recuperar-contrasena': typeof RecuperarContrasenaRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/_authenticated/_onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/_authenticated/completar-registro': typeof AuthenticatedCompletarRegistroRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/aceptar-invitacion'
     | '/auth'
+    | '/recuperar-contrasena'
     | '/solicitar-demo'
     | '/completar-registro'
     | '/onboardingmanual'
@@ -423,6 +433,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/aceptar-invitacion'
     | '/auth'
+    | '/recuperar-contrasena'
     | '/solicitar-demo'
     | '/completar-registro'
     | '/onboardingmanual'
@@ -461,6 +472,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/aceptar-invitacion'
     | '/auth'
+    | '/recuperar-contrasena'
     | '/solicitar-demo'
     | '/_authenticated/_onboarding'
     | '/_authenticated/completar-registro'
@@ -502,6 +514,7 @@ export interface RootRouteChildren {
   R404Route: typeof R404Route
   AceptarInvitacionRoute: typeof AceptarInvitacionRoute
   AuthRoute: typeof AuthRoute
+  RecuperarContrasenaRoute: typeof RecuperarContrasenaRoute
   SolicitarDemoRoute: typeof SolicitarDemoRoute
   ClubBusinessSlugRoute: typeof ClubBusinessSlugRouteWithChildren
   LegalDocumentRoute: typeof LegalDocumentRoute
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recuperar-contrasena': {
+      id: '/recuperar-contrasena'
+      path: '/recuperar-contrasena'
+      fullPath: '/recuperar-contrasena'
+      preLoaderRoute: typeof RecuperarContrasenaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/solicitar-demo': {
@@ -885,6 +905,7 @@ const rootRouteChildren: RootRouteChildren = {
   R404Route: R404Route,
   AceptarInvitacionRoute: AceptarInvitacionRoute,
   AuthRoute: AuthRoute,
+  RecuperarContrasenaRoute: RecuperarContrasenaRoute,
   SolicitarDemoRoute: SolicitarDemoRoute,
   ClubBusinessSlugRoute: ClubBusinessSlugRouteWithChildren,
   LegalDocumentRoute: LegalDocumentRoute,
