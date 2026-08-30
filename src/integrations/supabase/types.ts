@@ -2714,6 +2714,18 @@ export type Database = {
         };
         Returns: Json;
       };
+      create_organization_with_admin: {
+        Args: {
+          _address_line?: string;
+          _city?: string;
+          _contact_email: string;
+          _contact_phone?: string;
+          _display_name: string;
+          _legal_name: string;
+          _postal_code?: string;
+        };
+        Returns: Json;
+      };
       enqueue_scheduled_automations: {
         Args: { _location_id?: string; _organization_id: string };
         Returns: number;

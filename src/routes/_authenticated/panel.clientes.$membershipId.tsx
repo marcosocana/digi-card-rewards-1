@@ -2,9 +2,16 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Download, ExternalLink, Gift, RotateCcw, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  Download,
+  ExternalLink,
+  Gift,
+  SlidersHorizontal,
+  Wallet,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,15 +24,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSession } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
 import {
   adjustPoints,
   redeemReward,
   requestWalletUpdate,
-  reverseTransaction,
   syncGoogleWallet,
 } from "@/lib/operations";
 
@@ -42,18 +53,17 @@ function ClienteDetalle() {
   const [delta, setDelta] = useState("");
   const [reason, setReason] = useState("");
   const [open, setOpen] = useState(false);
-  const [redeemOpen, setRedeemOpen] = useState(false);
-  const [rewardId, setRewardId] = useState("");
-  const [redeeming, setRedeeming] = useState(false);
+  const [rewardToRedeemId, setRewardToRedeemId] = useState<string | null>(null);
+  const [redeemingRewardId, setRedeemingRewardId] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["membership", membershipId],
     queryFn: async () => {
-      const [m, t, p, earned, deliveries] = await Promise.all([
+      const [m, t, p, deliveries] = await Promise.all([
         supabase
           .from("memberships")
           .select(
-            "id, public_id, cached_points_balance, status, joined_at, acquisition_location_id, customers(first_name, last_name, email, phone)",
+            "id, public_id, program_id, cached_points_balance, status, joined_at, acquisition_location_id, customers(first_name, last_name, email, phone)",
           )
           .eq("id", membershipId)
           .maybeSingle(),
@@ -68,11 +78,6 @@ function ClienteDetalle() {
           .select("provider, status, is_sandbox, last_updated_at")
           .eq("membership_id", membershipId),
         supabase
-          .from("customer_rewards")
-          .select("id, status, awarded_at, redeemed_at, reward_id, rewards(name,points_cost)")
-          .eq("membership_id", membershipId)
-          .order("awarded_at", { ascending: false }),
-        supabase
           .from("notification_deliveries")
           .select("id,status,provider,created_at,notifications(title,message)")
           .eq("membership_id", membershipId)
@@ -80,11 +85,34 @@ function ClienteDetalle() {
           .limit(50),
       ]);
       if (m.error) throw m.error;
+      if (t.error) throw t.error;
+      if (p.error) throw p.error;
+      if (deliveries.error) throw deliveries.error;
+
+      const rewardsResult = m.data?.program_id
+        ? await supabase
+            .from("rewards")
+            .select(
+              "id,name,description,points_cost,status,redemption_limit_type,redemption_limit_count,reward_locations(location_id)",
+            )
+            .eq("program_id", m.data.program_id)
+            .order("points_cost")
+        : { data: [], error: null };
+      if (rewardsResult.error) throw rewardsResult.error;
+      const rewardIds = (rewardsResult.data ?? []).map((reward) => reward.id);
+      const redemptionsResult = rewardIds.length
+        ? await supabase
+            .from("redemptions")
+            .select("reward_id,membership_id")
+            .in("reward_id", rewardIds)
+        : { data: [], error: null };
+      if (redemptionsResult.error) throw redemptionsResult.error;
       return {
         membership: m.data,
         transactions: t.data ?? [],
         passes: p.data ?? [],
-        earned: earned.data ?? [],
+        rewards: rewardsResult.data ?? [],
+        redemptions: redemptionsResult.data ?? [],
         deliveries: deliveries.data ?? [],
       };
     },
@@ -115,25 +143,6 @@ function ClienteDetalle() {
       setReason("");
       void refetch();
       void queryClient.invalidateQueries({ queryKey: ["memberships"] });
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  };
-
-  const reverse = async (id: string) => {
-    const motive = window.prompt("Motivo de la anulación");
-    if (!motive || motive.trim().length < 3) return;
-    try {
-      const res = await reverseTransaction(id, motive.trim());
-      toast.success(`Movimiento anulado. Saldo: ${num(res.resulting_balance)} puntos`);
-      try {
-        await syncGoogleWallet(membershipId);
-      } catch (walletError) {
-        toast.warning("El saldo se actualizó, pero Google Wallet quedó pendiente", {
-          description: (walletError as Error).message,
-        });
-      }
-      void refetch();
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -195,25 +204,21 @@ function ClienteDetalle() {
     toast.success("Archivo Excel descargado");
   };
 
-  const redeem = async () => {
-    if (!rewardId || !data?.membership?.acquisition_location_id) return;
-    setRedeeming(true);
+  const redeem = async (selectedRewardId: string) => {
+    if (!selectedRewardId || !data?.membership?.acquisition_location_id) return;
+    setRedeemingRewardId(selectedRewardId);
     try {
       const result = await redeemReward({
         membershipId,
-        rewardId,
+        rewardId: selectedRewardId,
         locationId: data.membership.acquisition_location_id,
         idempotencyKey: crypto.randomUUID(),
       });
       toast.success(`${result.reward_name} canjeada`, {
         description: `Nuevo saldo: ${num(result.resulting_balance)} puntos`,
       });
-      setRedeemOpen(false);
-      setRewardId("");
-      await Promise.all([
-        refetch(),
-        queryClient.invalidateQueries({ queryKey: ["memberships"] }),
-      ]);
+      setRewardToRedeemId(null);
+      await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["memberships"] })]);
       try {
         await syncGoogleWallet(membershipId);
       } catch {
@@ -222,7 +227,7 @@ function ClienteDetalle() {
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
-      setRedeeming(false);
+      setRedeemingRewardId(null);
     }
   };
 
@@ -235,6 +240,21 @@ function ClienteDetalle() {
     email: string;
     phone: string | null;
   } | null;
+  const customerRedemptionCounts = new Map<string, number>();
+  const globalRedemptionCounts = new Map<string, number>();
+  data.redemptions.forEach((redemption) => {
+    globalRedemptionCounts.set(
+      redemption.reward_id,
+      (globalRedemptionCounts.get(redemption.reward_id) ?? 0) + 1,
+    );
+    if (redemption.membership_id === membershipId) {
+      customerRedemptionCounts.set(
+        redemption.reward_id,
+        (customerRedemptionCounts.get(redemption.reward_id) ?? 0) + 1,
+      );
+    }
+  });
+  const rewardToRedeem = data.rewards.find((reward) => reward.id === rewardToRedeemId);
 
   return (
     <>
@@ -244,108 +264,95 @@ function ClienteDetalle() {
         </Link>
       </Button>
 
-      <PageHeader
-        title={`${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim() || "Cliente"}
-        description={[c?.email, c?.phone].filter(Boolean).join(" · ") || undefined}
-        actions={
-          <>
-            {canAdjust ? (
-              <Button variant="outline" onClick={() => void exportData()}>
-                <Download aria-hidden className="size-4" /> Exportar datos
-              </Button>
-            ) : null}
-            <Button variant="outline" onClick={() => void syncWallet()}>
-              <Wallet aria-hidden className="size-4" /> Actualizar tarjeta
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-3xl font-bold sm:text-4xl">
+            {`${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim() || "Cliente"}
+          </h1>
+          {[c?.email, c?.phone].filter(Boolean).length ? (
+            <p className="mt-1 truncate text-sm text-muted-foreground">
+              {[c?.email, c?.phone].filter(Boolean).join(" · ")}
+            </p>
+          ) : null}
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="shrink-0 md:hidden">
+              Opciones <ChevronDown className="size-4" />
             </Button>
-            <Button asChild variant="outline">
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52 md:hidden">
+            {canAdjust ? (
+              <DropdownMenuItem onSelect={() => void exportData()}>
+                <Download /> Exportar datos
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem onSelect={() => void syncWallet()}>
+              <Wallet /> Actualizar tarjeta
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <a href={`/mi-tarjeta/${m.public_id}`} target="_blank" rel="noreferrer">
-                <ExternalLink aria-hidden className="size-4" /> Ver portal
+                <ExternalLink /> Ver portal
               </a>
-            </Button>
+            </DropdownMenuItem>
             {canAdjust ? (
-              <Dialog open={redeemOpen} onOpenChange={setRedeemOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    disabled={!data.earned.some((reward) => reward.status === "available")}
-                  >
-                    <Gift className="size-4" /> Canjear
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Canjear recompensa</DialogTitle>
-                    <DialogDescription>
-                      Selecciona una recompensa disponible. Sus puntos se descontarán
-                      automáticamente.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="available-reward">Recompensa disponible</Label>
-                    <select
-                      id="available-reward"
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      value={rewardId}
-                      onChange={(event) => setRewardId(event.target.value)}
-                    >
-                      <option value="">Selecciona una recompensa</option>
-                      {data.earned
-                        .filter((reward) => reward.status === "available")
-                        .map((reward) => (
-                          <option key={reward.id} value={reward.reward_id}>
-                            {reward.rewards?.name ?? "Recompensa"} · {reward.rewards?.points_cost} pts
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  <DialogFooter>
-                    <Button disabled={!rewardId || redeeming} onClick={() => void redeem()}>
-                      {redeeming ? "Canjeando…" : "Canjear"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <DropdownMenuItem onSelect={() => setOpen(true)}>
+                <SlidersHorizontal /> Ajustar puntos
+              </DropdownMenuItem>
             ) : null}
-            {canAdjust ? (
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button>Ajustar puntos</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Ajuste manual de puntos</DialogTitle>
-                    <DialogDescription>
-                      Queda registrado en el histórico con tu usuario y el motivo indicado.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="delta">Puntos (positivo o negativo)</Label>
-                      <Input
-                        id="delta"
-                        inputMode="numeric"
-                        value={delta}
-                        onChange={(e) => setDelta(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="reason">Motivo</Label>
-                      <Input
-                        id="reason"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={() => void submitAdjust()}>Aplicar ajuste</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            ) : null}
-          </>
-        }
-      />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="surface hidden flex-wrap items-center gap-2 p-3 md:flex">
+        {canAdjust ? (
+          <Button variant="outline" onClick={() => void exportData()}>
+            <Download aria-hidden className="size-4" /> Exportar datos
+          </Button>
+        ) : null}
+        <Button variant="outline" onClick={() => void syncWallet()}>
+          <Wallet aria-hidden className="size-4" /> Actualizar tarjeta
+        </Button>
+        <Button asChild variant="outline">
+          <a href={`/mi-tarjeta/${m.public_id}`} target="_blank" rel="noreferrer">
+            <ExternalLink aria-hidden className="size-4" /> Ver portal
+          </a>
+        </Button>
+        {canAdjust ? (
+          <Button variant="outline" onClick={() => setOpen(true)}>
+            <SlidersHorizontal className="size-4" /> Ajustar puntos
+          </Button>
+        ) : null}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajuste manual de puntos</DialogTitle>
+            <DialogDescription>
+              Queda registrado en el histórico con tu usuario y el motivo indicado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="delta">Puntos (positivo o negativo)</Label>
+              <Input
+                id="delta"
+                inputMode="numeric"
+                value={delta}
+                onChange={(e) => setDelta(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reason">Motivo</Label>
+              <Input id="reason" value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => void submitAdjust()}>Aplicar ajuste</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="surface p-5">
@@ -375,43 +382,136 @@ function ClienteDetalle() {
       </div>
 
       <div className="surface overflow-hidden">
-        <h2 className="border-b px-5 py-4 font-display text-lg font-semibold">
-          Recompensas obtenidas
-        </h2>
-        {data.earned.length ? (
+        <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Recompensas</h2>
+            <p className="text-xs text-muted-foreground">
+              Catálogo completo y estado de canje de este cliente.
+            </p>
+          </div>
+          <Badge variant="secondary">{data.rewards.length}</Badge>
+        </div>
+        {data.rewards.length ? (
           <ul className="divide-y">
-            {data.earned.map(
-              (earned: {
-                id: string;
-                status: string;
-                awarded_at: string;
-                reward_id: string;
-                rewards: { name: string; points_cost: number } | null;
-              }) => (
-                <li key={earned.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                  <div>
-                    <p className="text-sm font-medium">{earned.rewards?.name ?? "Recompensa"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Obtenida {dateTime(earned.awarded_at)}
+            {data.rewards.map((reward) => {
+              const customerCount = customerRedemptionCounts.get(reward.id) ?? 0;
+              const globalCount = globalRedemptionCounts.get(reward.id) ?? 0;
+              const locations = reward.reward_locations as Array<{ location_id: string }>;
+              const locationAvailable =
+                locations.length === 0 ||
+                locations.some((location) => location.location_id === m.acquisition_location_id);
+              const customerLimitReached =
+                reward.redemption_limit_type === "per_customer" &&
+                customerCount >= (reward.redemption_limit_count ?? 0);
+              const globalLimitReached =
+                reward.redemption_limit_type === "global" &&
+                globalCount >= (reward.redemption_limit_count ?? 0);
+              const hasPoints = m.cached_points_balance >= reward.points_cost;
+              const available =
+                reward.status === "active" &&
+                Boolean(m.acquisition_location_id) &&
+                locationAvailable &&
+                hasPoints &&
+                !customerLimitReached &&
+                !globalLimitReached;
+              const unavailableReason =
+                reward.status !== "active"
+                  ? "Pausada"
+                  : !locationAvailable || !m.acquisition_location_id
+                    ? "No disponible en este establecimiento"
+                    : customerLimitReached
+                      ? "Límite personal alcanzado"
+                      : globalLimitReached
+                        ? "Límite global alcanzado"
+                        : !hasPoints
+                          ? `Faltan ${num(reward.points_cost - m.cached_points_balance)} puntos`
+                          : null;
+              return (
+                <li
+                  key={reward.id}
+                  className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold">{reward.name}</p>
+                      <Badge variant="outline" className="font-mono">
+                        {num(reward.points_cost)} pts
+                      </Badge>
+                    </div>
+                    {reward.description ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{reward.description}</p>
+                    ) : null}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Canjeada {customerCount} {customerCount === 1 ? "vez" : "veces"}
+                      {reward.redemption_limit_type === "global" && reward.redemption_limit_count
+                        ? ` · ${globalCount} de ${reward.redemption_limit_count} canjes globales`
+                        : reward.redemption_limit_type === "per_customer" &&
+                            reward.redemption_limit_count
+                          ? ` · máximo ${reward.redemption_limit_count} por persona`
+                          : ""}
                     </p>
                   </div>
-                  <Badge variant={earned.status === "available" ? "default" : "secondary"}>
-                    {earned.status === "available"
-                      ? "Disponible"
-                      : earned.status === "redeemed"
-                        ? "Canjeada"
-                        : earned.status}
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                    {available ? (
+                      <span className="text-sm font-medium text-emerald-600">Disponible</span>
+                    ) : (
+                      <span className="text-right text-sm font-medium text-red-600">
+                        {unavailableReason}
+                      </span>
+                    )}
+                    {available && canAdjust ? (
+                      <Button
+                        size="sm"
+                        disabled={redeemingRewardId === reward.id}
+                        onClick={() => setRewardToRedeemId(reward.id)}
+                      >
+                        <Gift className="size-4" />
+                        Canjear
+                      </Button>
+                    ) : null}
+                  </div>
                 </li>
-              ),
-            )}
+              );
+            })}
           </ul>
         ) : (
           <p className="px-5 py-8 text-sm text-muted-foreground">
-            Todavía no ha obtenido recompensas.
+            Este programa todavía no tiene recompensas.
           </p>
         )}
       </div>
+
+      <Dialog
+        open={Boolean(rewardToRedeemId)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !redeemingRewardId) setRewardToRedeemId(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar canje</DialogTitle>
+            <DialogDescription>
+              ¿Quieres canjear “{rewardToRedeem?.name ?? "Recompensa"}”? Se descontarán{" "}
+              {num(rewardToRedeem?.points_cost ?? 0)} puntos del saldo del cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={Boolean(redeemingRewardId)}
+              onClick={() => setRewardToRedeemId(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={!rewardToRedeemId || Boolean(redeemingRewardId)}
+              onClick={() => rewardToRedeemId && void redeem(rewardToRedeemId)}
+            >
+              {redeemingRewardId ? "Canjeando…" : "Confirmar canje"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="surface overflow-hidden">
         <h2 className="border-b px-5 py-4 font-display text-lg font-semibold">
@@ -463,16 +563,6 @@ function ClienteDetalle() {
                   {t.points_delta >= 0 ? "+" : ""}
                   {num(t.points_delta)}
                 </span>
-                {canAdjust && !t.reversed_at && t.type !== "reversal" ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Anular movimiento"
-                    onClick={() => void reverse(t.id)}
-                  >
-                    <RotateCcw className="size-4" />
-                  </Button>
-                ) : null}
               </div>
             </li>
           ))}

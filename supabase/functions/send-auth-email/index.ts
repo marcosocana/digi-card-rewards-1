@@ -38,9 +38,10 @@ const actionContent = (action: string) => {
     return {
       subject: "Te han invitado a Fideleo",
       eyebrow: "Invitación",
-      title: "Accede a tu equipo",
-      message: "Acepta la invitación para activar tu acceso.",
-      button: "Aceptar invitación",
+      title: "Crea tu contraseña y accede",
+      message:
+        "Acepta la invitación, elige una contraseña y activa tu acceso al equipo de Fideleo.",
+      button: "Crear mi contraseña",
     };
   }
   if (action === "email_change") {

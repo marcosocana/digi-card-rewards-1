@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Building2, Pencil, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAdminScope, useSession } from "@/lib/session";
+import { sessionQueryKey, useAdminScope, useSession, type SessionInfo } from "@/lib/session";
 import { getSubscriptionPlan } from "@/lib/subscription-plans";
 
 export const Route = createFileRoute("/_authenticated/panel/establecimientos")({
@@ -36,6 +36,7 @@ const slugify = (v: string) =>
     .replace(/(^-|-$)/g, "");
 
 function EstablecimientosPage() {
+  const queryClient = useQueryClient();
   const { refetch: refetchSession } = useSession();
   const {
     session,
@@ -105,18 +106,19 @@ function EstablecimientosPage() {
       toast.error("Indica un nombre válido");
       return;
     }
+    const locationSlug = `${slugify(form.name) || "establecimiento"}-${crypto.randomUUID().slice(0, 6)}`;
     const { data: created, error } = await supabase
       .from("locations")
       .insert({
         organization_id: orgId,
         name: form.name.trim(),
-        slug: slugify(form.name),
+        slug: locationSlug,
         address_line: form.address_line || null,
         city: form.city || null,
         postal_code: form.postal_code || null,
         status: "active",
       })
-      .select("id")
+      .select("id,name,slug")
       .maybeSingle();
     if (error) {
       toast.error("No se pudo crear", { description: error.message });
@@ -146,7 +148,31 @@ function EstablecimientosPage() {
     toast.success("Establecimiento creado");
     setOpen(false);
     setForm({ name: "", address_line: "", city: "", postal_code: "" });
-    await Promise.all([refetch(), refetchSession()]);
+    await refetch();
+    const organizationName = session?.organizations.find(
+      (organization) => organization.id === orgId,
+    )?.name;
+    if (created) {
+      queryClient.setQueryData<SessionInfo | null>(sessionQueryKey, (current) =>
+        current
+          ? {
+              ...current,
+              locations: current.locations.some((location) => location.id === created.id)
+                ? current.locations
+                : [
+                    ...current.locations,
+                    {
+                      id: created.id,
+                      name: created.name,
+                      slug: created.slug,
+                      organizationId: orgId,
+                      organizationName,
+                    },
+                  ].sort((a, b) => a.name.localeCompare(b.name, "es")),
+            }
+          : current,
+      );
+    }
   };
 
   const updateLocation = async () => {
@@ -174,6 +200,7 @@ function EstablecimientosPage() {
         actions={
           <>
             <Button
+              type="button"
               disabled={!canMutate}
               onClick={() => (planLimitReached ? setUpgradeOpen(true) : setOpen(true))}
             >
@@ -204,7 +231,9 @@ function EstablecimientosPage() {
                   ))}
                 </div>
                 <DialogFooter>
-                  <Button onClick={() => void create()}>Crear</Button>
+                  <Button type="button" onClick={() => void create()}>
+                    Crear
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

@@ -76,6 +76,7 @@ interface NavItem {
   roles: OrgRole[];
   group: "Operaciones" | "Fidelización" | "Analítica" | "Administración";
   superadminScope?: "hidden" | "global" | "organization" | "location";
+  superadminOnly?: boolean;
 }
 
 const nav: NavItem[] = [
@@ -86,6 +87,7 @@ const nav: NavItem[] = [
     roles: ["admin"],
     group: "Administración",
     superadminScope: "global",
+    superadminOnly: true,
   },
   {
     to: "/panel",
@@ -291,6 +293,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const role = session?.isSuperadmin ? "admin" : (session?.org?.role ?? "staff");
   const items = nav.filter((item) => {
     if (!item.roles.includes(role)) return false;
+    if (item.superadminOnly && !session?.isSuperadmin) return false;
     if (!session?.isSuperadmin) return true;
     if (item.superadminScope === "hidden") return false;
     const level: AdminScopeLevel = selectedLocationScope.startsWith("organization:")
@@ -431,7 +434,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        <div className="lg:hidden">
         {session?.isSuperadmin || (session?.locations.length ?? 0) > 1 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -523,7 +525,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </p>
         ) : null}
-        </div>
         <button
           className="absolute right-3 top-3 lg:hidden"
           onClick={() => setOpen(false)}
@@ -701,7 +702,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 hidden h-18 items-center justify-between border-b bg-card/95 px-8 backdrop-blur lg:flex">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex w-full max-w-2xl items-center gap-2">
             <Button
               type="button"
               variant="outline"
@@ -717,77 +718,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <PanelLeftClose className="size-4" />
               )}
             </Button>
-            <Link to="/panel" aria-label="Fideleo" className="mx-1 shrink-0">
-              <img src="/isotipo.svg" alt="" className="size-9 dark:hidden" />
-              <img src="/isotipo-dark.svg" alt="" className="hidden size-9 dark:block" />
-            </Link>
-            {session?.isSuperadmin ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-64 shrink-0 justify-between">
-                    <MapPin className="size-4 shrink-0" />
-                    <span className="truncate">{selectedLocationLabel}</span>
-                    <ChevronDown className="size-4 opacity-55" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto"
-                >
-                  <DropdownMenuRadioGroup
-                    value={selectedLocationScope}
-                    onValueChange={(scope) => {
-                      if (scope === "all") return updateLocations("all", []);
-                      if (scope.startsWith("organization:")) {
-                        const organizationId = scope.replace("organization:", "");
-                        const group = sortedOrganizationGroups.find(
-                          (item) => item.id === organizationId,
-                        );
-                        return updateLocations(
-                          scope,
-                          group?.locations.map((location) => location.id) ?? [],
-                        );
-                      }
-                      updateLocations(scope, [scope.replace("location:", "")]);
-                    }}
-                  >
-                    <DropdownMenuRadioItem value="all">
-                      {t("Todos los locales")}
-                    </DropdownMenuRadioItem>
-                    {sortedOrganizationGroups.map((group) => (
-                      <div key={group.id}>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuRadioItem
-                          value={`organization:${group.id}`}
-                          className="font-semibold"
-                        >
-                          <Building2 className="mr-2 size-4 shrink-0" />
-                          Empresa · {group.name}
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuLabel className="pb-1 pl-8 text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Establecimientos
-                        </DropdownMenuLabel>
-                        {group.locations.length ? (
-                          group.locations.map((location) => (
-                            <DropdownMenuRadioItem
-                              key={location.id}
-                              value={`location:${location.id}`}
-                              className="pl-11"
-                            >
-                              {location.name}
-                            </DropdownMenuRadioItem>
-                          ))
-                        ) : (
-                          <DropdownMenuLabel className="pl-8 text-xs font-normal text-muted-foreground">
-                            Sin establecimientos
-                          </DropdownMenuLabel>
-                        )}
-                      </div>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
             <div className="relative w-full max-w-xl">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input

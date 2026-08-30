@@ -118,8 +118,7 @@ function RecompensasPage() {
         name: form.name.trim(),
         description: form.description.trim() || null,
         points_cost: form.points_cost,
-        redemption_limit_type:
-          form.limitType === "once" ? "per_customer" : form.limitType,
+        redemption_limit_type: form.limitType === "once" ? "per_customer" : form.limitType,
         redemption_limit_count:
           form.limitType === "unlimited" ? null : form.limitType === "once" ? 1 : form.limitCount,
         status: "active",

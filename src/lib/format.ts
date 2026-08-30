@@ -38,6 +38,7 @@ export const errorLabel = (message: string) => {
     NO_LOCATION_ACCESS: "No tienes permisos en este establecimiento.",
     INSUFFICIENT_POINTS: "Saldo insuficiente para esta recompensa.",
     REWARD_NOT_AVAILABLE: "La recompensa no está disponible aquí.",
+    REDEMPTION_LIMIT_REACHED: "Esta recompensa ya ha alcanzado su límite de canjes.",
     INVALID_AMOUNT: "Introduce un importe válido mayor que cero.",
     AMOUNT_TOO_LARGE: "El importe supera el máximo permitido (10.000 €).",
     NOT_AUTHORIZED: "No tienes permisos para esta acción.",

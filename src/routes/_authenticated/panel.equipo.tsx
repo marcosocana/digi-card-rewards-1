@@ -238,7 +238,9 @@ function EquipoPage() {
               <DialogHeader>
                 <DialogTitle>{t("Invitar a una persona")}</DialogTitle>
                 <DialogDescription>
-                  {t("Recibirá el rol al crear su cuenta con este email.")}
+                  {t(
+                    "Recibirá un email para elegir su contraseña y activar el acceso con el rol asignado.",
+                  )}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">

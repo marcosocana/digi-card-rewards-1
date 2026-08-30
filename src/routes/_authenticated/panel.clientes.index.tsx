@@ -35,8 +35,13 @@ export const Route = createFileRoute("/_authenticated/panel/clientes/")({
 });
 
 function ClientesPage() {
-  const { session, organizationId: orgId, isSuperadmin, isGlobal, selectedLocationIds } =
-    useAdminScope();
+  const {
+    session,
+    organizationId: orgId,
+    isSuperadmin,
+    isGlobal,
+    selectedLocationIds,
+  } = useAdminScope();
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
@@ -47,19 +52,28 @@ function ClientesPage() {
     email: "",
     phone: "",
     birthDate: "",
+    organizationId: orgId ?? "",
     locationId: selectedLocationIds.length === 1 ? selectedLocationIds[0] : "",
     marketing: false,
   });
 
+  const effectiveOrganizationId = isGlobal ? form.organizationId : orgId;
   const scopedLocations = (session?.locations ?? []).filter(
     (location) =>
-      (!isSuperadmin || !orgId || location.organizationId === orgId) &&
+      (!isGlobal || Boolean(effectiveOrganizationId)) &&
+      (!isSuperadmin ||
+        !effectiveOrganizationId ||
+        location.organizationId === effectiveOrganizationId) &&
       (!selectedLocationIds.length || selectedLocationIds.includes(location.id)),
   );
 
   const { data: locationPrograms } = useQuery({
-    queryKey: ["manual-customer-programs", orgId, scopedLocations.map((item) => item.id).join(",")],
-    enabled: Boolean(orgId && scopedLocations.length),
+    queryKey: [
+      "manual-customer-programs",
+      effectiveOrganizationId,
+      scopedLocations.map((item) => item.id).join(","),
+    ],
+    enabled: Boolean(effectiveOrganizationId && scopedLocations.length),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("program_locations")
@@ -81,7 +95,7 @@ function ClientesPage() {
       let query = supabase
         .from("memberships")
         .select(
-          "id, public_id, cached_points_balance, status, joined_at, acquisition_location_id, customers(first_name, last_name, email), organizations(display_name), locations(name), acquisition_sources(name)",
+          "id, public_id, cached_points_balance, status, joined_at, acquisition_location_id, acquisition_source_id, customers(first_name, last_name, email), organizations(display_name), locations(name)",
         )
         .order("joined_at", { ascending: false })
         .limit(500);
@@ -91,7 +105,20 @@ function ClientesPage() {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      const sourceIds = [
+        ...new Set((data ?? []).map((item) => item.acquisition_source_id).filter(Boolean)),
+      ] as string[];
+      const { data: sources, error: sourcesError } = sourceIds.length
+        ? await supabase.from("acquisition_sources").select("id,name").in("id", sourceIds)
+        : { data: [], error: null };
+      if (sourcesError) throw sourcesError;
+      const sourceNames = new Map((sources ?? []).map((source) => [source.id, source.name]));
+      return (data ?? []).map((item) => ({
+        ...item,
+        acquisition_source_name: item.acquisition_source_id
+          ? (sourceNames.get(item.acquisition_source_id) ?? null)
+          : null,
+      }));
     },
   });
 
@@ -103,8 +130,13 @@ function ClientesPage() {
 
   const createCustomer = async () => {
     const program = locationPrograms?.find((item) => item.location_id === form.locationId);
-    if (!orgId || !program || !form.email.includes("@") || form.firstName.trim().length < 2) {
-      toast.error("Completa el nombre, email y establecimiento");
+    if (
+      !effectiveOrganizationId ||
+      !program ||
+      !form.email.includes("@") ||
+      form.firstName.trim().length < 2
+    ) {
+      toast.error("Completa la empresa, el establecimiento, el nombre y el email");
       return;
     }
     setSaving(true);
@@ -121,7 +153,9 @@ function ClientesPage() {
     setSaving(false);
     if (error) return toast.error("No se pudo dar de alta", { description: error.message });
     const response = result as { existing?: boolean } | null;
-    toast.success(response?.existing ? "El cliente ya estaba dado de alta" : "Cliente dado de alta");
+    toast.success(
+      response?.existing ? "El cliente ya estaba dado de alta" : "Cliente dado de alta",
+    );
     setOpen(false);
     setForm({
       firstName: "",
@@ -129,6 +163,7 @@ function ClientesPage() {
       email: "",
       phone: "",
       birthDate: "",
+      organizationId: isGlobal ? "" : (orgId ?? ""),
       locationId: selectedLocationIds.length === 1 ? selectedLocationIds[0] : "",
       marketing: false,
     });
@@ -141,7 +176,7 @@ function ClientesPage() {
         title="Clientes"
         description="Miembros del programa y su saldo actual."
         actions={
-          !isGlobal ? (
+          session ? (
             <Dialog
               open={open}
               onOpenChange={(isOpen) => {
@@ -152,7 +187,10 @@ function ClientesPage() {
               }}
             >
               <DialogTrigger asChild>
-                <Button disabled={!scopedLocations.length}>
+                <Button
+                  type="button"
+                  disabled={isGlobal ? !session.organizations.length : !scopedLocations.length}
+                >
                   <Plus className="size-4" /> Nuevo cliente
                 </Button>
               </DialogTrigger>
@@ -165,6 +203,28 @@ function ClientesPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-3 sm:grid-cols-2">
+                  {isGlobal ? (
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label>Empresa</Label>
+                      <Select
+                        value={form.organizationId}
+                        onValueChange={(organizationId) =>
+                          setForm({ ...form, organizationId, locationId: "" })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una empresa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {session.organizations.map((organization) => (
+                            <SelectItem key={organization.id} value={organization.id}>
+                              {organization.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
                   <div className="space-y-1.5">
                     <Label htmlFor="customer-first-name">Nombre</Label>
                     <Input
@@ -237,7 +297,7 @@ function ClientesPage() {
                   </label>
                 </div>
                 <DialogFooter>
-                  <Button disabled={saving} onClick={() => void createCustomer()}>
+                  <Button type="button" disabled={saving} onClick={() => void createCustomer()}>
                     {saving ? "Guardando…" : "Dar de alta"}
                   </Button>
                 </DialogFooter>
@@ -297,9 +357,7 @@ function ClientesPage() {
                       ? ` · ${(m.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"}`
                       : ""}
                     {` · ${(m.locations as { name: string } | null)?.name ?? "Sin establecimiento"}`}
-                    {(m.acquisition_sources as { name: string } | null)?.name
-                      ? ` · vía ${(m.acquisition_sources as { name: string }).name}`
-                      : ""}
+                    {m.acquisition_source_name ? ` · vía ${m.acquisition_source_name}` : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
