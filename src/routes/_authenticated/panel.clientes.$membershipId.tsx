@@ -44,6 +44,14 @@ export const Route = createFileRoute("/_authenticated/panel/clientes/$membership
   component: ClienteDetalle,
 });
 
+const parsePointsDelta = (rawValue: string) => {
+  const normalized = rawValue.trim().replaceAll("−", "-").replaceAll(" ", "").replace(",", ".");
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return Number.NaN;
+  return Number(normalized);
+};
+
+const roundPointsDelta = (value: number) => Math.sign(value) * Math.round(Math.abs(value));
+
 function ClienteDetalle() {
   const { membershipId } = Route.useParams();
   const { data: session } = useSession();
@@ -119,11 +127,16 @@ function ClienteDetalle() {
   });
 
   const submitAdjust = async () => {
-    const value = Number(delta);
-    if (!Number.isInteger(value) || value === 0) {
-      toast.error("Introduce un número entero distinto de cero");
+    const parsedValue = parsePointsDelta(delta);
+    if (
+      !Number.isFinite(parsedValue) ||
+      Math.abs(parsedValue) < 1 ||
+      Math.abs(parsedValue) > 100_000
+    ) {
+      toast.error("Introduce un valor entre 1 y 100.000");
       return;
     }
+    const value = roundPointsDelta(parsedValue);
     if (reason.trim().length < 3) {
       toast.error("Indica un motivo");
       return;
@@ -240,6 +253,11 @@ function ClienteDetalle() {
     email: string;
     phone: string | null;
   } | null;
+  const parsedDelta = parsePointsDelta(delta);
+  const roundedDelta = Number.isFinite(parsedDelta) ? roundPointsDelta(parsedDelta) : null;
+  const validDelta =
+    roundedDelta !== null && Math.abs(parsedDelta) >= 1 && Math.abs(parsedDelta) <= 100_000;
+  const resultingBalance = validDelta ? Math.max(m.cached_points_balance + roundedDelta, 0) : null;
   const customerRedemptionCounts = new Map<string, number>();
   const globalRedemptionCounts = new Map<string, number>();
   data.redemptions.forEach((redemption) => {
@@ -338,10 +356,20 @@ function ClienteDetalle() {
               <Label htmlFor="delta">Puntos (positivo o negativo)</Label>
               <Input
                 id="delta"
-                inputMode="numeric"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="Ej.: +10,5 o -10,5"
                 value={delta}
                 onChange={(e) => setDelta(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                Introduce una variación entre 1 y 100.000, no el saldo final. Los decimales se
+                redondean al entero más próximo.
+                {resultingBalance !== null && roundedDelta !== null
+                  ? ` Se aplicarán ${roundedDelta > 0 ? "+" : ""}${num(roundedDelta)} puntos y el saldo pasará de ${num(m.cached_points_balance)} a ${num(resultingBalance)}.`
+                  : ""}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="reason">Motivo</Label>

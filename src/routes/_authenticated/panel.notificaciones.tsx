@@ -60,6 +60,7 @@ function NotificacionesPage() {
   const [segmentOpen, setSegmentOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(0);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
     message: "",
@@ -143,10 +144,19 @@ function NotificacionesPage() {
   });
 
   useEffect(() => {
-    if (!form.segmentId) return setPreview(0);
-    void supabase
-      .rpc("preview_segment_count", { _segment_id: form.segmentId })
-      .then(({ data }) => setPreview(data ?? 0));
+    let active = true;
+    setPreview(0);
+    setPreviewLoading(Boolean(form.segmentId));
+    if (!form.segmentId) return () => undefined;
+    void supabase.rpc("preview_segment_count", { _segment_id: form.segmentId }).then(({ data }) => {
+      if (active) {
+        setPreview(data ?? 0);
+        setPreviewLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [form.segmentId]);
 
   useEffect(() => {
@@ -159,6 +169,15 @@ function NotificacionesPage() {
       return { ...current, segmentId: defaultSegment.id };
     });
   }, [data?.segments, open]);
+
+  const effectiveLocationId =
+    locationId ?? (data?.locations.length === 1 ? data.locations[0].id : null);
+  const hasTitle = form.title.trim().length > 0;
+  const hasMessage = form.message.trim().length > 0;
+  const hasRecipients = Boolean(form.segmentId) && !previewLoading && preview > 0;
+  const isReadyToSend = Boolean(
+    orgId && effectiveLocationId && hasTitle && hasMessage && hasRecipients && !busy,
+  );
 
   const send = async () => {
     if (!orgId) {
@@ -177,8 +196,6 @@ function NotificacionesPage() {
       toast.error("Escribe el mensaje de la notificación");
       return;
     }
-    const effectiveLocationId =
-      locationId ?? (data?.locations.length === 1 ? data.locations[0].id : null);
     if (!effectiveLocationId) {
       toast.error("Selecciona un establecimiento", {
         description: "Las notificaciones se envían siempre desde un establecimiento concreto.",
@@ -311,8 +328,17 @@ function NotificacionesPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    {num(preview)} clientes con consentimiento comercial.
+                    {previewLoading
+                      ? "Calculando destinatarios…"
+                      : `${num(preview)} clientes con consentimiento comercial.`}
                   </p>
+                  {!form.segmentId ? (
+                    <p className="text-xs text-destructive">Selecciona los destinatarios.</p>
+                  ) : !previewLoading && preview === 0 ? (
+                    <p className="text-xs text-destructive">
+                      Este segmento no tiene clientes que puedan recibir la notificación.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="nt">Título</Label>
@@ -322,6 +348,9 @@ function NotificacionesPage() {
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                   />
+                  {!hasTitle ? (
+                    <p className="text-xs text-destructive">El título es obligatorio.</p>
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="nm">Mensaje</Label>
@@ -331,6 +360,9 @@ function NotificacionesPage() {
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                   />
+                  {!hasMessage ? (
+                    <p className="text-xs text-destructive">El mensaje es obligatorio.</p>
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="nu">URL de destino (opcional)</Label>
@@ -355,9 +387,14 @@ function NotificacionesPage() {
                   de Android. La recepción depende de que el cliente haya añadido la tarjeta y tenga
                   activadas las notificaciones de Wallet.
                 </p>
+                {!effectiveLocationId ? (
+                  <p className="text-xs text-destructive">
+                    Selecciona un establecimiento en el menú para poder enviar.
+                  </p>
+                ) : null}
               </div>
               <DialogFooter>
-                <Button disabled={busy || preview === 0} onClick={() => void send()}>
+                <Button disabled={!isReadyToSend} onClick={() => void send()}>
                   <Send className="size-4" />{" "}
                   {busy ? "Preparando…" : form.scheduled ? "Programar" : "Enviar"}
                 </Button>
