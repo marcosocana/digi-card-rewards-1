@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Download, ExternalLink, RotateCcw, UserX, Wallet } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Gift, RotateCcw, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { useSession } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
 import {
   adjustPoints,
+  redeemReward,
   requestWalletUpdate,
   reverseTransaction,
   syncGoogleWallet,
@@ -41,6 +42,9 @@ function ClienteDetalle() {
   const [delta, setDelta] = useState("");
   const [reason, setReason] = useState("");
   const [open, setOpen] = useState(false);
+  const [redeemOpen, setRedeemOpen] = useState(false);
+  const [rewardId, setRewardId] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["membership", membershipId],
@@ -49,7 +53,7 @@ function ClienteDetalle() {
         supabase
           .from("memberships")
           .select(
-            "id, public_id, cached_points_balance, status, joined_at, customers(first_name, last_name, email, phone)",
+            "id, public_id, cached_points_balance, status, joined_at, acquisition_location_id, customers(first_name, last_name, email, phone)",
           )
           .eq("id", membershipId)
           .maybeSingle(),
@@ -65,7 +69,7 @@ function ClienteDetalle() {
           .eq("membership_id", membershipId),
         supabase
           .from("customer_rewards")
-          .select("id, status, awarded_at, redeemed_at, rewards(name)")
+          .select("id, status, awarded_at, redeemed_at, reward_id, rewards(name,points_cost)")
           .eq("membership_id", membershipId)
           .order("awarded_at", { ascending: false }),
         supabase
@@ -155,32 +159,71 @@ function ClienteDetalle() {
       toast.error("No se pudo exportar", { description: error.message });
       return;
     }
-    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const payload = (result ?? {}) as Record<string, unknown>;
+    const escape = (value: unknown) =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    const rows: Array<[string, unknown]> = [];
+    for (const [section, value] of Object.entries(payload)) {
+      if (Array.isArray(value)) {
+        rows.push([section.toUpperCase(), ""]);
+        value.forEach((item, index) =>
+          rows.push([`${index + 1}`, typeof item === "object" ? JSON.stringify(item) : item]),
+        );
+      } else if (value && typeof value === "object") {
+        rows.push([section.toUpperCase(), ""]);
+        Object.entries(value as Record<string, unknown>).forEach(([key, item]) =>
+          rows.push([key, typeof item === "object" ? JSON.stringify(item) : item]),
+        );
+      } else {
+        rows.push([section, value]);
+      }
+    }
+    const workbook = `<!doctype html><html><head><meta charset="utf-8"></head><body><table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody>${rows
+      .map(([key, value]) => `<tr><td>${escape(key)}</td><td>${escape(value)}</td></tr>`)
+      .join("")}</tbody></table></body></html>`;
+    const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel" });
     const href = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = href;
-    anchor.download = `datos-cliente-${data?.membership?.public_id ?? membershipId}.json`;
+    anchor.download = `datos-cliente-${data?.membership?.public_id ?? membershipId}.xls`;
     anchor.click();
     URL.revokeObjectURL(href);
-    toast.success("Exportación RGPD descargada");
+    toast.success("Archivo Excel descargado");
   };
 
-  const anonymize = async () => {
-    const reason = window.prompt(
-      "Indica el motivo de la anonimización. Esta acción revoca la tarjeta y no se puede deshacer.",
-    );
-    if (!reason || reason.trim().length < 5) return;
-    if (!window.confirm("¿Confirmas la anonimización definitiva de los datos personales?")) return;
-    const { error } = await supabase.rpc("anonymize_customer", {
-      _membership_id: membershipId,
-      _reason: reason.trim(),
-    });
-    if (error) {
-      toast.error("No se pudo anonimizar", { description: error.message });
-      return;
+  const redeem = async () => {
+    if (!rewardId || !data?.membership?.acquisition_location_id) return;
+    setRedeeming(true);
+    try {
+      const result = await redeemReward({
+        membershipId,
+        rewardId,
+        locationId: data.membership.acquisition_location_id,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      toast.success(`${result.reward_name} canjeada`, {
+        description: `Nuevo saldo: ${num(result.resulting_balance)} puntos`,
+      });
+      setRedeemOpen(false);
+      setRewardId("");
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ["memberships"] }),
+      ]);
+      try {
+        await syncGoogleWallet(membershipId);
+      } catch {
+        toast.warning("El canje se guardó, pero la tarjeta Wallet quedó pendiente");
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setRedeeming(false);
     }
-    toast.success("Datos personales anonimizados y tarjeta revocada");
-    void refetch();
   };
 
   if (isLoading) return <Skeleton className="h-72 w-full rounded-xl" />;
@@ -220,6 +263,50 @@ function ClienteDetalle() {
               </a>
             </Button>
             {canAdjust ? (
+              <Dialog open={redeemOpen} onOpenChange={setRedeemOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={!data.earned.some((reward) => reward.status === "available")}
+                  >
+                    <Gift className="size-4" /> Canjear
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Canjear recompensa</DialogTitle>
+                    <DialogDescription>
+                      Selecciona una recompensa disponible. Sus puntos se descontarán
+                      automáticamente.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="available-reward">Recompensa disponible</Label>
+                    <select
+                      id="available-reward"
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      value={rewardId}
+                      onChange={(event) => setRewardId(event.target.value)}
+                    >
+                      <option value="">Selecciona una recompensa</option>
+                      {data.earned
+                        .filter((reward) => reward.status === "available")
+                        .map((reward) => (
+                          <option key={reward.id} value={reward.reward_id}>
+                            {reward.rewards?.name ?? "Recompensa"} · {reward.rewards?.points_cost} pts
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <DialogFooter>
+                    <Button disabled={!rewardId || redeeming} onClick={() => void redeem()}>
+                      {redeeming ? "Canjeando…" : "Canjear"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            ) : null}
+            {canAdjust ? (
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                   <Button>Ajustar puntos</Button>
@@ -255,15 +342,6 @@ function ClienteDetalle() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            ) : null}
-            {canAdjust ? (
-              <Button
-                variant="outline"
-                className="text-destructive"
-                onClick={() => void anonymize()}
-              >
-                <UserX aria-hidden className="size-4" /> Anonimizar
-              </Button>
             ) : null}
           </>
         }
@@ -307,7 +385,8 @@ function ClienteDetalle() {
                 id: string;
                 status: string;
                 awarded_at: string;
-                rewards: { name: string } | null;
+                reward_id: string;
+                rewards: { name: string; points_cost: number } | null;
               }) => (
                 <li key={earned.id} className="flex items-center justify-between gap-3 px-5 py-3">
                   <div>

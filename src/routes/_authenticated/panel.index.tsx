@@ -334,7 +334,6 @@ function ResumenPage() {
               value={num(data?.members)}
               hint={t("+{count} nuevos", { count: num(data?.newMembers) })}
               icon={<Users className="size-4" />}
-              className="border-pink-200/70"
               to="/panel/clientes"
             />
             <MetricCard

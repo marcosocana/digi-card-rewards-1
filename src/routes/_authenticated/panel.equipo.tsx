@@ -97,7 +97,7 @@ function EquipoPage() {
       toast.error(t("Introduce un email válido"));
       return;
     }
-    if (form.role !== "admin" && !form.location_ids.length) {
+    if (!form.location_ids.length) {
       toast.error(t("Asigna al menos un establecimiento"));
       return;
     }
@@ -106,7 +106,7 @@ function EquipoPage() {
       _email: form.email.trim().toLowerCase(),
       _full_name: form.full_name.trim(),
       _role: form.role as "admin" | "manager" | "staff",
-      _location_ids: form.role === "admin" ? [] : form.location_ids,
+      _location_ids: form.location_ids,
     });
     if (error) {
       toast.error(t("No se pudo invitar"), { description: error.message });
@@ -136,8 +136,7 @@ function EquipoPage() {
   const updateMember = async () => {
     if (!editing || !editing.email.includes("@"))
       return toast.error(t("Introduce un email válido"));
-    if (editing.role !== "admin" && !editing.location_ids.length)
-      return toast.error(t("Asigna al menos un establecimiento"));
+    if (!editing.location_ids.length) return toast.error(t("Asigna al menos un establecimiento"));
     const { error } = await supabase
       .from("organization_users")
       .update({
@@ -156,18 +155,16 @@ function EquipoPage() {
       return toast.error(t("No se pudieron actualizar los establecimientos"), {
         description: clearError.message,
       });
-    if (editing.role !== "admin") {
-      const { error: assignmentError } = await supabase.from("user_location_assignments").insert(
-        editing.location_ids.map((locationId) => ({
-          organization_user_id: editing.id,
-          location_id: locationId,
-        })),
-      );
-      if (assignmentError)
-        return toast.error(t("No se pudo asignar el establecimiento"), {
-          description: assignmentError.message,
-        });
-    }
+    const { error: assignmentError } = await supabase.from("user_location_assignments").insert(
+      editing.location_ids.map((locationId) => ({
+        organization_user_id: editing.id,
+        location_id: locationId,
+      })),
+    );
+    if (assignmentError)
+      return toast.error(t("No se pudo asignar el establecimiento"), {
+        description: assignmentError.message,
+      });
     toast.success(t("Perfil del equipo actualizado"));
     setEditing(null);
     void refetch();
@@ -254,14 +251,12 @@ function EquipoPage() {
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                   />
                 </div>
-                {form.role !== "admin" ? (
-                  <div className="space-y-1.5">
-                    <Label>{t("Establecimientos asignados")}</Label>
-                    {locationPicker(form.location_ids, (location_ids) =>
-                      setForm({ ...form, location_ids }),
-                    )}
-                  </div>
-                ) : null}
+                <div className="space-y-1.5">
+                  <Label>{t("Establecimientos asignados")}</Label>
+                  {locationPicker(form.location_ids, (location_ids) =>
+                    setForm({ ...form, location_ids }),
+                  )}
+                </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="iname">{t("Nombre")}</Label>
                   <Input
@@ -272,16 +267,7 @@ function EquipoPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t("Rol")}</Label>
-                  <Select
-                    value={form.role}
-                    onValueChange={(role) =>
-                      setForm({
-                        ...form,
-                        role,
-                        location_ids: role === "admin" ? [] : form.location_ids,
-                      })
-                    }
-                  >
+                  <Select value={form.role} onValueChange={(role) => setForm({ ...form, role })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -315,22 +301,19 @@ function EquipoPage() {
                   {u.invited_email} · {t(u.user_id ? "cuenta activa" : "pendiente de registro")}
                 </p>
                 <p className="mt-1 truncate text-xs text-muted-foreground">
-                  {u.role === "admin"
+                  {u.user_location_assignments?.length === (locations ?? []).length &&
+                  (locations ?? []).length > 0
                     ? t("Todos los establecimientos")
-                    : u.user_location_assignments?.length === (locations ?? []).length &&
-                        (locations ?? []).length > 0
-                      ? t("Todos los establecimientos")
-                      : u.user_location_assignments?.length
-                        ? u.user_location_assignments
-                            .map(
-                              (assignment) =>
-                                locations?.find(
-                                  (location) => location.id === assignment.location_id,
-                                )?.name,
-                            )
-                            .filter(Boolean)
-                            .join(", ")
-                        : t("Sin establecimientos")}
+                    : u.user_location_assignments?.length
+                      ? u.user_location_assignments
+                          .map(
+                            (assignment) =>
+                              locations?.find((location) => location.id === assignment.location_id)
+                                ?.name,
+                          )
+                          .filter(Boolean)
+                          .join(", ")
+                      : t("Sin establecimientos")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -396,13 +379,7 @@ function EquipoPage() {
                 <Label>{t("Rol")}</Label>
                 <Select
                   value={editing.role}
-                  onValueChange={(role) =>
-                    setEditing({
-                      ...editing,
-                      role,
-                      location_ids: role === "admin" ? [] : editing.location_ids,
-                    })
-                  }
+                  onValueChange={(role) => setEditing({ ...editing, role })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -414,14 +391,12 @@ function EquipoPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {editing.role !== "admin" ? (
-                <div className="space-y-1.5">
-                  <Label>{t("Establecimientos asignados")}</Label>
-                  {locationPicker(editing.location_ids, (location_ids) =>
-                    setEditing({ ...editing, location_ids }),
-                  )}
-                </div>
-              ) : null}
+              <div className="space-y-1.5">
+                <Label>{t("Establecimientos asignados")}</Label>
+                {locationPicker(editing.location_ids, (location_ids) =>
+                  setEditing({ ...editing, location_ids }),
+                )}
+              </div>
             </div>
           ) : null}
           <DialogFooter>

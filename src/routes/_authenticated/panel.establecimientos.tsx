@@ -45,7 +45,9 @@ function EstablecimientosPage() {
     selectedLocationIds,
     canMutate,
   } = useAdminScope();
-  const planLimit = getSubscriptionPlan(session?.planCode)?.maxLocations ?? null;
+  const planLimit = isSuperadmin
+    ? null
+    : (getSubscriptionPlan(session?.planCode)?.maxLocations ?? null);
   const [open, setOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [form, setForm] = useState({ name: "", address_line: "", city: "", postal_code: "" });
@@ -120,16 +122,26 @@ function EstablecimientosPage() {
       toast.error("No se pudo crear", { description: error.message });
       return;
     }
-    const { data: program } = await supabase
-      .from("loyalty_programs")
-      .select("id")
-      .eq("organization_id", orgId)
-      .limit(1)
-      .maybeSingle();
-    if (program && created) {
-      await supabase
-        .from("program_locations")
-        .insert({ program_id: program.id, location_id: created.id });
+    if (created) {
+      const { data: program, error: programError } = await supabase
+        .from("loyalty_programs")
+        .insert({
+          organization_id: orgId,
+          internal_name: `Programa · ${form.name.trim()}`,
+          public_name: form.name.trim(),
+          status: "active",
+        })
+        .select("id")
+        .single();
+      if (programError) {
+        toast.warning("Establecimiento creado sin programa", {
+          description: programError.message,
+        });
+      } else {
+        await supabase
+          .from("program_locations")
+          .insert({ program_id: program.id, location_id: created.id });
+      }
     }
     toast.success("Establecimiento creado");
     setOpen(false);

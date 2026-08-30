@@ -20,6 +20,13 @@ export interface SessionLocation {
   organizationName?: string;
 }
 
+export interface SessionOrganization {
+  id: string;
+  name: string;
+}
+
+export type AdminScopeLevel = "global" | "organization" | "location";
+
 export interface SessionInfo {
   userId: string;
   email: string | null;
@@ -31,6 +38,7 @@ export interface SessionInfo {
   subscriptionStatus: string | null;
   hasActivePlan: boolean;
   locations: SessionLocation[];
+  organizations: SessionOrganization[];
 }
 
 export const sessionQueryKey = ["session-info"];
@@ -66,14 +74,26 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
     subscription_status: string;
   } | null;
   let locations: SessionLocation[] = [];
+  let organizations: SessionOrganization[] = [];
 
   if (isSuperadmin) {
-    const { data } = await supabase
-      .from("locations")
-      .select("id, name, slug, organizations(id, display_name)")
-      .eq("status", "active")
-      .order("name");
-    locations = (data ?? []).map((location) => ({
+    const [organizationResult, locationResult] = await Promise.all([
+      supabase
+        .from("organizations")
+        .select("id, display_name")
+        .is("archived_at", null)
+        .order("display_name"),
+      supabase
+        .from("locations")
+        .select("id, name, slug, organizations(id, display_name)")
+        .eq("status", "active")
+        .order("name"),
+    ]);
+    organizations = (organizationResult.data ?? []).map((item) => ({
+      id: item.id,
+      name: item.display_name,
+    }));
+    locations = (locationResult.data ?? []).map((location) => ({
       id: location.id,
       name: location.name,
       slug: location.slug,
@@ -81,13 +101,25 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
       organizationName: (location.organizations as { display_name: string } | null)?.display_name,
     }));
   } else if (ou) {
+    organizations = organization
+      ? [{ id: ou.organization_id, name: organization.display_name }]
+      : [];
     if (ou.role === "admin") {
-      const { data } = await supabase
-        .from("locations")
-        .select("id, name, slug")
-        .eq("organization_id", ou.organization_id)
-        .eq("status", "active")
-        .order("name");
+      const { data: assignments } = await supabase
+        .from("user_location_assignments")
+        .select("locations(id, name, slug)")
+        .eq("organization_user_id", ou.id);
+      const assignedLocations = (assignments ?? [])
+        .map((row) => row.locations)
+        .filter(Boolean) as SessionLocation[];
+      const { data } = assignedLocations.length
+        ? { data: assignedLocations }
+        : await supabase
+            .from("locations")
+            .select("id, name, slug")
+            .eq("organization_id", ou.organization_id)
+            .eq("status", "active")
+            .order("name");
       locations = data ?? [];
     } else {
       const { data } = await supabase
@@ -118,6 +150,7 @@ export async function fetchSessionInfo(): Promise<SessionInfo | null> {
     hasActivePlan:
       isSuperadmin || ["active", "trialing"].includes(organization?.subscription_status ?? ""),
     locations,
+    organizations,
   };
 }
 
@@ -130,7 +163,10 @@ export const getActiveLocation = () =>
 export const setActiveLocation = (id: string) => window.localStorage.setItem(LOCATION_KEY, id);
 
 const LOCATION_FILTER_KEY = "fideleo:selected-locations";
+const ORGANIZATION_FILTER_KEY = "fideleo:selected-organization";
+const SCOPE_LEVEL_KEY = "fideleo:selected-scope-level";
 export const locationFilterEvent = "fideleo:location-filter-changed";
+export const adminScopeEvent = "fideleo:admin-scope-changed";
 
 export const getSelectedLocationIds = (): string[] => {
   if (typeof window === "undefined") return [];
@@ -147,17 +183,60 @@ export const setSelectedLocationIds = (ids: string[]) => {
   window.dispatchEvent(new CustomEvent(locationFilterEvent, { detail: ids }));
 };
 
+export const getSelectedOrganizationId = () =>
+  typeof window === "undefined" ? null : window.localStorage.getItem(ORGANIZATION_FILTER_KEY);
+
+export const getSelectedScopeLevel = (): AdminScopeLevel => {
+  if (typeof window === "undefined") return "global";
+  const value = window.localStorage.getItem(SCOPE_LEVEL_KEY);
+  return value === "organization" || value === "location" ? value : "global";
+};
+
+export const setSelectedAdminScope = (
+  level: AdminScopeLevel,
+  organizationId: string | null,
+  locationIds: string[],
+) => {
+  window.localStorage.setItem(SCOPE_LEVEL_KEY, level);
+  if (organizationId) window.localStorage.setItem(ORGANIZATION_FILTER_KEY, organizationId);
+  else window.localStorage.removeItem(ORGANIZATION_FILTER_KEY);
+  setSelectedLocationIds(locationIds);
+  window.dispatchEvent(
+    new CustomEvent(adminScopeEvent, { detail: { level, organizationId, locationIds } }),
+  );
+};
+
 export function useAdminScope() {
   const { data: session } = useSession();
   const [selectedLocationIds, setLocationIds] = useState<string[]>([]);
+  const [selectedOrganizationId, setOrganizationId] = useState<string | null>(null);
+  const [scopeLevel, setScopeLevel] = useState<AdminScopeLevel>("global");
 
   useEffect(() => {
     setLocationIds(getSelectedLocationIds());
+    setOrganizationId(getSelectedOrganizationId());
+    setScopeLevel(getSelectedScopeLevel());
     const update = (event: Event) => {
       setLocationIds((event as CustomEvent<string[]>).detail);
     };
     window.addEventListener(locationFilterEvent, update);
-    return () => window.removeEventListener(locationFilterEvent, update);
+    const updateScope = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          level: AdminScopeLevel;
+          organizationId: string | null;
+          locationIds: string[];
+        }>
+      ).detail;
+      setScopeLevel(detail.level);
+      setOrganizationId(detail.organizationId);
+      setLocationIds(detail.locationIds);
+    };
+    window.addEventListener(adminScopeEvent, updateScope);
+    return () => {
+      window.removeEventListener(locationFilterEvent, update);
+      window.removeEventListener(adminScopeEvent, updateScope);
+    };
   }, []);
 
   const validLocationIds = selectedLocationIds.filter((id) =>
@@ -169,7 +248,13 @@ export function useAdminScope() {
       .map((location) => location.organizationId)
       .filter((id): id is string => Boolean(id)) ?? [],
   );
-  const scopedSuperadminOrg = organizationIds.size === 1 ? [...organizationIds][0] : null;
+  const validSelectedOrganizationId = session?.organizations.some(
+    (organization) => organization.id === selectedOrganizationId,
+  )
+    ? selectedOrganizationId
+    : null;
+  const scopedSuperadminOrg =
+    validSelectedOrganizationId ?? (organizationIds.size === 1 ? [...organizationIds][0] : null);
   const organizationId = session?.isSuperadmin
     ? scopedSuperadminOrg
     : (session?.org?.organization_id ?? null);
@@ -177,7 +262,8 @@ export function useAdminScope() {
   return {
     session,
     isSuperadmin: session?.isSuperadmin === true,
-    isGlobal: session?.isSuperadmin === true && !organizationId,
+    isGlobal: session?.isSuperadmin === true && scopeLevel === "global",
+    scopeLevel: session?.isSuperadmin ? scopeLevel : "organization",
     organizationId,
     selectedLocationIds: validLocationIds,
     canMutate: !session?.isSuperadmin || Boolean(organizationId),

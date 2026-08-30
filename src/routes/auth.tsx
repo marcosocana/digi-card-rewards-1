@@ -132,6 +132,7 @@ const needsGoogleRegistrationDetails = async (user: User) => {
   if (profileResult.data?.platform_role === "superadmin") return false;
 
   const membership = membershipResult.data;
+  if (!membership) return true;
   const organization = membership?.organizations as {
     slug: string;
     status: string;

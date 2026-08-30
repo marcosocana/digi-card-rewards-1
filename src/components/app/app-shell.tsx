@@ -28,6 +28,7 @@ import {
   Wallet,
   X,
   Search,
+  Network,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,12 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n, type Language } from "@/lib/i18n";
 import {
-  setSelectedLocationIds,
+  getSelectedLocationIds,
+  getSelectedOrganizationId,
+  getSelectedScopeLevel,
+  setSelectedAdminScope,
   useSession,
+  type AdminScopeLevel,
   type OrgRole,
   type SessionLocation,
 } from "@/lib/session";
@@ -70,9 +75,18 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   roles: OrgRole[];
   group: "Operaciones" | "Fidelización" | "Analítica" | "Administración";
+  superadminScope?: "hidden" | "global" | "organization" | "location";
 }
 
 const nav: NavItem[] = [
+  {
+    to: "/panel/empresas",
+    label: "Empresas",
+    icon: Network,
+    roles: ["admin"],
+    group: "Administración",
+    superadminScope: "global",
+  },
   {
     to: "/panel",
     label: "Inicio",
@@ -86,6 +100,7 @@ const nav: NavItem[] = [
     icon: ScanLine,
     roles: ["admin", "manager", "staff"],
     group: "Operaciones",
+    superadminScope: "hidden",
   },
   {
     to: "/panel/clientes",
@@ -100,6 +115,7 @@ const nav: NavItem[] = [
     icon: ShoppingBag,
     roles: ["admin", "manager"],
     group: "Operaciones",
+    superadminScope: "hidden",
   },
   {
     to: "/panel/programa",
@@ -107,6 +123,7 @@ const nav: NavItem[] = [
     icon: Sparkles,
     roles: ["admin"],
     group: "Fidelización",
+    superadminScope: "location",
   },
   {
     to: "/panel/recompensas",
@@ -114,6 +131,7 @@ const nav: NavItem[] = [
     icon: Gift,
     roles: ["admin"],
     group: "Fidelización",
+    superadminScope: "location",
   },
   {
     to: "/panel/notificaciones",
@@ -121,6 +139,7 @@ const nav: NavItem[] = [
     icon: Bell,
     roles: ["admin"],
     group: "Fidelización",
+    superadminScope: "location",
   },
   {
     to: "/panel/automatizaciones",
@@ -128,6 +147,7 @@ const nav: NavItem[] = [
     icon: Bot,
     roles: ["admin"],
     group: "Fidelización",
+    superadminScope: "location",
   },
   {
     to: "/panel/estadisticas",
@@ -142,6 +162,7 @@ const nav: NavItem[] = [
     icon: BarChart3,
     roles: ["admin", "manager"],
     group: "Analítica",
+    superadminScope: "location",
   },
   {
     to: "/panel/establecimientos",
@@ -149,6 +170,7 @@ const nav: NavItem[] = [
     icon: Building2,
     roles: ["admin"],
     group: "Administración",
+    superadminScope: "organization",
   },
   {
     to: "/panel/equipo",
@@ -156,6 +178,7 @@ const nav: NavItem[] = [
     icon: ShieldCheck,
     roles: ["admin"],
     group: "Administración",
+    superadminScope: "organization",
   },
   {
     to: "/panel/wallet",
@@ -163,6 +186,7 @@ const nav: NavItem[] = [
     icon: Wallet,
     roles: ["admin"],
     group: "Administración",
+    superadminScope: "organization",
   },
   {
     to: "/panel/configuracion",
@@ -170,6 +194,7 @@ const nav: NavItem[] = [
     icon: Settings2,
     roles: ["admin"],
     group: "Administración",
+    superadminScope: "organization",
   },
 ];
 
@@ -196,15 +221,54 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!session) return;
-    const locationKey = `${session.userId}:${session.locations.map((location) => location.id).join(",")}`;
+    const locationKey = `${session.userId}:${(session.organizations ?? []).map((organization) => organization.id).join(",")}:${session.locations.map((location) => location.id).join(",")}`;
     if (initializedLocations.current === locationKey) return;
     initializedLocations.current = locationKey;
-    const initialSelection = session.locations.length === 1 ? [session.locations[0].id] : [];
+    const storedLevel = getSelectedScopeLevel();
+    const storedOrganizationId = getSelectedOrganizationId();
+    const storedLocationIds = getSelectedLocationIds().filter((id) =>
+      session.locations.some((location) => location.id === id),
+    );
+    const validStoredOrganization = session.organizations.some(
+      (organization) => organization.id === storedOrganizationId,
+    );
+    const initialLevel: AdminScopeLevel = session.isSuperadmin
+      ? storedLevel === "location" && storedLocationIds.length === 1
+        ? "location"
+        : storedLevel === "organization" && validStoredOrganization
+          ? "organization"
+          : "global"
+      : session.locations.length === 1
+        ? "location"
+        : "organization";
+    const initialOrganizationId = session.isSuperadmin
+      ? storedOrganizationId
+      : (session.org?.organization_id ?? null);
+    const initialSelection =
+      initialLevel === "location"
+        ? storedLocationIds.length
+          ? storedLocationIds
+          : [session.locations[0].id]
+        : initialLevel === "organization" && session.isSuperadmin
+          ? session.locations
+              .filter((location) => location.organizationId === storedOrganizationId)
+              .map((location) => location.id)
+          : [];
     setSelectedLocations(initialSelection);
     setSelectedLocationScope(
-      initialSelection.length === 1 ? `location:${initialSelection[0]}` : "all",
+      initialLevel === "location"
+        ? `location:${initialSelection[0]}`
+        : initialLevel === "organization"
+          ? `organization:${initialOrganizationId ?? ""}`
+          : "all",
     );
-    setSelectedLocationIds(initialSelection);
+    setSelectedAdminScope(
+      initialLevel,
+      initialLevel === "global"
+        ? null
+        : (initialOrganizationId ?? session.locations[0]?.organizationId ?? null),
+      initialSelection,
+    );
   }, [session]);
 
   useEffect(() => {
@@ -214,43 +278,90 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (valid.length !== selectedLocations.length) {
       setSelectedLocations(valid);
       setSelectedLocationScope(valid.length === 1 ? `location:${valid[0]}` : "all");
-      setSelectedLocationIds(valid);
+      setSelectedAdminScope(
+        valid.length === 1 ? "location" : "global",
+        valid.length === 1
+          ? (session.locations.find((location) => location.id === valid[0])?.organizationId ?? null)
+          : null,
+        valid,
+      );
     }
   }, [selectedLocations, session?.locations]);
 
   const role = session?.isSuperadmin ? "admin" : (session?.org?.role ?? "staff");
-  const items = nav.filter((i) => i.roles.includes(role));
+  const items = nav.filter((item) => {
+    if (!item.roles.includes(role)) return false;
+    if (!session?.isSuperadmin) return true;
+    if (item.superadminScope === "hidden") return false;
+    const level: AdminScopeLevel = selectedLocationScope.startsWith("organization:")
+      ? "organization"
+      : selectedLocationScope.startsWith("location:")
+        ? "location"
+        : "global";
+    if (item.superadminScope && item.superadminScope !== level) return false;
+    return true;
+  });
   const roleName = t(session?.isSuperadmin ? "Superadmin" : role);
 
   const updateLocations = (scope: string, ids: string[]) => {
     setSelectedLocationScope(scope);
     setSelectedLocations(ids);
-    setSelectedLocationIds(ids);
+    const level: AdminScopeLevel = scope.startsWith("organization:")
+      ? "organization"
+      : scope.startsWith("location:")
+        ? "location"
+        : "global";
+    const organizationId = scope.startsWith("organization:")
+      ? scope.replace("organization:", "")
+      : scope.startsWith("location:")
+        ? (session?.locations.find((location) => location.id === ids[0])?.organizationId ?? null)
+        : null;
+    setSelectedAdminScope(level, organizationId, ids);
+    if (
+      session?.isSuperadmin &&
+      nav.some(
+        (item) =>
+          item.superadminScope &&
+          item.superadminScope !== "hidden" &&
+          item.superadminScope !== level &&
+          (item.to === "/panel" ? pathname === item.to : pathname.startsWith(item.to)),
+      )
+    ) {
+      void navigate({ to: "/panel" });
+    }
   };
 
   const organizationGroups = Array.from(
-    (session?.locations ?? []).reduce((groups, location) => {
-      if (!location.organizationId) return groups;
-      const current = groups.get(location.organizationId) ?? {
-        id: location.organizationId,
-        name: location.organizationName ?? "Club sin nombre",
-        locations: [],
-      };
-      current.locations.push(location);
-      groups.set(location.organizationId, current);
+    (session?.organizations ?? []).reduce((groups, organization) => {
+      groups.set(organization.id, { ...organization, locations: [] as SessionLocation[] });
       return groups;
     }, new Map<string, { id: string; name: string; locations: SessionLocation[] }>()),
-  )
+  );
+  for (const location of session?.locations ?? []) {
+    if (!location.organizationId) continue;
+    const current = organizationGroups.find(
+      (group) => group[1].id === location.organizationId,
+    )?.[1] ?? {
+      id: location.organizationId,
+      name: location.organizationName ?? "Club sin nombre",
+      locations: [],
+    };
+    current.locations.push(location);
+    if (!organizationGroups.some((group) => group[0] === location.organizationId)) {
+      organizationGroups.push([location.organizationId, current]);
+    }
+  }
+  const sortedOrganizationGroups = organizationGroups
     .map(([, group]) => group)
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   const selectedOrganization = selectedLocationScope.startsWith("organization:")
-    ? organizationGroups.find(
+    ? sortedOrganizationGroups.find(
         (group) => group.id === selectedLocationScope.replace("organization:", ""),
       )
     : null;
   const selectedLocationLabel = selectedOrganization
-    ? `Club · ${selectedOrganization.name}`
+    ? `Empresa · ${selectedOrganization.name}`
     : !selectedLocations.length
       ? t("Todos los locales")
       : selectedLocations.length === 1
@@ -320,7 +431,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        {session?.locations.length && session.locations.length > 1 ? (
+        <div className="lg:hidden">
+        {session?.isSuperadmin || (session?.locations.length ?? 0) > 1 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -347,7 +459,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   if (scope === "all") return updateLocations("all", []);
                   if (scope.startsWith("organization:")) {
                     const organizationId = scope.replace("organization:", "");
-                    const group = organizationGroups.find((item) => item.id === organizationId);
+                    const group = sortedOrganizationGroups.find(
+                      (item) => item.id === organizationId,
+                    );
                     return updateLocations(
                       scope,
                       group?.locations.map((location) => location.id) ?? [],
@@ -358,28 +472,34 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <DropdownMenuRadioItem value="all">{t("Todos los locales")}</DropdownMenuRadioItem>
                 {session.isSuperadmin
-                  ? organizationGroups.map((group) => (
+                  ? sortedOrganizationGroups.map((group) => (
                       <div key={group.id}>
                         <DropdownMenuSeparator />
                         <DropdownMenuRadioItem
                           value={`organization:${group.id}`}
                           className="font-semibold"
                         >
-                          <Building2 className="size-4" />
-                          Club · {group.name}
+                          <Building2 className="mr-2 size-4 shrink-0" />
+                          Empresa · {group.name}
                         </DropdownMenuRadioItem>
                         <DropdownMenuLabel className="pb-1 pl-8 text-[10px] uppercase tracking-wide text-muted-foreground">
                           Establecimientos
                         </DropdownMenuLabel>
-                        {group.locations.map((location) => (
-                          <DropdownMenuRadioItem
-                            key={location.id}
-                            value={`location:${location.id}`}
-                            className="pl-11"
-                          >
-                            {location.name}
-                          </DropdownMenuRadioItem>
-                        ))}
+                        {group.locations.length ? (
+                          group.locations.map((location) => (
+                            <DropdownMenuRadioItem
+                              key={location.id}
+                              value={`location:${location.id}`}
+                              className="pl-11"
+                            >
+                              {location.name}
+                            </DropdownMenuRadioItem>
+                          ))
+                        ) : (
+                          <DropdownMenuLabel className="pl-8 text-xs font-normal text-muted-foreground">
+                            Sin establecimientos
+                          </DropdownMenuLabel>
+                        )}
                       </div>
                     ))
                   : session.locations.map((location) => (
@@ -403,6 +523,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </p>
         ) : null}
+        </div>
         <button
           className="absolute right-3 top-3 lg:hidden"
           onClick={() => setOpen(false)}
@@ -580,7 +701,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 hidden h-18 items-center justify-between border-b bg-card/95 px-8 backdrop-blur lg:flex">
-          <div className="flex w-full max-w-2xl items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <Button
               type="button"
               variant="outline"
@@ -596,6 +717,77 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <PanelLeftClose className="size-4" />
               )}
             </Button>
+            <Link to="/panel" aria-label="Fideleo" className="mx-1 shrink-0">
+              <img src="/isotipo.svg" alt="" className="size-9 dark:hidden" />
+              <img src="/isotipo-dark.svg" alt="" className="hidden size-9 dark:block" />
+            </Link>
+            {session?.isSuperadmin ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-64 shrink-0 justify-between">
+                    <MapPin className="size-4 shrink-0" />
+                    <span className="truncate">{selectedLocationLabel}</span>
+                    <ChevronDown className="size-4 opacity-55" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto"
+                >
+                  <DropdownMenuRadioGroup
+                    value={selectedLocationScope}
+                    onValueChange={(scope) => {
+                      if (scope === "all") return updateLocations("all", []);
+                      if (scope.startsWith("organization:")) {
+                        const organizationId = scope.replace("organization:", "");
+                        const group = sortedOrganizationGroups.find(
+                          (item) => item.id === organizationId,
+                        );
+                        return updateLocations(
+                          scope,
+                          group?.locations.map((location) => location.id) ?? [],
+                        );
+                      }
+                      updateLocations(scope, [scope.replace("location:", "")]);
+                    }}
+                  >
+                    <DropdownMenuRadioItem value="all">
+                      {t("Todos los locales")}
+                    </DropdownMenuRadioItem>
+                    {sortedOrganizationGroups.map((group) => (
+                      <div key={group.id}>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioItem
+                          value={`organization:${group.id}`}
+                          className="font-semibold"
+                        >
+                          <Building2 className="mr-2 size-4 shrink-0" />
+                          Empresa · {group.name}
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuLabel className="pb-1 pl-8 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Establecimientos
+                        </DropdownMenuLabel>
+                        {group.locations.length ? (
+                          group.locations.map((location) => (
+                            <DropdownMenuRadioItem
+                              key={location.id}
+                              value={`location:${location.id}`}
+                              className="pl-11"
+                            >
+                              {location.name}
+                            </DropdownMenuRadioItem>
+                          ))
+                        ) : (
+                          <DropdownMenuLabel className="pl-8 text-xs font-normal text-muted-foreground">
+                            Sin establecimientos
+                          </DropdownMenuLabel>
+                        )}
+                      </div>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
             <div className="relative w-full max-w-xl">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input

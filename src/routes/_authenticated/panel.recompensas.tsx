@@ -15,6 +15,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -30,31 +37,52 @@ export const Route = createFileRoute("/_authenticated/panel/recompensas")({
 });
 
 function RecompensasPage() {
-  const { session, organizationId: orgId, isSuperadmin, isGlobal, canMutate } = useAdminScope();
+  const {
+    session,
+    organizationId: orgId,
+    isSuperadmin,
+    isGlobal,
+    canMutate,
+    selectedLocationIds,
+  } = useAdminScope();
+  const locationId = selectedLocationIds[0] ?? null;
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", points_cost: 100 });
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    points_cost: 100,
+    limitType: "unlimited",
+    limitCount: 2,
+  });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["rewards", orgId, isSuperadmin],
+    queryKey: ["rewards", orgId, isSuperadmin, locationId],
     enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
       let programsQuery = supabase
         .from("loyalty_programs")
-        .select("id,organization_id,organizations(display_name)")
+        .select(
+          "id,organization_id,organizations(display_name),program_locations!inner(location_id)",
+        )
         .order("created_at");
       if (orgId) programsQuery = programsQuery.eq("organization_id", orgId);
+      if (locationId) programsQuery = programsQuery.eq("program_locations.location_id", locationId);
       const { data: programs, error: programsError } = await programsQuery;
       if (programsError) throw programsError;
       if (!programs?.length) return { programId: null, rewards: [] };
       const programById = new Map(programs.map((program) => [program.id, program]));
-      const { data: rewards, error } = await supabase
+      let rewardsQuery = supabase
         .from("rewards")
-        .select("id, name, description, points_cost, status, program_id")
+        .select(
+          "id, name, description, points_cost, status, program_id,redemption_limit_type,redemption_limit_count,reward_locations!inner(location_id)",
+        )
         .in(
           "program_id",
           programs.map((program) => program.id),
         )
         .order("points_cost");
+      if (locationId) rewardsQuery = rewardsQuery.eq("reward_locations.location_id", locationId);
+      const { data: rewards, error } = await rewardsQuery;
       if (error) throw error;
       return {
         programId: programs.length === 1 ? programs[0].id : null,
@@ -76,20 +104,50 @@ function RecompensasPage() {
       toast.error("Revisa el nombre y el coste en puntos");
       return;
     }
-    const { error } = await supabase.from("rewards").insert({
-      program_id: data.programId,
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      points_cost: form.points_cost,
-      status: "active",
-    });
+    if (
+      ["per_customer", "global"].includes(form.limitType) &&
+      (!Number.isInteger(form.limitCount) || form.limitCount < 1)
+    ) {
+      toast.error("Indica un límite de canjes válido");
+      return;
+    }
+    const { data: created, error } = await supabase
+      .from("rewards")
+      .insert({
+        program_id: data.programId,
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        points_cost: form.points_cost,
+        redemption_limit_type:
+          form.limitType === "once" ? "per_customer" : form.limitType,
+        redemption_limit_count:
+          form.limitType === "unlimited" ? null : form.limitType === "once" ? 1 : form.limitCount,
+        status: "active",
+      })
+      .select("id")
+      .single();
     if (error) {
       toast.error("No se pudo crear", { description: error.message });
       return;
     }
+    if (locationId) {
+      const { error: locationError } = await supabase
+        .from("reward_locations")
+        .insert({ reward_id: created.id, location_id: locationId });
+      if (locationError)
+        return toast.error("La recompensa se creó sin asociar al establecimiento", {
+          description: locationError.message,
+        });
+    }
     toast.success("Recompensa creada");
     setOpen(false);
-    setForm({ name: "", description: "", points_cost: 100 });
+    setForm({
+      name: "",
+      description: "",
+      points_cost: 100,
+      limitType: "unlimited",
+      limitCount: 2,
+    });
     void refetch();
   };
 
@@ -130,6 +188,41 @@ function RecompensasPage() {
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Límite de canjes</Label>
+                  <Select
+                    value={form.limitType}
+                    onValueChange={(limitType) => setForm({ ...form, limitType })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unlimited">Ilimitados</SelectItem>
+                      <SelectItem value="once">Una única vez por persona</SelectItem>
+                      <SelectItem value="per_customer">Varias veces por persona</SelectItem>
+                      <SelectItem value="global">Número máximo global</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.limitType === "per_customer" || form.limitType === "global" ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reward-limit">
+                      {form.limitType === "global"
+                        ? "Canjes totales disponibles"
+                        : "Canjes por persona"}
+                    </Label>
+                    <Input
+                      id="reward-limit"
+                      type="number"
+                      min="1"
+                      value={form.limitCount}
+                      onChange={(event) =>
+                        setForm({ ...form, limitCount: Math.max(1, Number(event.target.value)) })
+                      }
+                    />
+                  </div>
+                ) : null}
                 <div className="space-y-1.5">
                   <Label htmlFor="rd">Descripción</Label>
                   <Textarea
@@ -175,6 +268,15 @@ function RecompensasPage() {
               {r.description ? (
                 <p className="text-sm text-muted-foreground">{r.description}</p>
               ) : null}
+              <p className="text-xs text-muted-foreground">
+                {r.redemption_limit_type === "unlimited"
+                  ? "Canjes ilimitados"
+                  : r.redemption_limit_type === "global"
+                    ? `${num(r.redemption_limit_count)} canjes globales como máximo`
+                    : r.redemption_limit_count === 1
+                      ? "Un canje por persona"
+                      : `${num(r.redemption_limit_count)} canjes por persona`}
+              </p>
               {isSuperadmin ? (
                 <p className="text-xs text-muted-foreground">
                   {r.organizationName ?? "Sin empresa"}

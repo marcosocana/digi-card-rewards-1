@@ -28,19 +28,32 @@ const triggerLabel: Record<string, string> = {
 };
 
 function AutomatizacionesPage() {
-  const { session, organizationId: orgId, isSuperadmin, isGlobal } = useAdminScope();
+  const {
+    session,
+    organizationId: orgId,
+    isSuperadmin,
+    isGlobal,
+    selectedLocationIds,
+  } = useAdminScope();
+  const locationId = selectedLocationIds[0] ?? null;
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["automations", orgId, isSuperadmin],
+    queryKey: ["automations", orgId, isSuperadmin, locationId],
     enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
       let automationsQuery = supabase
         .from("notification_automations")
         .select("*, organizations(display_name)")
         .order("created_at");
-      let jobsQuery = supabase.from("automation_jobs").select("id,status");
+      let jobsQuery = supabase
+        .from("automation_jobs")
+        .select("id,status,notification_automations!inner(location_id)");
       if (orgId) {
         automationsQuery = automationsQuery.eq("organization_id", orgId);
         jobsQuery = jobsQuery.eq("organization_id", orgId);
+      }
+      if (locationId) {
+        automationsQuery = automationsQuery.eq("location_id", locationId);
+        jobsQuery = jobsQuery.eq("notification_automations.location_id", locationId);
       }
       const [automations, jobs] = await Promise.all([automationsQuery, jobsQuery]);
       if (automations.error) throw automations.error;
@@ -62,9 +75,10 @@ function AutomatizacionesPage() {
   };
 
   const run = async () => {
-    if (!orgId) return;
+    if (!orgId || !locationId) return;
     const scheduled = await supabase.rpc("enqueue_scheduled_automations", {
       _organization_id: orgId,
+      _location_id: locationId,
     });
     if (scheduled.error) {
       toast.error("No se pudo preparar la ejecución", {
@@ -74,6 +88,7 @@ function AutomatizacionesPage() {
     }
     const processed = await supabase.rpc("process_automation_jobs", {
       _organization_id: orgId,
+      _location_id: locationId,
       _limit: 100,
     });
     if (processed.error) {
@@ -94,7 +109,7 @@ function AutomatizacionesPage() {
         title="Automatizaciones"
         description="Mensajes activados por comportamiento, fechas y recompensas."
         actions={
-          <Button variant="outline" disabled={isGlobal} onClick={() => void run()}>
+          <Button variant="outline" disabled={isGlobal || !locationId} onClick={() => void run()}>
             <Play className="size-4" /> Ejecutar cola ahora
           </Button>
         }

@@ -562,11 +562,6 @@ function HomePage() {
               Escanea el QR o abre el Club Café Norte para ver cómo un cliente consulta sus puntos,
               recompensas y tarjeta digital.
             </p>
-            <Button asChild size="lg" className="mt-8 h-13 rounded-full bg-black px-8 text-white">
-              <a href={clubExamplePath} target="_blank" rel="noreferrer">
-                Ver ejemplo <ArrowRight />
-              </a>
-            </Button>
           </div>
           <a
             href={clubExamplePath}

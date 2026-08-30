@@ -27,19 +27,21 @@ export const Route = createFileRoute("/_authenticated/panel/programa")({
 });
 
 function ProgramaPage() {
-  const { organizationId: orgId, isGlobal } = useAdminScope();
+  const { organizationId: orgId, isGlobal, selectedLocationIds } = useAdminScope();
+  const locationId = selectedLocationIds[0] ?? null;
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["program", orgId],
+    queryKey: ["program", orgId, locationId],
     enabled: Boolean(orgId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("loyalty_programs")
-        .select("*")
+        .select("*,program_locations!inner(location_id)")
         .eq("organization_id", orgId!)
         .order("created_at")
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+      if (locationId) query = query.eq("program_locations.location_id", locationId);
+      const { data, error } = await query.maybeSingle();
       if (error) throw error;
       return data;
     },

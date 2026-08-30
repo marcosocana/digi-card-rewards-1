@@ -30,8 +30,6 @@ export const Route = createFileRoute("/_authenticated/completar-registro")({
 
 type AccountContext = {
   userId: string;
-  membershipId: string;
-  organizationId: string;
   email: string;
 };
 
@@ -62,39 +60,6 @@ function CompleteRegistrationPage() {
         return;
       }
 
-      const { error: ensureError } = await supabase.rpc("ensure_current_business_account", {});
-      if (ensureError) {
-        toast.error("No hemos podido preparar tu cuenta", { description: ensureError.message });
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
-      const { data: membership, error: membershipError } = await supabase
-        .from("organization_users")
-        .select("id, organization_id, role, organizations(slug, display_name)")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .order("created_at")
-        .limit(1)
-        .maybeSingle();
-      if (membershipError || !membership) {
-        toast.error("No hemos podido cargar los datos del negocio", {
-          description: membershipError?.message,
-        });
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
-      const organization = membership.organizations as {
-        slug: string;
-        display_name: string;
-      } | null;
-      const personalSuffix = user.id.replaceAll("-", "").slice(0, 8);
-      if (membership.role !== "admin" || !organization?.slug.endsWith(`-${personalSuffix}`)) {
-        window.location.replace(next);
-        return;
-      }
-
       if (cancelled) return;
       setFullName(
         typeof user.user_metadata.full_name === "string"
@@ -106,8 +71,6 @@ function CompleteRegistrationPage() {
       setBusinessName("");
       setContext({
         userId: user.id,
-        membershipId: membership.id,
-        organizationId: membership.organization_id,
         email: user.email ?? "",
       });
       setLoading(false);
@@ -126,16 +89,37 @@ function CompleteRegistrationPage() {
     if (normalizedName.length < 2 || normalizedBusiness.length < 2 || !context) return;
 
     setSaving(true);
+    const { error: ensureError } = await supabase.rpc("ensure_current_business_account", {
+      _business_name: normalizedBusiness,
+    });
+    if (ensureError) {
+      setSaving(false);
+      toast.error("No hemos podido preparar tu negocio", { description: ensureError.message });
+      return;
+    }
+    const { data: membership, error: membershipError } = await supabase
+      .from("organization_users")
+      .select("id,organization_id")
+      .eq("user_id", context.userId)
+      .eq("status", "active")
+      .eq("role", "admin")
+      .limit(1)
+      .single();
+    if (membershipError) {
+      setSaving(false);
+      toast.error("No hemos podido cargar el negocio", { description: membershipError.message });
+      return;
+    }
     const [profileResult, memberResult, organizationResult] = await Promise.all([
       supabase.from("profiles").update({ full_name: normalizedName }).eq("id", context.userId),
       supabase
         .from("organization_users")
         .update({ full_name: normalizedName })
-        .eq("id", context.membershipId),
+        .eq("id", membership.id),
       supabase
         .from("organizations")
         .update({ display_name: normalizedBusiness, contact_email: context.email })
-        .eq("id", context.organizationId),
+        .eq("id", membership.organization_id),
     ]);
     const databaseError = profileResult.error ?? memberResult.error ?? organizationResult.error;
     if (databaseError) {

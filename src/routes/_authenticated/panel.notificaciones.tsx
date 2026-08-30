@@ -47,7 +47,15 @@ const labels: Record<string, string> = {
 };
 
 function NotificacionesPage() {
-  const { session, organizationId: orgId, isSuperadmin, isGlobal, canMutate } = useAdminScope();
+  const {
+    session,
+    organizationId: orgId,
+    isSuperadmin,
+    isGlobal,
+    canMutate,
+    selectedLocationIds,
+  } = useAdminScope();
+  const locationId = selectedLocationIds[0] ?? null;
   const [open, setOpen] = useState(false);
   const [segmentOpen, setSegmentOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,7 +70,7 @@ function NotificacionesPage() {
   const [segmentForm, setSegmentForm] = useState({ name: "", type: "marketing", value: "" });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["notifications", orgId, isSuperadmin],
+    queryKey: ["notifications", orgId, isSuperadmin, locationId],
     enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
       let notificationsQuery = supabase
@@ -73,6 +81,7 @@ function NotificacionesPage() {
         .order("created_at", { ascending: false })
         .limit(100);
       if (orgId) notificationsQuery = notificationsQuery.eq("organization_id", orgId);
+      if (locationId) notificationsQuery = notificationsQuery.eq("location_id", locationId);
 
       const segmentsQuery = orgId
         ? supabase
@@ -148,6 +157,7 @@ function NotificacionesPage() {
     setBusy(true);
     const { data: result, error } = await supabase.rpc("queue_manual_notification", {
       _organization_id: orgId,
+      ...(locationId ? { _location_id: locationId } : {}),
       _segment_id: form.segmentId,
       _title: form.title.trim(),
       _message: form.message.trim(),

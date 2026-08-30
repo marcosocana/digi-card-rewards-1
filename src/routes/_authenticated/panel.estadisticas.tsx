@@ -24,14 +24,12 @@ export const Route = createFileRoute("/_authenticated/panel/estadisticas")({
 function EstadisticasPage() {
   const { session, organizationId: orgId, isSuperadmin, selectedLocationIds } = useAdminScope();
   const [period, setPeriod] = useState("365");
-  const [locationId, setLocationId] = useState("all");
   const { data, isLoading } = useQuery({
     queryKey: [
       "advanced-stats",
       orgId,
       isSuperadmin,
       period,
-      locationId,
       [...selectedLocationIds].sort().join(","),
     ],
     enabled: Boolean(session && (orgId || isSuperadmin)),
@@ -53,7 +51,7 @@ function EstadisticasPage() {
         transactionQuery = transactionQuery.eq("organization_id", orgId);
         membershipQuery = membershipQuery.eq("organization_id", orgId);
       }
-      const scopedLocationIds = locationId !== "all" ? [locationId] : selectedLocationIds;
+      const scopedLocationIds = selectedLocationIds;
       if (scopedLocationIds.length) {
         transactionQuery = transactionQuery.in("location_id", scopedLocationIds);
         membershipQuery = membershipQuery.in("acquisition_location_id", scopedLocationIds);
@@ -70,30 +68,22 @@ function EstadisticasPage() {
         .from("customer_rewards")
         .select("id,status,awarded_at,memberships!inner(organization_id,acquisition_location_id)")
         .gte("awarded_at", from.toISOString());
-      let locationsQuery = supabase
-        .from("locations")
-        .select("id,name,organizations(display_name)")
-        .eq("status", "active")
-        .order("name");
       if (orgId) {
         passesQuery = passesQuery.eq("memberships.organization_id", orgId);
         rewardsQuery = rewardsQuery.eq("organization_id", orgId);
         earnedQuery = earnedQuery.eq("memberships.organization_id", orgId);
-        locationsQuery = locationsQuery.eq("organization_id", orgId);
       }
       if (scopedLocationIds.length) {
         passesQuery = passesQuery.in("memberships.acquisition_location_id", scopedLocationIds);
         rewardsQuery = rewardsQuery.in("location_id", scopedLocationIds);
         earnedQuery = earnedQuery.in("memberships.acquisition_location_id", scopedLocationIds);
-        locationsQuery = locationsQuery.in("id", scopedLocationIds);
       }
-      const [transactions, memberships, passes, rewards, earned, locations] = await Promise.all([
+      const [transactions, memberships, passes, rewards, earned] = await Promise.all([
         transactionQuery,
         membershipQuery,
         passesQuery,
         rewardsQuery,
         earnedQuery,
-        locationsQuery,
       ]);
       if (transactions.error) throw transactions.error;
       const tx = transactions.data ?? [];
@@ -179,7 +169,6 @@ function EstadisticasPage() {
           : 0,
         apple: (passes.data ?? []).filter((pass) => pass.provider === "apple").length,
         google: (passes.data ?? []).filter((pass) => pass.provider === "google").length,
-        locations: locations.data ?? [],
       };
     },
   });
@@ -198,21 +187,6 @@ function EstadisticasPage() {
                 <SelectItem value="30">Últimos 30 días</SelectItem>
                 <SelectItem value="90">Últimos 90 días</SelectItem>
                 <SelectItem value="365">Último año</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={locationId} onValueChange={setLocationId}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las ubicaciones</SelectItem>
-                {(data?.locations ?? []).map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
-                    {isSuperadmin
-                      ? `${(location.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"} · ${location.name}`
-                      : location.name}
-                  </SelectItem>
-                ))}
               </SelectContent>
             </Select>
           </div>

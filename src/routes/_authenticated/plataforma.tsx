@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/session";
-import { num } from "@/lib/format";
+import { dateTime, num } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/plataforma")({
   component: PlataformaPage,
@@ -21,7 +21,30 @@ function PlataformaPage() {
     queryKey: ["platform-orgs"],
     enabled: session?.isSuperadmin === true,
     queryFn: async () => {
-      const [orgs, locs, members, admins] = await Promise.all([
+      const fetchAllProfiles = async () => {
+        const pageSize = 1_000;
+        const profiles: Array<{
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          platform_role: "superadmin" | "user";
+          status: string;
+          created_at: string;
+        }> = [];
+        for (let page = 0; ; page += 1) {
+          const response = await supabase
+            .from("profiles")
+            .select("id, email, full_name, platform_role, status, created_at")
+            .order("created_at", { ascending: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+          if (response.error) throw response.error;
+          profiles.push(...(response.data ?? []));
+          if ((response.data?.length ?? 0) < pageSize) break;
+        }
+        return profiles;
+      };
+
+      const [orgs, locs, members, admins, users] = await Promise.all([
         supabase.from("organizations").select("id, display_name, slug, status"),
         supabase.from("locations").select("id", { count: "exact", head: true }),
         supabase.from("memberships").select("id", { count: "exact", head: true }),
@@ -32,6 +55,7 @@ function PlataformaPage() {
           )
           .eq("role", "admin")
           .order("full_name"),
+        fetchAllProfiles(),
       ]);
       if (orgs.error) throw orgs.error;
       if (locs.error) throw locs.error;
@@ -42,6 +66,7 @@ function PlataformaPage() {
         locations: locs.count ?? 0,
         members: members.count ?? 0,
         admins: admins.data ?? [],
+        users,
       };
     },
   });
@@ -59,10 +84,11 @@ function PlataformaPage() {
         <>
           <PageHeader
             title="Plataforma"
-            description="Visión global de empresas, administradores y actividad."
+            description="Visión global de empresas, usuarios registrados, actividad y rendimiento."
           />
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <MetricCard label="Empresas" value={num(data?.orgs.length)} />
+            <MetricCard label="Usuarios registrados" value={num(data?.users.length)} />
             <MetricCard label="Administradores" value={num(data?.admins.length)} />
             <MetricCard label="Establecimientos" value={num(data?.locations)} />
             <MetricCard label="Miembros" value={num(data?.members)} />
@@ -118,6 +144,44 @@ function PlataformaPage() {
               </div>
             </section>
           </div>
+          <section className="surface overflow-hidden">
+            <div className="border-b px-5 py-4">
+              <h2 className="font-display font-semibold">Usuarios registrados</h2>
+              <p className="text-xs text-muted-foreground">
+                Todas las cuentas dadas de alta en la base de datos de Fideleo.
+              </p>
+            </div>
+            <div className="max-h-[32rem] divide-y overflow-y-auto">
+              {(data?.users ?? []).map((user) => (
+                <div
+                  key={user.id}
+                  className="flex flex-col justify-between gap-2 px-5 py-4 sm:flex-row sm:items-center"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {user.full_name || user.email || "Usuario sin nombre"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {user.email || "Sin email"} · Alta {dateTime(user.created_at)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge variant="secondary">
+                      {user.platform_role === "superadmin" ? "Superadmin" : "Usuario"}
+                    </Badge>
+                    <Badge variant={user.status === "active" ? "default" : "outline"}>
+                      {user.status === "active" ? "Activo" : user.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+              {!data?.users.length ? (
+                <p className="px-5 py-6 text-sm text-muted-foreground">
+                  Todavía no hay usuarios registrados.
+                </p>
+              ) : null}
+            </div>
+          </section>
         </>
       )}
     </AppShell>

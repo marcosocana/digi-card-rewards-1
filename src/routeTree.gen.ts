@@ -29,6 +29,7 @@ import { Route as AuthenticatedPanelBeneficiosRouteImport } from './routes/_auth
 import { Route as AuthenticatedPanelCajaRouteImport } from './routes/_authenticated/panel.caja'
 import { Route as AuthenticatedPanelCaptacionRouteImport } from './routes/_authenticated/panel.captacion'
 import { Route as AuthenticatedPanelConfiguracionRouteImport } from './routes/_authenticated/panel.configuracion'
+import { Route as AuthenticatedPanelEmpresasRouteImport } from './routes/_authenticated/panel.empresas'
 import { Route as AuthenticatedPanelEquipoRouteImport } from './routes/_authenticated/panel.equipo'
 import { Route as AuthenticatedPanelEstablecimientosRouteImport } from './routes/_authenticated/panel.establecimientos'
 import { Route as AuthenticatedPanelEstadisticasRouteImport } from './routes/_authenticated/panel.estadisticas'
@@ -151,6 +152,12 @@ const AuthenticatedPanelConfiguracionRoute =
     path: '/configuracion',
     getParentRoute: () => AuthenticatedPanelRoute,
   } as any)
+const AuthenticatedPanelEmpresasRoute =
+  AuthenticatedPanelEmpresasRouteImport.update({
+    id: '/empresas',
+    path: '/empresas',
+    getParentRoute: () => AuthenticatedPanelRoute,
+  } as any)
 const AuthenticatedPanelEquipoRoute =
   AuthenticatedPanelEquipoRouteImport.update({
     id: '/equipo',
@@ -266,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
+  '/panel/empresas': typeof AuthenticatedPanelEmpresasRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
@@ -301,6 +309,7 @@ export interface FileRoutesByTo {
   '/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
+  '/panel/empresas': typeof AuthenticatedPanelEmpresasRoute
   '/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
@@ -340,6 +349,7 @@ export interface FileRoutesById {
   '/_authenticated/panel/caja': typeof AuthenticatedPanelCajaRoute
   '/_authenticated/panel/captacion': typeof AuthenticatedPanelCaptacionRoute
   '/_authenticated/panel/configuracion': typeof AuthenticatedPanelConfiguracionRoute
+  '/_authenticated/panel/empresas': typeof AuthenticatedPanelEmpresasRoute
   '/_authenticated/panel/equipo': typeof AuthenticatedPanelEquipoRoute
   '/_authenticated/panel/establecimientos': typeof AuthenticatedPanelEstablecimientosRoute
   '/_authenticated/panel/estadisticas': typeof AuthenticatedPanelEstadisticasRoute
@@ -378,6 +388,7 @@ export interface FileRouteTypes {
     | '/panel/caja'
     | '/panel/captacion'
     | '/panel/configuracion'
+    | '/panel/empresas'
     | '/panel/equipo'
     | '/panel/establecimientos'
     | '/panel/estadisticas'
@@ -413,6 +424,7 @@ export interface FileRouteTypes {
     | '/panel/caja'
     | '/panel/captacion'
     | '/panel/configuracion'
+    | '/panel/empresas'
     | '/panel/equipo'
     | '/panel/establecimientos'
     | '/panel/estadisticas'
@@ -451,6 +463,7 @@ export interface FileRouteTypes {
     | '/_authenticated/panel/caja'
     | '/_authenticated/panel/captacion'
     | '/_authenticated/panel/configuracion'
+    | '/_authenticated/panel/empresas'
     | '/_authenticated/panel/equipo'
     | '/_authenticated/panel/establecimientos'
     | '/_authenticated/panel/estadisticas'
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelConfiguracionRouteImport
       parentRoute: typeof AuthenticatedPanelRoute
     }
+    '/_authenticated/panel/empresas': {
+      id: '/_authenticated/panel/empresas'
+      path: '/empresas'
+      fullPath: '/panel/empresas'
+      preLoaderRoute: typeof AuthenticatedPanelEmpresasRouteImport
+      parentRoute: typeof AuthenticatedPanelRoute
+    }
     '/_authenticated/panel/equipo': {
       id: '/_authenticated/panel/equipo'
       path: '/equipo'
@@ -763,6 +783,7 @@ interface AuthenticatedPanelRouteChildren {
   AuthenticatedPanelCajaRoute: typeof AuthenticatedPanelCajaRoute
   AuthenticatedPanelCaptacionRoute: typeof AuthenticatedPanelCaptacionRoute
   AuthenticatedPanelConfiguracionRoute: typeof AuthenticatedPanelConfiguracionRoute
+  AuthenticatedPanelEmpresasRoute: typeof AuthenticatedPanelEmpresasRoute
   AuthenticatedPanelEquipoRoute: typeof AuthenticatedPanelEquipoRoute
   AuthenticatedPanelEstablecimientosRoute: typeof AuthenticatedPanelEstablecimientosRoute
   AuthenticatedPanelEstadisticasRoute: typeof AuthenticatedPanelEstadisticasRoute
@@ -786,6 +807,7 @@ const AuthenticatedPanelRouteChildren: AuthenticatedPanelRouteChildren = {
   AuthenticatedPanelCajaRoute: AuthenticatedPanelCajaRoute,
   AuthenticatedPanelCaptacionRoute: AuthenticatedPanelCaptacionRoute,
   AuthenticatedPanelConfiguracionRoute: AuthenticatedPanelConfiguracionRoute,
+  AuthenticatedPanelEmpresasRoute: AuthenticatedPanelEmpresasRoute,
   AuthenticatedPanelEquipoRoute: AuthenticatedPanelEquipoRoute,
   AuthenticatedPanelEstablecimientosRoute:
     AuthenticatedPanelEstablecimientosRoute,
