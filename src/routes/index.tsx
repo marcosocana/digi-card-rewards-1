@@ -306,7 +306,7 @@ function HomePage() {
       const track = kpiTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        track.scrollLeft += elapsed * 0.16;
+        track.scrollLeft += elapsed * 0.018;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[kpis.length] as HTMLElement | undefined;
         const cycleWidth =
@@ -330,7 +330,7 @@ function HomePage() {
       const track = testimonialsTrackRef.current;
       if (track) {
         const elapsed = previousTime ? Math.min(time - previousTime, 40) : 0;
-        track.scrollLeft += elapsed * 0.12;
+        track.scrollLeft += elapsed * 0.013;
         const firstCard = track.children[0] as HTMLElement | undefined;
         const firstDuplicate = track.children[testimonials.length] as HTMLElement | undefined;
         const cycleWidth =

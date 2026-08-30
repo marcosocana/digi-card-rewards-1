@@ -9,8 +9,8 @@ export const subscriptionPlans = [
     features: [
       "1 establecimiento",
       "Hasta 1.000 clientes",
-      "Notificaciones y automatizaciones",
-      "Soporte",
+      "Tarjeta digital y QR",
+      "Panel de métricas",
     ],
   },
   {
@@ -23,8 +23,8 @@ export const subscriptionPlans = [
     features: [
       "Hasta 3 establecimientos",
       "Hasta 5.000 clientes",
-      "Tarjeta digital y QR",
-      "Panel de métricas",
+      "Notificaciones y automatizaciones",
+      "Soporte prioritario",
     ],
   },
   {
@@ -38,7 +38,7 @@ export const subscriptionPlans = [
       "Hasta 15 establecimientos",
       "Clientes ilimitados",
       "Todo lo anterior",
-      "Acompañamiento dedicado",
+      "Acompañamiento exclusivo",
     ],
   },
 ] as const;
