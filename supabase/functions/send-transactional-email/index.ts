@@ -108,7 +108,10 @@ Deno.serve(async (request) => {
     const kind = clean(payload.kind, 40);
     if (!authorization) return json({ error: "Sesión requerida" }, 401);
     const internalRequest = authorization === `Bearer ${serviceKey}`;
-    if (internalRequest && kind !== "subscription_onboarding") {
+    if (
+      internalRequest &&
+      !["subscription_onboarding", "manual_account_confirmation"].includes(kind)
+    ) {
       return json({ error: "Tipo de correo interno no permitido" }, 403);
     }
 
@@ -357,6 +360,37 @@ Deno.serve(async (request) => {
         ],
         cta: { label: "Empezar el onboarding", url: `${appUrl}/panel/onboarding` },
         note: "Accede con el mismo email utilizado para crear tu cuenta de Fideleo.",
+      };
+    } else if (kind === "manual_account_confirmation") {
+      if (!internalRequest) return json({ error: "Operación no permitida" }, 403);
+      const organizationId = clean(payload.organizationId, 80);
+      const userId = clean(payload.userId, 80);
+      if (!/^[0-9a-f-]{36}$/i.test(organizationId) || !/^[0-9a-f-]{36}$/i.test(userId)) {
+        return json({ error: "Alta manual no válida" }, 400);
+      }
+      const [organization, profile] = await Promise.all([
+        selectOne<{ display_name: string; plan_code: string | null }>(
+          `organizations?id=eq.${encodeURIComponent(organizationId)}&select=display_name,plan_code&limit=1`,
+        ),
+        selectOne<{ email: string; full_name: string | null }>(
+          `profiles?id=eq.${encodeURIComponent(userId)}&select=email,full_name&limit=1`,
+        ),
+      ]);
+      if (!organization || !profile?.email) return json({ error: "Cuenta no encontrada" }, 404);
+      recipient = profile.email.trim().toLowerCase();
+      eventKey = `manual_account_confirmation:${userId}`;
+      content = {
+        subject: "Tu cuenta de Fideleo ya está preparada",
+        preheader: "Tu empresa y tu club ya están configurados.",
+        title: "Tu alta está confirmada",
+        greeting: profile.full_name ? `Hola, ${profile.full_name}.` : "Hola.",
+        paragraphs: [
+          `${organization.display_name} ya está creada con el plan ${organization.plan_code || "contratado"}.`,
+          "Tu usuario administrador está activo y el club ya tiene configurados sus establecimientos, identidad visual, programa y tarjeta digital.",
+          "Puedes acceder con el email de este mensaje y la contraseña que te ha facilitado el administrador de Fideleo.",
+        ],
+        cta: { label: "Acceder a Fideleo", url: `${appUrl}/auth` },
+        note: "Por seguridad, la contraseña no se incluye en este correo.",
       };
     } else if (kind === "password_changed") {
       const eventId = clean(payload.eventId, 80);

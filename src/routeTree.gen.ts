@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as SolicitarDemoRouteImport } from './routes/solicitar-demo'
 import { Route as AuthenticatedOnboardingRouteRouteImport } from './routes/_authenticated/_onboarding/route'
 import { Route as AuthenticatedCompletarRegistroRouteImport } from './routes/_authenticated/completar-registro'
+import { Route as AuthenticatedOnboardingmanualRouteImport } from './routes/_authenticated/onboardingmanual'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPlataformaRouteImport } from './routes/_authenticated/plataforma'
 import { Route as ClubBusinessSlugRouteImport } from './routes/club.$businessSlug'
@@ -85,6 +86,12 @@ const AuthenticatedCompletarRegistroRoute =
   AuthenticatedCompletarRegistroRouteImport.update({
     id: '/completar-registro',
     path: '/completar-registro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOnboardingmanualRoute =
+  AuthenticatedOnboardingmanualRouteImport.update({
+    id: '/onboardingmanual',
+    path: '/onboardingmanual',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
@@ -262,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/completar-registro': typeof AuthenticatedCompletarRegistroRoute
+  '/onboardingmanual': typeof AuthenticatedOnboardingmanualRoute
   '/panel': typeof AuthenticatedPanelRouteWithChildren
   '/plataforma': typeof AuthenticatedPlataformaRoute
   '/club/$businessSlug': typeof ClubBusinessSlugRouteWithChildren
@@ -299,6 +307,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/completar-registro': typeof AuthenticatedCompletarRegistroRoute
+  '/onboardingmanual': typeof AuthenticatedOnboardingmanualRoute
   '/plataforma': typeof AuthenticatedPlataformaRoute
   '/club/$businessSlug': typeof ClubBusinessSlugRouteWithChildren
   '/legal/$document': typeof LegalDocumentRoute
@@ -338,6 +347,7 @@ export interface FileRoutesById {
   '/solicitar-demo': typeof SolicitarDemoRoute
   '/_authenticated/_onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/_authenticated/completar-registro': typeof AuthenticatedCompletarRegistroRoute
+  '/_authenticated/onboardingmanual': typeof AuthenticatedOnboardingmanualRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRouteWithChildren
   '/_authenticated/plataforma': typeof AuthenticatedPlataformaRoute
   '/club/$businessSlug': typeof ClubBusinessSlugRouteWithChildren
@@ -377,6 +387,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/solicitar-demo'
     | '/completar-registro'
+    | '/onboardingmanual'
     | '/panel'
     | '/plataforma'
     | '/club/$businessSlug'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/solicitar-demo'
     | '/completar-registro'
+    | '/onboardingmanual'
     | '/plataforma'
     | '/club/$businessSlug'
     | '/legal/$document'
@@ -452,6 +464,7 @@ export interface FileRouteTypes {
     | '/solicitar-demo'
     | '/_authenticated/_onboarding'
     | '/_authenticated/completar-registro'
+    | '/_authenticated/onboardingmanual'
     | '/_authenticated/panel'
     | '/_authenticated/plataforma'
     | '/club/$businessSlug'
@@ -553,6 +566,13 @@ declare module '@tanstack/react-router' {
       path: '/completar-registro'
       fullPath: '/completar-registro'
       preLoaderRoute: typeof AuthenticatedCompletarRegistroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboardingmanual': {
+      id: '/_authenticated/onboardingmanual'
+      path: '/onboardingmanual'
+      fullPath: '/onboardingmanual'
+      preLoaderRoute: typeof AuthenticatedOnboardingmanualRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/panel': {
@@ -831,6 +851,7 @@ const AuthenticatedPanelRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRouteRoute: typeof AuthenticatedOnboardingRouteRouteWithChildren
   AuthenticatedCompletarRegistroRoute: typeof AuthenticatedCompletarRegistroRoute
+  AuthenticatedOnboardingmanualRoute: typeof AuthenticatedOnboardingmanualRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRouteWithChildren
   AuthenticatedPlataformaRoute: typeof AuthenticatedPlataformaRoute
 }
@@ -839,6 +860,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRouteRoute:
     AuthenticatedOnboardingRouteRouteWithChildren,
   AuthenticatedCompletarRegistroRoute: AuthenticatedCompletarRegistroRoute,
+  AuthenticatedOnboardingmanualRoute: AuthenticatedOnboardingmanualRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRouteWithChildren,
   AuthenticatedPlataformaRoute: AuthenticatedPlataformaRoute,
 }

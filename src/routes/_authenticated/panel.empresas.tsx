@@ -28,10 +28,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { fetchSessionInfo, sessionQueryKey, useAdminScope, type SessionInfo } from "@/lib/session";
-import { sendTransactionalEmail } from "@/lib/transactional-email";
 
 export const Route = createFileRoute("/_authenticated/panel/empresas")({
   beforeLoad: async ({ context }) => {
@@ -67,15 +65,6 @@ type LocationForm = {
   addressLine: string;
   city: string;
   postalCode: string;
-};
-const emptyCompany: CompanyForm = {
-  displayName: "",
-  legalName: "",
-  contactEmail: "",
-  contactPhone: "",
-  addressLine: "",
-  city: "",
-  postalCode: "",
 };
 const emptyLocation: LocationForm = {
   organizationId: "",
@@ -170,8 +159,6 @@ function LocationFields({
 function EmpresasPage() {
   const { session, isSuperadmin, scopeLevel } = useAdminScope();
   const queryClient = useQueryClient();
-  const [companyOpen, setCompanyOpen] = useState(false);
-  const [companyForm, setCompanyForm] = useState<CompanyForm>(emptyCompany);
   const [editingCompany, setEditingCompany] = useState<(CompanyForm & { id: string }) | null>(null);
   const [locationForm, setLocationForm] = useState<LocationForm>(emptyLocation);
   const [editingLocation, setEditingLocation] = useState<(LocationForm & { id: string }) | null>(
@@ -200,59 +187,6 @@ function EmpresasPage() {
   });
   const refreshAll = async () =>
     Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: sessionQueryKey })]);
-
-  const createCompany = async () => {
-    const displayName = companyForm.displayName.trim();
-    if (displayName.length < 2) return toast.error("Indica un nombre de empresa válido");
-    const email = companyForm.contactEmail.trim().toLowerCase();
-    if (!email.includes("@")) return toast.error("Indica un email de administrador válido");
-    const { data: result, error } = await supabase.rpc("create_organization_with_admin", {
-      _display_name: displayName,
-      _legal_name: companyForm.legalName.trim(),
-      _contact_email: email,
-      _contact_phone: companyForm.contactPhone.trim() || undefined,
-      _address_line: companyForm.addressLine.trim() || undefined,
-      _city: companyForm.city.trim() || undefined,
-      _postal_code: companyForm.postalCode.trim() || undefined,
-    });
-    if (error) return toast.error("No se pudo crear la empresa", { description: error.message });
-    const creation = result as {
-      organization_id?: string;
-      invitation_id?: string;
-    } | null;
-    const invitationId = creation?.invitation_id;
-    try {
-      if (!invitationId) throw new Error("No se pudo generar la invitación");
-      await sendTransactionalEmail({ kind: "team_invitation", invitationId });
-      toast.success("Empresa creada", {
-        description: `Hemos enviado un email de confirmación a ${email}.`,
-      });
-    } catch (emailError) {
-      toast.warning("Empresa creada, pero el email no pudo enviarse", {
-        description: emailError instanceof Error ? emailError.message : undefined,
-      });
-    }
-    setCompanyOpen(false);
-    setCompanyForm(emptyCompany);
-    await refetch();
-    if (creation?.organization_id) {
-      queryClient.setQueryData<SessionInfo | null>(sessionQueryKey, (current) =>
-        current
-          ? {
-              ...current,
-              organizations: current.organizations.some(
-                (organization) => organization.id === creation.organization_id,
-              )
-                ? current.organizations
-                : [
-                    ...current.organizations,
-                    { id: creation.organization_id!, name: displayName },
-                  ].sort((a, b) => a.name.localeCompare(b.name, "es")),
-            }
-          : current,
-      );
-    }
-  };
 
   const updateCompany = async () => {
     if (!editingCompany || editingCompany.displayName.trim().length < 2)
@@ -388,27 +322,11 @@ function EmpresasPage() {
         title="Empresas"
         description="Crea y administra empresas matriz y sus establecimientos."
         actions={
-          <Dialog open={companyOpen} onOpenChange={setCompanyOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="size-4" /> Nueva empresa
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto sm:max-w-xl">
-              <DialogHeader>
-                <DialogTitle>Nueva empresa matriz</DialogTitle>
-                <DialogDescription>
-                  Podrás crear sus establecimientos desde esta misma pantalla.
-                </DialogDescription>
-              </DialogHeader>
-              <CompanyFields value={companyForm} onChange={setCompanyForm} prefix="company" />
-              <DialogFooter>
-                <Button type="button" onClick={() => void createCompany()}>
-                  Crear empresa
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button asChild>
+            <a href="/onboardingmanual">
+              <Plus className="size-4" /> Nueva empresa
+            </a>
+          </Button>
         }
       />
       {isLoading ? (

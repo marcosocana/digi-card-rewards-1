@@ -71,3 +71,8 @@ entrypoint = "./functions/stripe-webhook/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/register-business-account/index.ts"
+
+[functions.admin-provision-company]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/admin-provision-company/index.ts"

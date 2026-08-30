@@ -108,7 +108,7 @@ const nav: NavItem[] = [
     to: "/panel/clientes",
     label: "Clientes",
     icon: Users,
-    roles: ["admin", "manager"],
+    roles: ["admin", "manager", "staff"],
     group: "Operaciones",
   },
   {
