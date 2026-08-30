@@ -149,9 +149,32 @@ function NotificacionesPage() {
       .then(({ data }) => setPreview(data ?? 0));
   }, [form.segmentId]);
 
+  useEffect(() => {
+    if (!open || !data?.segments.length) return;
+    setForm((current) => {
+      if (data.segments.some((segment) => segment.id === current.segmentId)) return current;
+      const defaultSegment =
+        data.segments.find((segment) => segment.name.toLocaleLowerCase().includes("todos")) ??
+        data.segments[0];
+      return { ...current, segmentId: defaultSegment.id };
+    });
+  }, [data?.segments, open]);
+
   const send = async () => {
-    if (!orgId || !form.segmentId || !form.title.trim() || !form.message.trim()) {
-      toast.error("Completa título, mensaje y destinatarios");
+    if (!orgId) {
+      toast.error("Selecciona una empresa");
+      return;
+    }
+    if (!form.segmentId) {
+      toast.error("Selecciona los destinatarios");
+      return;
+    }
+    if (!form.title.trim()) {
+      toast.error("Escribe el título de la notificación");
+      return;
+    }
+    if (!form.message.trim()) {
+      toast.error("Escribe el mensaje de la notificación");
       return;
     }
     const effectiveLocationId =
@@ -280,6 +303,11 @@ function NotificacionesPage() {
                           {segment.name}
                         </SelectItem>
                       ))}
+                      {!data?.segments.length ? (
+                        <SelectItem value="no-segments" disabled>
+                          No hay segmentos disponibles
+                        </SelectItem>
+                      ) : null}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
