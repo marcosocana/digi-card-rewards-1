@@ -292,18 +292,37 @@ function AuthPage() {
   const continueWithGoogle = async (intent: "signin" | "signup") => {
     setOauthLoading(intent);
     window.localStorage.setItem("fideleo:google-oauth-intent", intent);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const callbackUrl = new URL("/auth", window.location.origin);
+    callbackUrl.searchParams.set("oauth", "1");
+    callbackUrl.searchParams.set("next", destination);
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth?oauth=1&next=${encodeURIComponent(destination)}`,
+        redirectTo: callbackUrl.toString(),
         queryParams: { prompt: "select_account" },
+        skipBrowserRedirect: true,
       },
     });
     if (error) {
       window.localStorage.removeItem("fideleo:google-oauth-intent");
       setOauthLoading(null);
-      toast.error("No hemos podido conectar con Google", { description: error.message });
+      const providerDisabled = /provider.*not enabled|unsupported provider/i.test(error.message);
+      toast.error("No hemos podido conectar con Google", {
+        description: providerDisabled
+          ? "Google todavía no está habilitado en la configuración de autenticación."
+          : error.message,
+      });
+      return;
     }
+    if (!data.url) {
+      window.localStorage.removeItem("fideleo:google-oauth-intent");
+      setOauthLoading(null);
+      toast.error("No hemos podido conectar con Google", {
+        description: "El proveedor no ha devuelto una dirección de acceso válida.",
+      });
+      return;
+    }
+    window.location.assign(data.url);
   };
 
   const signUp = async (e: React.FormEvent) => {

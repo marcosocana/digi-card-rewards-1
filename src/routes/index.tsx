@@ -245,7 +245,6 @@ function HomePage() {
     const start = () => {
       if (started) return;
       started = true;
-      const interval = window.matchMedia("(max-width: 1023px)").matches ? 40_000 : 20_000;
       timer = window.setInterval(() => {
         setCurrentHowStep((current) => {
           if (current >= howItWorks.length - 1) {
@@ -257,7 +256,7 @@ function HomePage() {
           scrollHowTo(next);
           return next;
         });
-      }, interval);
+      }, 20_000);
     };
 
     if (!("IntersectionObserver" in window)) {
@@ -385,13 +384,13 @@ function HomePage() {
             <Button
               asChild
               variant="ghost"
-              className="h-9 whitespace-nowrap px-2 text-[11px] sm:px-4 sm:text-sm"
+              className="h-10 whitespace-nowrap px-3 text-xs sm:h-11 sm:px-5 sm:text-[15px]"
             >
-              <Link to="/auth">Iniciar sesión</Link>
+              <Link to="/auth">Acceder</Link>
             </Button>
             <Button
               asChild
-              className="h-9 whitespace-nowrap rounded-full bg-black px-3 text-[11px] text-white hover:bg-black/75 sm:px-6 sm:text-sm"
+              className="h-10 whitespace-nowrap rounded-full bg-black px-4 text-xs text-white hover:bg-black/75 sm:h-11 sm:px-7 sm:text-[15px]"
             >
               <Link to="/solicitar-demo">Solicitar demo</Link>
             </Button>
@@ -428,7 +427,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="border-b border-black/10 bg-white px-5 py-8 lg:px-10">
+      <section className="border-b border-black/10 bg-[#fff0d8] px-5 py-8 lg:px-10">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <p className="max-w-sm text-sm font-semibold">
             Un sistema flexible para negocios que viven de sus clientes recurrentes.
@@ -591,13 +590,13 @@ function HomePage() {
           <h2 className="max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
             Un plan para cada etapa de tu negocio.
           </h2>
-          <div className="-mx-5 mt-14 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-5 [scrollbar-width:none] lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-5 mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-5 [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-[1224px] lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
             {subscriptionPlans.map((plan) => (
               <article
                 key={plan.name}
                 className={cn(
                   plan.color,
-                  "flex min-h-[31rem] w-[84vw] max-w-[23rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 text-black sm:p-9 lg:w-auto lg:max-w-none",
+                  "flex min-h-[31rem] w-[72vw] max-w-[20rem] shrink-0 snap-center flex-col rounded-[2rem] p-7 text-black sm:p-9 lg:w-auto lg:max-w-none",
                 )}
               >
                 <h3 className="text-3xl font-semibold">{plan.name}</h3>
