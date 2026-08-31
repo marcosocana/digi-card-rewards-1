@@ -85,6 +85,9 @@ export function SubscriptionGate() {
           >
             {t("Elige un plan para acceder a Fideleo")}
           </h1>
+          <p className="mx-auto mt-3 w-fit rounded-full border border-black/15 bg-[#fff0d8] px-4 py-1.5 text-sm font-bold">
+            {t("Plan gratis · Administrador")}
+          </p>
           <p className="mt-3 text-sm text-black/60 sm:text-base">
             {t(
               "Tu cuenta ya está creada. Activa uno de los planes para desbloquear el panel de gestión.",

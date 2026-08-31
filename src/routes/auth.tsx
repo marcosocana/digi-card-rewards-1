@@ -19,6 +19,7 @@ import { sendTransactionalEmail } from "@/lib/transactional-email";
 
 const isEnabledSearchFlag = (value: unknown) =>
   value === true || value === 1 || value === "1" || value === "true";
+const GOOGLE_AUTH_VISIBLE = false;
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -165,6 +166,10 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [signupSent, setSignupSent] = useState(false);
+  const [verificationDigits, setVerificationDigits] = useState<string[]>(() =>
+    Array.from({ length: 6 }, () => ""),
+  );
+  const verificationInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [accountExists, setAccountExists] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"signin" | "signup" | null>(null);
@@ -434,8 +439,65 @@ function AuthPage() {
       return;
     }
     setAccountExists(false);
+    setVerificationDigits(Array.from({ length: 6 }, () => ""));
     setSignupSent(true);
     toast.success("Revisa tu correo para confirmar la cuenta");
+  };
+
+  const updateVerificationDigits = (startIndex: number, value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 6 - startIndex);
+    if (!digits && value) return;
+    setVerificationDigits((current) => {
+      const next = [...current];
+      if (!digits) {
+        next[startIndex] = "";
+        return next;
+      }
+      digits.split("").forEach((digit, offset) => {
+        next[startIndex + offset] = digit;
+      });
+      return next;
+    });
+    if (digits) {
+      verificationInputRefs.current[Math.min(startIndex + digits.length, 5)]?.focus();
+    }
+  };
+
+  const verifySignupCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const token = verificationDigits.join("");
+    if (!/^\d{6}$/.test(token)) {
+      toast.error("Introduce el código completo de 6 dígitos");
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token,
+      type: "signup",
+    });
+    if (error || !data.session) {
+      setLoading(false);
+      toast.error("No hemos podido verificar el código", {
+        description: error?.message || "El código ha caducado o no es válido.",
+      });
+      return;
+    }
+    try {
+      await ensureBusinessAccount(businessName);
+      await sendTransactionalEmail({ kind: "account_welcome" });
+    } catch (confirmationError) {
+      setLoading(false);
+      toast.error("El email está verificado, pero no pudimos preparar la empresa", {
+        description:
+          confirmationError instanceof Error ? confirmationError.message : "Inténtalo de nuevo",
+      });
+      return;
+    }
+    toast.success("Email verificado", {
+      description: "Tu empresa se ha creado con el Plan gratis.",
+    });
+    window.location.assign("/panel");
   };
 
   const resendConfirmation = async () => {
@@ -454,6 +516,7 @@ function AuthPage() {
       toast.error("No hemos podido reenviar el email", { description: error.message });
       return;
     }
+    setVerificationDigits(Array.from({ length: 6 }, () => ""));
     toast.success("Email de verificación reenviado");
   };
 
@@ -536,16 +599,18 @@ function AuthPage() {
               </TabsList>
 
               <TabsContent value="signin">
-                <div className="mt-5">
-                  <GoogleAuthButton
-                    label="Continuar con Google"
-                    loading={oauthLoading === "signin"}
-                    disabled={loading || oauthLoading !== null}
-                    onClick={() => void continueWithGoogle("signin")}
-                  />
-                  <AuthDivider />
-                </div>
-                <form onSubmit={signIn} className="space-y-4">
+                {GOOGLE_AUTH_VISIBLE && (
+                  <div className="mt-5">
+                    <GoogleAuthButton
+                      label="Continuar con Google"
+                      loading={oauthLoading === "signin"}
+                      disabled={loading || oauthLoading !== null}
+                      onClick={() => void continueWithGoogle("signin")}
+                    />
+                    <AuthDivider />
+                  </div>
+                )}
+                <form onSubmit={signIn} className="mt-5 space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -619,16 +684,62 @@ function AuthPage() {
                     </div>
                   </div>
                 ) : signupSent ? (
-                  <div className="mt-5 rounded-2xl border bg-[#dff7ff] p-5 text-center">
+                  <div className="mt-5 rounded-2xl border bg-[#dff7ff] p-5">
                     <h2 className="font-display text-xl font-bold">Revisa tu email</h2>
-                    <p className="mt-2 text-sm text-black/65">
-                      Te hemos enviado un enlace a <strong>{email}</strong> para verificar tu email
-                      y terminar de crear tu cuenta.
+                    <p className="mt-2 text-sm leading-relaxed text-black/65">
+                      Hemos enviado a <strong>{email}</strong> un código de seis dígitos y un botón
+                      de verificación. Utiliza cualquiera de las dos opciones para activar tu
+                      empresa.
                     </p>
-                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <form onSubmit={verifySignupCode} className="mt-5 space-y-4">
+                      <fieldset>
+                        <legend className="mb-2 text-sm font-semibold">
+                          Código de verificación
+                        </legend>
+                        <div className="grid grid-cols-6 gap-2">
+                          {verificationDigits.map((digit, index) => (
+                            <Input
+                              key={index}
+                              ref={(element) => {
+                                verificationInputRefs.current[index] = element;
+                              }}
+                              aria-label={`Dígito ${index + 1} del código`}
+                              inputMode="numeric"
+                              autoComplete={index === 0 ? "one-time-code" : "off"}
+                              maxLength={1}
+                              value={digit}
+                              className="h-12 px-0 text-center font-mono text-xl font-bold"
+                              onChange={(event) =>
+                                updateVerificationDigits(index, event.target.value)
+                              }
+                              onPaste={(event) => {
+                                const pasted = event.clipboardData.getData("text");
+                                if (/\d/.test(pasted)) {
+                                  event.preventDefault();
+                                  updateVerificationDigits(index, pasted);
+                                }
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Backspace" && !digit && index > 0) {
+                                  verificationInputRefs.current[index - 1]?.focus();
+                                }
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </fieldset>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={loading || verificationDigits.some((digit) => !digit)}
+                      >
+                        {loading ? "Verificando…" : "Verificar código"}
+                      </Button>
+                    </form>
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <Button
                         type="button"
-                        variant="default"
+                        variant="outline"
                         disabled={loading}
                         onClick={() => void resendConfirmation()}
                       >
@@ -636,7 +747,7 @@ function AuthPage() {
                       </Button>
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         disabled={loading}
                         onClick={() => setSignupSent(false)}
                       >
@@ -646,13 +757,17 @@ function AuthPage() {
                   </div>
                 ) : (
                   <div className="mt-5">
-                    <GoogleAuthButton
-                      label="Crear cuenta con Google"
-                      loading={oauthLoading === "signup"}
-                      disabled={loading || oauthLoading !== null}
-                      onClick={() => void continueWithGoogle("signup")}
-                    />
-                    <AuthDivider />
+                    {GOOGLE_AUTH_VISIBLE && (
+                      <>
+                        <GoogleAuthButton
+                          label="Crear cuenta con Google"
+                          loading={oauthLoading === "signup"}
+                          disabled={loading || oauthLoading !== null}
+                          onClick={() => void continueWithGoogle("signup")}
+                        />
+                        <AuthDivider />
+                      </>
+                    )}
                     <form onSubmit={signUp} className="space-y-4">
                       <div className="space-y-1.5">
                         <Label htmlFor="name">Nombre completo</Label>
