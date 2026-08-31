@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { Building2, LoaderCircle, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
@@ -169,6 +169,8 @@ function EmpresasPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["superadmin-organizations"],
@@ -288,29 +290,60 @@ function EmpresasPage() {
     await refreshAll();
   };
 
-  const archiveTarget = async () => {
+  const deleteOrArchiveTarget = async () => {
     if (!deleteTarget) return;
-    const archivedAt = new Date().toISOString();
-    if (deleteTarget.kind === "company") {
-      const { error: locationsError } = await supabase
-        .from("locations")
-        .update({ status: "archived", archived_at: archivedAt })
-        .eq("organization_id", deleteTarget.id)
-        .is("archived_at", null);
-      if (locationsError)
-        return toast.error("No se pudieron archivar sus establecimientos", {
-          description: locationsError.message,
-        });
+    if (
+      deleteTarget.kind === "company" &&
+      deleteConfirmation.trim().toLocaleLowerCase("es") !==
+        deleteTarget.name.trim().toLocaleLowerCase("es")
+    ) {
+      toast.error("Escribe el nombre exacto de la empresa para confirmar");
+      return;
     }
-    const table = deleteTarget.kind === "company" ? "organizations" : "locations";
+    setDeleting(true);
+    if (deleteTarget.kind === "company") {
+      const { data: result, error } = await supabase.functions.invoke<{
+        ok?: boolean;
+        error?: string;
+        deleted_users?: number;
+        deleted_customers?: number;
+      }>("delete-company", { body: { organizationId: deleteTarget.id } });
+      let description = result?.error || error?.message;
+      if (error && "context" in error && error.context instanceof Response) {
+        try {
+          const response = (await error.context.clone().json()) as { error?: string };
+          description = response.error || description;
+        } catch {
+          // Keep the Functions client message when the response has no JSON body.
+        }
+      }
+      if (error || result?.ok === false) {
+        setDeleting(false);
+        toast.error("No se pudo eliminar la empresa", {
+          description: description || "No se ha modificado la empresa.",
+          duration: 7000,
+        });
+        return;
+      }
+      toast.success("Empresa eliminada permanentemente", {
+        description: `${result?.deleted_users ?? 0} usuarios y ${result?.deleted_customers ?? 0} clientes eliminados.`,
+      });
+      setDeleting(false);
+      setDeleteTarget(null);
+      setDeleteConfirmation("");
+      // Remove every cached view of the deleted tenant from the backoffice.
+      await queryClient.invalidateQueries();
+      return;
+    }
+
+    const archivedAt = new Date().toISOString();
     const { error } = await supabase
-      .from(table)
+      .from("locations")
       .update({ status: "archived", archived_at: archivedAt })
       .eq("id", deleteTarget.id);
+    setDeleting(false);
     if (error) return toast.error("No se pudo eliminar", { description: error.message });
-    toast.success(
-      deleteTarget.kind === "company" ? "Empresa eliminada" : "Establecimiento eliminado",
-    );
+    toast.success("Establecimiento eliminado");
     setDeleteTarget(null);
     await refreshAll();
   };
@@ -392,13 +425,14 @@ function EmpresasPage() {
                       variant="ghost"
                       className="text-destructive hover:text-destructive"
                       aria-label={`Eliminar ${organization.display_name}`}
-                      onClick={() =>
+                      onClick={() => {
+                        setDeleteConfirmation("");
                         setDeleteTarget({
                           kind: "company",
                           id: organization.id,
                           name: organization.display_name,
-                        })
-                      }
+                        });
+                      }}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -445,13 +479,14 @@ function EmpresasPage() {
                             variant="ghost"
                             className="text-destructive hover:text-destructive"
                             aria-label={`Eliminar ${location.name}`}
-                            onClick={() =>
+                            onClick={() => {
+                              setDeleteConfirmation("");
                               setDeleteTarget({
                                 kind: "location",
                                 id: location.id,
                                 name: location.name,
-                              })
-                            }
+                              });
+                            }}
                           >
                             <Trash2 className="size-4" />
                           </Button>
@@ -535,7 +570,12 @@ function EmpresasPage() {
       </Dialog>
       <AlertDialog
         open={Boolean(deleteTarget)}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => {
+          if (!open && !deleting) {
+            setDeleteTarget(null);
+            setDeleteConfirmation("");
+          }
+        }}
       >
         <AlertDialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg">
           <AlertDialogHeader>
@@ -544,17 +584,41 @@ function EmpresasPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget?.kind === "company"
-                ? `Se archivará “${deleteTarget.name}” y dejará de aparecer en los selectores. Sus datos históricos se conservarán.`
+                ? `Se eliminará permanentemente “${deleteTarget.name}”, todos sus establecimientos, clientes, administradores, responsables, empleados y todo su histórico. Esta acción no se puede deshacer.`
                 : `Se archivará “${deleteTarget?.name}” y dejará de estar disponible. Sus datos históricos se conservarán.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteTarget?.kind === "company" ? (
+            <div className="space-y-2">
+              <Label htmlFor="delete-company-confirmation">
+                Escribe <strong>{deleteTarget.name}</strong> para confirmar
+              </Label>
+              <Input
+                id="delete-company-confirmation"
+                value={deleteConfirmation}
+                autoComplete="off"
+                disabled={deleting}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+              />
+            </div>
+          ) : null}
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => void archiveTarget()}
+              disabled={
+                deleting ||
+                (deleteTarget?.kind === "company" &&
+                  deleteConfirmation.trim().toLocaleLowerCase("es") !==
+                    deleteTarget.name.trim().toLocaleLowerCase("es"))
+              }
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteOrArchiveTarget();
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Eliminar
+              {deleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              {deleteTarget?.kind === "company" ? "Eliminar permanentemente" : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

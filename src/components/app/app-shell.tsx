@@ -584,11 +584,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div
       className={cn(
-        "min-h-screen overflow-x-hidden bg-background lg:grid",
+        "min-h-screen overflow-x-hidden bg-background lg:grid lg:h-dvh lg:min-h-0 lg:overflow-hidden",
         collapsed ? "lg:grid-cols-[4.75rem_1fr]" : "lg:grid-cols-[15rem_1fr]",
       )}
     >
-      <aside className="hidden lg:block lg:h-screen lg:sticky lg:top-0">{sidebar}</aside>
+      <aside className="hidden lg:block lg:h-dvh">{sidebar}</aside>
 
       <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b bg-card px-3 py-2.5">
         <div className="flex items-center gap-3">
@@ -674,7 +674,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      <div className="min-w-0 overflow-x-hidden">
+      <div className="min-w-0 overflow-x-hidden lg:h-dvh lg:overflow-y-auto">
         <header className="sticky top-0 z-20 hidden h-18 items-center justify-between border-b bg-card/95 px-8 backdrop-blur lg:flex">
           <div className="flex w-full max-w-2xl items-center gap-2">
             <Button

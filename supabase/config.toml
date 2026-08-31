@@ -76,3 +76,8 @@ entrypoint = "./functions/register-business-account/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/admin-provision-company/index.ts"
+
+[functions.delete-company]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/delete-company/index.ts"

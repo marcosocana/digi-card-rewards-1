@@ -167,22 +167,32 @@ function CaptacionPage() {
       toast.error("No se pudo subir la imagen", { description: uploaded.error.message });
       return;
     }
-    const signed = await supabase.storage.from("brand-assets").createSignedUrl(path, 31_536_000);
-    setUploadingAsset(null);
-    if (signed.error) {
+    const publishedUrl = supabase.storage.from("brand-assets").getPublicUrl(path).data.publicUrl;
+    const nextBranding = { ...branding, [kind]: publishedUrl };
+    const persisted = await supabase.from("organization_branding").upsert({
+      organization_id: orgId,
+      ...nextBranding,
+      logo_url: nextBranding.logo_url || null,
+      cover_url: nextBranding.cover_url || null,
+      welcome_message: nextBranding.welcome_message || null,
+      program_description: nextBranding.program_description || null,
+    });
+    if (persisted.error) {
+      setUploadingAsset(null);
       URL.revokeObjectURL(objectUrl);
       setPreviewAssets((current) => ({ ...current, [kind]: undefined }));
-      toast.error("No se pudo preparar la imagen", { description: signed.error.message });
+      toast.error("No se pudo guardar la imagen", { description: persisted.error.message });
       return;
     }
-    const publishedUrl = signed.data.signedUrl;
     const preload = new Image();
     preload.src = publishedUrl;
     await preload.decode().catch(() => undefined);
-    setBranding((current) => ({ ...current, [kind]: publishedUrl }));
+    lastSaved.current = JSON.stringify(nextBranding);
+    setBranding(nextBranding);
     setPreviewAssets((current) => ({ ...current, [kind]: undefined }));
+    setUploadingAsset(null);
     URL.revokeObjectURL(objectUrl);
-    toast.success("Imagen actualizada");
+    toast.success("Imagen guardada y publicada");
   };
 
   const save = async (snapshot = branding) => {

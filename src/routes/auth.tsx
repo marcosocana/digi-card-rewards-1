@@ -807,9 +807,6 @@ function AuthPage() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Usa el email al que te invitaron para heredar tu rol automáticamente.
-                        </p>
                       </div>
                       <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? "Creando…" : "Crear cuenta"}

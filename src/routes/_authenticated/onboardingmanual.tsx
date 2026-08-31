@@ -32,6 +32,8 @@ function ManualOnboardingPage() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [locationErrors, setLocationErrors] = useState<LocationErrors>({});
   const [planCode, setPlanCode] = useState<SubscriptionPlanCode>("basic");
   const [locations, setLocations] = useState<LocationForm[]>([emptyLocation()]);
   const [form, setForm] = useState({
@@ -62,8 +64,15 @@ function ManualOnboardingPage() {
     passwordConfirmation: "",
   });
   const plan = subscriptionPlans.find((item) => item.code === planCode)!;
-  const set = (key: keyof typeof form, value: string) =>
+  const set = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
 
   const image = (file: File, key: "logo" | "cover") => {
     if (file.size > 3 * 1024 * 1024) return toast.error("La imagen no puede superar 3 MB");
@@ -73,18 +82,41 @@ function ManualOnboardingPage() {
   };
 
   const valid = () => {
-    if (step === 2 && (form.displayName.trim().length < 2 || !form.email.includes("@")))
-      return (toast.error("Completa el nombre y el email de la empresa"), false);
-    if (step === 2 && locations.some((location) => location.name.trim().length < 2))
-      return (toast.error("Todos los establecimientos deben tener un nombre"), false);
-    if (step === 4 && form.programName.trim().length < 2)
-      return (toast.error("Indica el nombre público del programa"), false);
-    if (step === 6 && (form.ownerName.trim().length < 2 || !form.ownerEmail.includes("@")))
-      return (toast.error("Completa el nombre y el email del usuario"), false);
-    if (step === 6 && form.password.length < 8)
-      return (toast.error("La contraseña debe tener al menos 8 caracteres"), false);
-    if (step === 6 && form.password !== form.passwordConfirmation)
-      return (toast.error("Las contraseñas no coinciden"), false);
+    const nextFieldErrors: FieldErrors = {};
+    const nextLocationErrors: LocationErrors = {};
+
+    if (step === 2) {
+      if (form.displayName.trim().length < 2)
+        nextFieldErrors.displayName = "Introduce el nombre comercial";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
+        nextFieldErrors.email = "Introduce un email válido";
+      locations.forEach((location, index) => {
+        if (location.name.trim().length < 2) {
+          nextLocationErrors[index] = { name: "Introduce el nombre del establecimiento" };
+        }
+      });
+    }
+    if (step === 4 && form.programName.trim().length < 2) {
+      nextFieldErrors.programName = "Indica el nombre público del programa";
+    }
+    if (step === 6) {
+      if (form.ownerName.trim().length < 2)
+        nextFieldErrors.ownerName = "Introduce el nombre del administrador";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.ownerEmail.trim()))
+        nextFieldErrors.ownerEmail = "Introduce un email válido";
+      if (form.password.length < 8)
+        nextFieldErrors.password = "La contraseña debe tener al menos 8 caracteres";
+      if (!form.passwordConfirmation) nextFieldErrors.passwordConfirmation = "Repite la contraseña";
+      else if (form.password !== form.passwordConfirmation)
+        nextFieldErrors.passwordConfirmation = "Las contraseñas no coinciden";
+    }
+
+    setFieldErrors(nextFieldErrors);
+    setLocationErrors(nextLocationErrors);
+    if (Object.keys(nextFieldErrors).length || Object.keys(nextLocationErrors).length) {
+      toast.error("Completa los campos obligatorios marcados en rojo");
+      return false;
+    }
     return true;
   };
 
@@ -200,13 +232,29 @@ function ManualOnboardingPage() {
               locations={locations}
               setLocations={setLocations}
               plan={plan}
+              errors={fieldErrors}
+              locationErrors={locationErrors}
+              clearLocationError={(index, key) =>
+                setLocationErrors((current) => {
+                  if (!current[index]?.[key]) return current;
+                  const next = { ...current, [index]: { ...current[index] } };
+                  delete next[index][key];
+                  return next;
+                })
+              }
             />
           ) : null}
           {step === 3 ? <BrandStep form={form} set={set} image={image} /> : null}
-          {step === 4 ? <ProgramStep form={form} set={set} /> : null}
+          {step === 4 ? <ProgramStep form={form} set={set} errors={fieldErrors} /> : null}
           {step === 5 ? <WalletStep form={form} set={set} /> : null}
           {step === 6 ? (
-            <UserStep form={form} set={set} plan={plan} locations={locations.length} />
+            <UserStep
+              form={form}
+              set={set}
+              plan={plan}
+              locations={locations.length}
+              errors={fieldErrors}
+            />
           ) : null}
           <div className="mt-7 flex justify-between gap-2 border-t pt-5">
             <Button
@@ -261,6 +309,20 @@ const formShape = () => ({
   passwordConfirmation: "",
 });
 type Setter = (key: keyof Form, value: string) => void;
+type FieldErrors = Partial<Record<keyof Form, string>>;
+type LocationErrors = Partial<Record<number, Partial<Record<keyof LocationForm, string>>>>;
+
+function RequiredLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <Label htmlFor={htmlFor}>
+      {children} <span className="text-destructive">*</span>
+    </Label>
+  );
+}
+
+function FieldError({ message }: { message?: string }) {
+  return message ? <p className="text-xs font-medium text-destructive">{message}</p> : null;
+}
 
 function PlanStep({
   value,
@@ -306,12 +368,18 @@ function BusinessStep({
   locations,
   setLocations,
   plan,
+  errors,
+  locationErrors,
+  clearLocationError,
 }: {
   form: Form;
   set: Setter;
   locations: LocationForm[];
   setLocations: React.Dispatch<React.SetStateAction<LocationForm[]>>;
   plan: (typeof subscriptionPlans)[number];
+  errors: FieldErrors;
+  locationErrors: LocationErrors;
+  clearLocationError: (index: number, key: keyof LocationForm) => void;
 }) {
   const fields = [
     ["displayName", "Nombre comercial"],
@@ -331,13 +399,20 @@ function BusinessStep({
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         {fields.map(([key, label]) => (
           <div key={key} className="space-y-1.5">
-            <Label htmlFor={`manual-${key}`}>{label}</Label>
+            {key === "displayName" || key === "email" ? (
+              <RequiredLabel htmlFor={`manual-${key}`}>{label}</RequiredLabel>
+            ) : (
+              <Label htmlFor={`manual-${key}`}>{label}</Label>
+            )}
             <Input
               id={`manual-${key}`}
               type={key === "email" ? "email" : key === "phone" ? "tel" : "text"}
               value={form[key]}
               onChange={(event) => set(key, event.target.value)}
+              aria-invalid={Boolean(errors[key])}
+              className={cn(errors[key] && "border-destructive ring-1 ring-destructive/20")}
             />
+            <FieldError message={errors[key]} />
           </div>
         ))}
       </div>
@@ -386,17 +461,28 @@ function BusinessStep({
                   ] as const
                 ).map(([key, label]) => (
                   <div key={key} className="space-y-1.5">
-                    <Label>{label}</Label>
+                    {key === "name" ? (
+                      <RequiredLabel>{label}</RequiredLabel>
+                    ) : (
+                      <Label>{label}</Label>
+                    )}
                     <Input
                       value={location[key]}
-                      onChange={(event) =>
+                      aria-invalid={Boolean(locationErrors[index]?.[key])}
+                      className={cn(
+                        locationErrors[index]?.[key] &&
+                          "border-destructive ring-1 ring-destructive/20",
+                      )}
+                      onChange={(event) => {
+                        clearLocationError(index, key);
                         setLocations((current) =>
                           current.map((item, itemIndex) =>
                             itemIndex === index ? { ...item, [key]: event.target.value } : item,
                           ),
-                        )
-                      }
+                        );
+                      }}
                     />
+                    <FieldError message={locationErrors[index]?.[key]} />
                   </div>
                 ))}
               </div>
@@ -475,17 +561,20 @@ function BrandStep({
   );
 }
 
-function ProgramStep({ form, set }: { form: Form; set: Setter }) {
+function ProgramStep({ form, set, errors }: { form: Form; set: Setter; errors: FieldErrors }) {
   return (
     <div>
       <h2 className="font-display text-xl font-semibold">Programa de fidelización</h2>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
-          <Label>Nombre público</Label>
+          <RequiredLabel>Nombre público</RequiredLabel>
           <Input
             value={form.programName}
             onChange={(event) => set("programName", event.target.value)}
+            aria-invalid={Boolean(errors.programName)}
+            className={cn(errors.programName && "border-destructive ring-1 ring-destructive/20")}
           />
+          <FieldError message={errors.programName} />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label>Descripción</Label>
@@ -544,11 +633,13 @@ function UserStep({
   set,
   plan,
   locations,
+  errors,
 }: {
   form: Form;
   set: Setter;
   plan: (typeof subscriptionPlans)[number];
   locations: number;
+  errors: FieldErrors;
 }) {
   return (
     <div className="max-w-2xl">
@@ -558,40 +649,54 @@ function UserStep({
       </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
-          <Label>Nombre</Label>
+          <RequiredLabel>Nombre</RequiredLabel>
           <Input
             value={form.ownerName}
             onChange={(event) => set("ownerName", event.target.value)}
+            aria-invalid={Boolean(errors.ownerName)}
+            className={cn(errors.ownerName && "border-destructive ring-1 ring-destructive/20")}
           />
+          <FieldError message={errors.ownerName} />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label>Email de acceso</Label>
+          <RequiredLabel>Email de acceso</RequiredLabel>
           <Input
             type="email"
             value={form.ownerEmail}
             onChange={(event) => set("ownerEmail", event.target.value)}
+            aria-invalid={Boolean(errors.ownerEmail)}
+            className={cn(errors.ownerEmail && "border-destructive ring-1 ring-destructive/20")}
           />
+          <FieldError message={errors.ownerEmail} />
           <p className="text-xs text-muted-foreground">
             Debe ser un email que todavía no tenga una cuenta en Fideleo.
           </p>
         </div>
         <div className="space-y-1.5">
-          <Label>Contraseña</Label>
+          <RequiredLabel>Contraseña</RequiredLabel>
           <Input
             type="password"
             autoComplete="new-password"
             value={form.password}
             onChange={(event) => set("password", event.target.value)}
+            aria-invalid={Boolean(errors.password)}
+            className={cn(errors.password && "border-destructive ring-1 ring-destructive/20")}
           />
+          <FieldError message={errors.password} />
         </div>
         <div className="space-y-1.5">
-          <Label>Repetir contraseña</Label>
+          <RequiredLabel>Repetir contraseña</RequiredLabel>
           <Input
             type="password"
             autoComplete="new-password"
             value={form.passwordConfirmation}
             onChange={(event) => set("passwordConfirmation", event.target.value)}
+            aria-invalid={Boolean(errors.passwordConfirmation)}
+            className={cn(
+              errors.passwordConfirmation && "border-destructive ring-1 ring-destructive/20",
+            )}
           />
+          <FieldError message={errors.passwordConfirmation} />
         </div>
       </div>
       <div className="mt-6 rounded-xl bg-muted p-4 text-sm">
