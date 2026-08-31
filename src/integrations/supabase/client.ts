@@ -46,6 +46,7 @@ function createSupabaseClient() {
 }
 
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
+let _googleOAuthSupabase: ReturnType<typeof createSupabaseClient> | undefined;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -55,3 +56,23 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
     return Reflect.get(_supabase, prop, receiver);
   },
 });
+
+export function getGoogleOAuthClient() {
+  if (_googleOAuthSupabase) return _googleOAuthSupabase;
+  _googleOAuthSupabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: {
+      fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
+    },
+    auth: {
+      storage: typeof window !== "undefined" ? localStorage : undefined,
+      storageKey: "fideleo-google-oauth",
+      // PKCE needs to keep its verifier while the browser is on Google's domain.
+      // The resulting session is moved to the main client after the callback.
+      persistSession: true,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      flowType: "pkce",
+    },
+  });
+  return _googleOAuthSupabase;
+}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { getGoogleOAuthClient, supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/table";
 import { sendTransactionalEmail } from "@/lib/transactional-email";
 
+const isEnabledSearchFlag = (value: unknown) =>
+  value === true || value === 1 || value === "1" || value === "true";
+
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
-    confirmed: search.confirmed === "1",
-    reset: search.reset === "1",
-    oauth: search.oauth === "1",
+    confirmed: isEnabledSearchFlag(search.confirmed),
+    reset: isEnabledSearchFlag(search.reset),
+    oauth: isEnabledSearchFlag(search.oauth),
     tab: search.tab === "signup" ? ("signup" as const) : ("signin" as const),
     email: typeof search.email === "string" ? search.email.slice(0, 254) : "",
     next:
@@ -171,6 +174,45 @@ function AuthPage() {
     let cancelled = false;
 
     const finishOAuth = async (receivedSession?: Session | null) => {
+      const callbackCode = new URL(window.location.href).searchParams.get("code");
+      if (callbackCode && receivedSession === undefined) {
+        const exchange = await getGoogleOAuthClient().auth.exchangeCodeForSession(callbackCode);
+        if (exchange.error) {
+          if (!cancelled) {
+            window.localStorage.removeItem("fideleo:google-oauth-intent");
+            window.localStorage.removeItem("fideleo:google-oauth-next");
+            setOauthLoading(null);
+            toast.error("No hemos podido completar el acceso con Google", {
+              description: exchange.error.message,
+            });
+          }
+          return;
+        }
+        const exchangedSession = exchange.data.session;
+        if (exchangedSession) {
+          const transferred = await supabase.auth.setSession({
+            access_token: exchangedSession.access_token,
+            refresh_token: exchangedSession.refresh_token,
+          });
+          if (transferred.error) {
+            if (!cancelled) {
+              toast.error("No hemos podido guardar la sesión de Google", {
+                description: transferred.error.message,
+              });
+            }
+            return;
+          }
+          window.localStorage.removeItem("fideleo-google-oauth");
+          receivedSession = transferred.data.session;
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete("code");
+          window.history.replaceState(
+            window.history.state,
+            "",
+            `${cleanUrl.pathname}${cleanUrl.search}`,
+          );
+        }
+      }
       let sessionResult =
         receivedSession === undefined
           ? await supabase.auth.getSession()
@@ -332,7 +374,7 @@ function AuthPage() {
     const callbackUrl = new URL("/auth", window.location.origin);
     callbackUrl.searchParams.set("oauth", "1");
     callbackUrl.searchParams.set("next", destination);
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await getGoogleOAuthClient().auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: callbackUrl.toString(),

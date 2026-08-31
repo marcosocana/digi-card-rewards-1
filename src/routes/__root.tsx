@@ -110,10 +110,24 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    const currentUrl = new URL(window.location.href);
     const isOAuthReturn =
       window.location.hash.includes("access_token=") ||
-      window.location.search.includes("code=") ||
+      currentUrl.searchParams.has("code") ||
       window.location.search.includes("error=");
+    const oauthIntent = window.localStorage.getItem("fideleo:google-oauth-intent");
+    if (isOAuthReturn && oauthIntent && window.location.pathname !== "/auth") {
+      const storedNext = window.localStorage.getItem("fideleo:google-oauth-next");
+      const next = storedNext?.startsWith("/panel") ? storedNext : "/panel";
+      const callbackUrl = new URL("/auth", window.location.origin);
+      callbackUrl.searchParams.set("oauth", "1");
+      callbackUrl.searchParams.set("next", next);
+      const code = currentUrl.searchParams.get("code");
+      if (code) callbackUrl.searchParams.set("code", code);
+      if (window.location.hash) callbackUrl.hash = window.location.hash;
+      window.location.replace(callbackUrl.toString());
+      return;
+    }
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
