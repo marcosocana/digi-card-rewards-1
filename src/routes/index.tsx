@@ -374,14 +374,14 @@ function HomePage() {
             <a href="#como-funciona" className="hover:opacity-55">
               Cómo funciona
             </a>
+            <a href="#ejemplo" className="hover:opacity-55">
+              Ejemplo
+            </a>
             <a href="#precios" className="hover:opacity-55">
               Precios
             </a>
-            <a href="#negocios" className="hover:opacity-55">
-              Para tu negocio
-            </a>
             <a href="#preguntas" className="hover:opacity-55">
-              Preguntas
+              FAQs
             </a>
           </nav>
           <div className="flex items-center gap-1 sm:gap-3">
@@ -552,7 +552,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff0d8] px-5 py-16 lg:px-10 lg:py-20">
+      <section id="ejemplo" className="bg-[#fff0d8] px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto grid max-w-[1440px] items-center gap-10 rounded-[2.5rem] bg-white p-7 shadow-sm sm:p-10 lg:grid-cols-[1fr_auto] lg:p-14">
           <div className="max-w-3xl">
             <h2 className="text-4xl font-semibold leading-[.98] tracking-[-.05em] sm:text-6xl">
@@ -625,7 +625,7 @@ function HomePage() {
 
       <section id="negocios" className="bg-[#d9f4ff] px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-[1440px]">
-          <div className="grid items-center gap-14 lg:grid-cols-2">
+          <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)] lg:gap-10">
             <div>
               <h2 className="text-5xl font-semibold leading-[.95] tracking-[-.055em] sm:text-6xl">
                 Una visión clara de lo que hace volver a tus clientes
@@ -1091,19 +1091,14 @@ function AnalyticsPreview() {
   }, []);
 
   return (
-    <div ref={previewRef} className="relative mx-auto w-full max-w-3xl">
+    <div ref={previewRef} className="relative mx-auto w-full max-w-4xl">
       <div
-        className="mx-auto max-w-[12.5rem] rounded-[2px] bg-white p-2 shadow-[0_24px_60px_rgba(17,17,17,.16)] will-change-transform lg:hidden"
+        className="mx-auto max-w-[14rem] rounded-[2px] bg-white p-1 shadow-[0_24px_60px_rgba(17,17,17,.16)] will-change-transform lg:hidden"
         style={{
           opacity: 0.72 + scrollProgress * 0.28,
           transform: `translateY(${(1 - scrollProgress) * 20}px)`,
         }}
       >
-        <div className="mb-1.5 flex items-center gap-1 px-1.5 pt-0.5" aria-hidden="true">
-          <span className="size-1.5 rounded-full bg-[#f8b9e7]" />
-          <span className="size-1.5 rounded-full bg-[#ffe65c]" />
-          <span className="size-1.5 rounded-full bg-black/15" />
-        </div>
         <img
           src="/backoffice-preview/dashboard-mobile-optimized-v2.jpg"
           alt="Dashboard móvil del backoffice Fideleo con métricas y actividad reciente"
@@ -1116,17 +1111,12 @@ function AnalyticsPreview() {
 
       <div className="relative hidden h-[31rem] lg:block">
         <div
-          className="absolute inset-x-0 top-0 rounded-[2px] bg-white p-3 shadow-[0_30px_80px_rgba(17,17,17,.16)] will-change-transform"
+          className="absolute inset-x-0 top-0 rounded-[2px] bg-white p-1 shadow-[0_30px_80px_rgba(17,17,17,.16)] will-change-transform"
           style={{
             opacity: 0.68 + scrollProgress * 0.32,
             transform: `translateY(${(1 - scrollProgress) * 28}px) scale(${0.97 + scrollProgress * 0.03})`,
           }}
         >
-          <div className="mb-3 flex items-center gap-2 px-2 pt-1" aria-hidden="true">
-            <span className="size-2.5 rounded-full bg-[#f8b9e7]" />
-            <span className="size-2.5 rounded-full bg-[#ffe65c]" />
-            <span className="size-2.5 rounded-full bg-black/15" />
-          </div>
           <img
             src="/backoffice-preview/dashboard-web-optimized-v2.jpg"
             alt="Dashboard web del backoffice Fideleo con la actividad de tres establecimientos"
@@ -1138,13 +1128,12 @@ function AnalyticsPreview() {
         </div>
 
         <div
-          className="absolute -right-5 top-24 w-[23%] rounded-[2px] bg-white p-2 shadow-[0_28px_70px_rgba(17,17,17,.24)] will-change-transform"
+          className="absolute -right-3 top-4 w-[28%] rounded-[2px] bg-white p-1 shadow-[0_28px_70px_rgba(17,17,17,.24)] will-change-transform"
           style={{
             opacity: 0.58 + scrollProgress * 0.42,
             transform: `translateY(${(1 - scrollProgress) * 58}px) rotate(${(1 - scrollProgress) * 3}deg)`,
           }}
         >
-          <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-black/10" aria-hidden="true" />
           <img
             src="/backoffice-preview/dashboard-mobile-optimized-v2.jpg"
             alt="Vista móvil del dashboard de Fideleo"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -6,7 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
 import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
 import { EmptyState } from "@/components/app/empty-state";
-import { Button } from "@/components/ui/button";
+import { loyaltyModuleTabs, ModuleTabs } from "@/components/app/module-tabs";
+import {
+  ProgramMechanicSwitch,
+  type ProgramMechanic,
+} from "@/components/app/program-mechanic-switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,38 +25,40 @@ import {
 } from "@/components/ui/select";
 import { useAdminScope } from "@/lib/session";
 import { ruleText } from "@/lib/format";
+import { setProgramMechanic } from "@/lib/loyalty-program";
 
-export const Route = createFileRoute("/_authenticated/panel/programa")({
-  component: ProgramaPage,
-});
+export const Route = createFileRoute("/_authenticated/panel/programa")({ component: ProgramaPage });
 
 function ProgramaPage() {
-  const { organizationId: orgId, isGlobal, selectedLocationIds } = useAdminScope();
-  const locationId = selectedLocationIds[0] ?? null;
-
+  const { organizationId: orgId, selectedLocationIds } = useAdminScope();
+  const locationId = selectedLocationIds.length === 1 ? selectedLocationIds[0] : null;
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["program", orgId, locationId],
-    enabled: Boolean(orgId),
+    enabled: Boolean(orgId && locationId),
     queryFn: async () => {
-      let query = supabase
+      const result = await supabase
         .from("loyalty_programs")
         .select("*,program_locations!inner(location_id)")
         .eq("organization_id", orgId!)
+        .eq("program_locations.location_id", locationId!)
         .order("created_at")
-        .limit(1);
-      if (locationId) query = query.eq("program_locations.location_id", locationId);
-      const { data, error } = await query.maybeSingle();
-      if (error) throw error;
-      return data;
+        .limit(1)
+        .maybeSingle();
+      if (result.error) throw result.error;
+      return result.data;
     },
   });
-
   const [form, setForm] = useState({
     public_name: "",
     description: "",
     earning_mode: "points_per_currency_unit",
-    mechanic_type: "points",
-    mechanic_config: { stamps_per_purchase: 1, percentage: 5, discount_percentage: 10 },
+    mechanic_type: "points" as ProgramMechanic,
+    mechanic_config: {
+      stamps_per_purchase: 1,
+      stamp_target: 10,
+      welcome_stamps: 0,
+      stamp_reward_name: "1 café",
+    },
     earning_value: 1,
     rounding_mode: "floor",
     initial_points: 0,
@@ -62,24 +68,46 @@ function ProgramaPage() {
     terms: "",
   });
   const [saving, setSaving] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const hydrated = useRef(false);
+  const lastSaved = useRef("");
+
+  const changeMechanic = async (mechanic: ProgramMechanic) => {
+    if (!data || !locationId || mechanic === form.mechanic_type) return;
+    setSwitching(true);
+    setForm((current) => ({ ...current, mechanic_type: mechanic }));
+    try {
+      await setProgramMechanic(data.id, locationId, mechanic);
+      toast.success(
+        mechanic === "stamps" ? "Programa cambiado a Sellos" : "Programa cambiado a Puntos",
+      );
+      await refetch();
+    } catch (error) {
+      setForm((current) => ({
+        ...current,
+        mechanic_type: mechanic === "stamps" ? "points" : "stamps",
+      }));
+      toast.error("No se pudo cambiar el tipo de programa", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   useEffect(() => {
     if (!data) return;
-    setForm({
+    const config = (data.mechanic_config ?? {}) as Record<string, unknown>;
+    const nextForm = {
       public_name: data.public_name,
       description: data.description ?? "",
       earning_mode: data.earning_mode,
-      mechanic_type: data.mechanic_type,
+      mechanic_type: data.mechanic_type === "stamps" ? "stamps" : "points",
       mechanic_config: {
-        stamps_per_purchase: Number(
-          (data.mechanic_config as Record<string, number> | null)?.["stamps_per_purchase"] ?? 1,
-        ),
-        percentage: Number(
-          (data.mechanic_config as Record<string, number> | null)?.["percentage"] ?? 5,
-        ),
-        discount_percentage: Number(
-          (data.mechanic_config as Record<string, number> | null)?.["discount_percentage"] ?? 10,
-        ),
+        stamps_per_purchase: Number(config.stamps_per_purchase ?? 1),
+        stamp_target: Math.min(20, Math.max(5, Number(config.stamp_target ?? 10))),
+        welcome_stamps: Number(config.welcome_stamps ?? 0),
+        stamp_reward_name: String(config.stamp_reward_name ?? "1 café"),
       },
       earning_value: Number(data.earning_value),
       rounding_mode: data.rounding_mode,
@@ -88,44 +116,83 @@ function ProgramaPage() {
       allow_redeeming: data.allow_redeeming,
       status: data.status,
       terms: data.terms ?? "",
-    });
+    };
+    lastSaved.current = JSON.stringify(nextForm);
+    hydrated.current = true;
+    setForm(nextForm);
   }, [data]);
 
-  const save = async () => {
-    if (!data) return;
+  const save = async (snapshot = form) => {
+    if (!data || !locationId) return;
+    if (!snapshot.public_name.trim()) return;
+    const isStamps = snapshot.mechanic_type === "stamps";
+    const mechanicConfig = {
+      ...snapshot.mechanic_config,
+      stamps_per_purchase: Math.min(
+        10,
+        Math.max(1, Math.round(snapshot.mechanic_config.stamps_per_purchase)),
+      ),
+      stamp_target: Math.min(20, Math.max(5, Math.round(snapshot.mechanic_config.stamp_target))),
+      welcome_stamps: Math.min(
+        Math.min(20, Math.max(5, Math.round(snapshot.mechanic_config.stamp_target))) - 1,
+        Math.max(0, Math.round(snapshot.mechanic_config.welcome_stamps)),
+      ),
+      stamp_reward_name: snapshot.mechanic_config.stamp_reward_name.trim() || "1 café",
+    };
     setSaving(true);
-    const { error } = await supabase
+    const result = await supabase
       .from("loyalty_programs")
       .update({
-        public_name: form.public_name,
-        description: form.description || null,
-        earning_mode: form.earning_mode as "points_per_currency_unit",
-        mechanic_type: form.mechanic_type,
-        mechanic_config: form.mechanic_config,
-        earning_value: form.earning_value,
-        rounding_mode: form.rounding_mode as "floor",
-        initial_points: form.initial_points,
-        allow_earning: form.allow_earning,
-        allow_redeeming: form.allow_redeeming,
-        status: form.status as "active",
-        terms: form.terms || null,
+        public_name: snapshot.public_name.trim(),
+        description: snapshot.description.trim() || null,
+        earning_mode: snapshot.earning_mode as "points_per_currency_unit",
+        mechanic_type: snapshot.mechanic_type,
+        mechanic_config: mechanicConfig,
+        earning_value: snapshot.earning_value,
+        rounding_mode: snapshot.rounding_mode as "floor",
+        initial_points: isStamps ? mechanicConfig.welcome_stamps : snapshot.initial_points,
+        allow_earning: true,
+        allow_redeeming: snapshot.allow_redeeming,
+        status: snapshot.status as "active",
+        terms: snapshot.terms.trim() || null,
       })
       .eq("id", data.id);
-    setSaving(false);
-    if (error) {
-      toast.error("No se pudo guardar", { description: error.message });
+    if (result.error) {
+      setSaving(false);
+      toast.error("No se pudo guardar", { description: result.error.message });
       return;
     }
-    toast.success("Programa actualizado");
-    void refetch();
+    if (isStamps) {
+      const rewards = await supabase
+        .from("rewards")
+        .update({ points_cost: mechanicConfig.stamp_target })
+        .eq("program_id", data.id);
+      if (rewards.error) {
+        toast.error("El programa se guardó, pero no se actualizaron las recompensas", {
+          description: rewards.error.message,
+        });
+      }
+    }
+    lastSaved.current = JSON.stringify(snapshot);
+    setSaving(false);
   };
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
-  if (isGlobal)
+  useEffect(() => {
+    if (!hydrated.current || !data || switching) return;
+    const serialized = JSON.stringify(form);
+    if (serialized === lastSaved.current) return;
+    const timer = window.setTimeout(() => void saveRef.current(form), 700);
+    return () => window.clearTimeout(timer);
+  }, [form, data, switching]);
+
+  if (!locationId)
     return (
       <>
         <PageHeader
           title="Programa de fidelización"
-          description="Gestiona el programa de cualquier empresa desde Modo Dios."
+          description="Configuración por establecimiento."
         />
         <AdminScopeNotice action="consultar y editar su programa" />
       </>
@@ -135,7 +202,7 @@ function ProgramaPage() {
     return (
       <EmptyState
         title="Sin programa configurado"
-        description="Crea un programa desde la plataforma."
+        description="Este establecimiento todavía no tiene un programa."
       />
     );
 
@@ -143,205 +210,198 @@ function ProgramaPage() {
     <>
       <PageHeader
         title="Programa de fidelización"
-        description={ruleText(form.earning_mode, form.earning_value)}
+        description={
+          form.mechanic_type === "stamps"
+            ? `${form.mechanic_config.stamps_per_purchase} sello${form.mechanic_config.stamps_per_purchase === 1 ? "" : "s"} por compra · ${form.mechanic_config.stamp_target} sellos = 1 recompensa`
+            : ruleText(form.earning_mode, form.earning_value)
+        }
         actions={
-          <Button onClick={() => void save()} disabled={saving}>
-            {saving ? "Guardando…" : "Guardar cambios"}
-          </Button>
+          <span className="text-sm text-muted-foreground">
+            {saving ? "Guardando…" : "Guardado automático"}
+          </span>
         }
       />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="surface space-y-4 p-5">
-          <h2 className="font-display text-lg font-semibold">Identidad</h2>
-          <div className="space-y-1.5">
-            <Label htmlFor="pn">Nombre público</Label>
-            <Input
-              id="pn"
-              value={form.public_name}
-              onChange={(e) => setForm({ ...form, public_name: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="desc">Descripción</Label>
-            <Textarea
-              id="desc"
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="terms">Condiciones</Label>
-            <Textarea
-              id="terms"
-              rows={4}
-              value={form.terms}
-              onChange={(e) => setForm({ ...form, terms: e.target.value })}
-            />
-          </div>
-        </div>
-
+      <ProgramMechanicSwitch
+        value={form.mechanic_type}
+        onChange={(value) => void changeMechanic(value)}
+        disabled={switching || saving}
+      />
+      <ModuleTabs tabs={loyaltyModuleTabs} />
+      <div className="space-y-4">
         <div className="surface space-y-4 p-5">
           <h2 className="font-display text-lg font-semibold">Reglas de acumulación</h2>
-          <div className="space-y-1.5">
-            <Label>Mecánica principal</Label>
-            <Select
-              value={form.mechanic_type}
-              onValueChange={(v) => setForm({ ...form, mechanic_type: v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="spend">Acumulación por gasto</SelectItem>
-                <SelectItem value="points">Puntos</SelectItem>
-                <SelectItem value="stamps">Sellos</SelectItem>
-                <SelectItem value="cashback">Cashback</SelectItem>
-                <SelectItem value="membership">Membresía / descuento</SelectItem>
-                <SelectItem value="coupon">Cupón</SelectItem>
-                <SelectItem value="gift_card">Tarjeta regalo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           {form.mechanic_type === "stamps" ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="stamps">Sellos por compra</Label>
-              <Input
-                id="stamps"
-                type="number"
-                min="1"
-                value={form.mechanic_config.stamps_per_purchase}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    mechanic_config: {
-                      ...form.mechanic_config,
-                      stamps_per_purchase: Number(e.target.value),
-                    },
-                  })
-                }
-              />
+            <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Sellos por compra" id="stamps">
+                  <Input
+                    id="stamps"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={form.mechanic_config.stamps_per_purchase}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        mechanic_config: {
+                          ...form.mechanic_config,
+                          stamps_per_purchase: Number(event.target.value),
+                        },
+                      })
+                    }
+                  />
+                </Field>
+                <Field label="Sellos para completar" id="stamp-target">
+                  <Select
+                    value={String(form.mechanic_config.stamp_target)}
+                    onValueChange={(value) =>
+                      setForm({
+                        ...form,
+                        mechanic_config: {
+                          ...form.mechanic_config,
+                          stamp_target: Number(value),
+                        },
+                      })
+                    }
+                  >
+                    <SelectTrigger id="stamp-target">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 16 }, (_, index) => index + 5).map((target) => (
+                        <SelectItem key={target} value={String(target)}>
+                          {target} sellos
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
             </div>
-          ) : null}
-          {form.mechanic_type === "cashback" ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="cashback">Porcentaje de cashback</Label>
-              <Input
-                id="cashback"
-                type="number"
-                min="0.1"
-                max="100"
-                step="0.1"
-                value={form.mechanic_config.percentage}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    mechanic_config: {
-                      ...form.mechanic_config,
-                      percentage: Number(e.target.value),
-                    },
-                  })
-                }
-              />
-            </div>
-          ) : null}
-          {form.mechanic_type === "membership" ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="discount">Descuento de membresía (%)</Label>
-              <Input
-                id="discount"
-                type="number"
-                min="1"
-                max="100"
-                value={form.mechanic_config.discount_percentage}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    mechanic_config: {
-                      ...form.mechanic_config,
-                      discount_percentage: Number(e.target.value),
-                    },
-                  })
-                }
-              />
-            </div>
-          ) : null}
-          <div className="space-y-1.5">
-            <Label>Modo</Label>
-            <Select
-              value={form.earning_mode}
-              onValueChange={(v) => setForm({ ...form, earning_mode: v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="points_per_currency_unit">Puntos por euro gastado</SelectItem>
-                <SelectItem value="currency_units_per_point">Euros necesarios por punto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="val">Valor</Label>
-              <Input
-                id="val"
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={form.earning_value}
-                onChange={(e) => setForm({ ...form, earning_value: Number(e.target.value) })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Redondeo</Label>
-              <Select
-                value={form.rounding_mode}
-                onValueChange={(v) => setForm({ ...form, rounding_mode: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="floor">Hacia abajo</SelectItem>
-                  <SelectItem value="nearest">Al más cercano</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="init">Puntos de bienvenida</Label>
-            <Input
-              id="init"
-              type="number"
-              min="0"
-              value={form.initial_points}
-              onChange={(e) => setForm({ ...form, initial_points: Number(e.target.value) })}
-            />
-          </div>
-
+          ) : (
+            <>
+              <Field label="Modo">
+                <Select
+                  value={form.earning_mode}
+                  onValueChange={(value) => setForm({ ...form, earning_mode: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="points_per_currency_unit">
+                      Puntos por euro gastado
+                    </SelectItem>
+                    <SelectItem value="currency_units_per_point">
+                      Euros necesarios por punto
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label={
+                    form.earning_mode === "points_per_currency_unit"
+                      ? "Puntos obtenidos por 1 €"
+                      : "Euros necesarios para obtener 1 punto"
+                  }
+                  id="val"
+                >
+                  <Input
+                    id="val"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={form.earning_value}
+                    onChange={(event) =>
+                      setForm({ ...form, earning_value: Number(event.target.value) })
+                    }
+                  />
+                  <p className="rounded-lg bg-muted px-3 py-2 text-sm font-medium">
+                    {form.earning_mode === "points_per_currency_unit"
+                      ? `1 € = ${form.earning_value || 0} puntos`
+                      : `${form.earning_value || 0} € = 1 punto`}
+                  </p>
+                </Field>
+                <Field label="Redondeo">
+                  <Select
+                    value={form.rounding_mode}
+                    onValueChange={(value) => setForm({ ...form, rounding_mode: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="floor">Hacia abajo</SelectItem>
+                      <SelectItem value="nearest">Al más cercano</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+              <Field label="Puntos de bienvenida" id="init">
+                <Input
+                  id="init"
+                  type="number"
+                  min="0"
+                  value={form.initial_points}
+                  onChange={(event) =>
+                    setForm({ ...form, initial_points: Number(event.target.value) })
+                  }
+                />
+              </Field>
+            </>
+          )}
           <div className="space-y-3 border-t pt-4">
-            <ToggleRow
-              label="Permitir acumular puntos"
-              checked={form.allow_earning}
-              onChange={(v) => setForm({ ...form, allow_earning: v })}
-            />
             <ToggleRow
               label="Permitir canjear recompensas"
               checked={form.allow_redeeming}
-              onChange={(v) => setForm({ ...form, allow_redeeming: v })}
+              onChange={(value) => setForm({ ...form, allow_redeeming: value })}
             />
             <ToggleRow
               label="Programa activo"
               description="Si lo pausas, la caja dejará de operar."
               checked={form.status === "active"}
-              onChange={(v) => setForm({ ...form, status: v ? "active" : "paused" })}
+              onChange={(value) => setForm({ ...form, status: value ? "active" : "paused" })}
             />
           </div>
         </div>
+        <div className="surface space-y-4 p-5">
+          <h2 className="font-display text-lg font-semibold">Identidad</h2>
+          <Field label="Nombre público" id="pn">
+            <Input
+              id="pn"
+              value={form.public_name}
+              onChange={(event) => setForm({ ...form, public_name: event.target.value })}
+            />
+          </Field>
+          <Field label="Descripción" id="desc">
+            <Textarea
+              id="desc"
+              rows={3}
+              value={form.description}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+            />
+          </Field>
+          <Field label="Condiciones" id="terms">
+            <Textarea
+              id="terms"
+              rows={4}
+              value={form.terms}
+              onChange={(event) => setForm({ ...form, terms: event.target.value })}
+            />
+          </Field>
+        </div>
       </div>
     </>
+  );
+}
+
+function Field({ label, id, children }: { label: string; id?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+    </div>
   );
 }
 
@@ -354,7 +414,7 @@ function ToggleRow({
   label: string;
   description?: string;
   checked: boolean;
-  onChange: (v: boolean) => void;
+  onChange: (value: boolean) => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-4">

@@ -218,7 +218,16 @@ Deno.serve(async (request) => {
           body: JSON.stringify({
             public_name: clean(payload.programName, 160) || `Club ${displayName}`,
             description: clean(payload.programDescription, 600) || null,
-            mechanic_type: clean(payload.mechanic, 30) || "spend",
+            mechanic_type: clean(payload.mechanic, 30) === "stamps" ? "stamps" : "points",
+            mechanic_config:
+              clean(payload.mechanic, 30) === "stamps"
+                ? {
+                    stamps_per_purchase: 1,
+                    stamp_target: 10,
+                    welcome_stamps: 0,
+                    stamp_reward_name: "1 café",
+                  }
+                : {},
             terms: clean(payload.terms, 2000) || null,
             status: "active",
           }),

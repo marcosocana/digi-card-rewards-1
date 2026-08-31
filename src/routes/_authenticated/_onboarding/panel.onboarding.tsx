@@ -85,7 +85,7 @@ function OnboardingPage() {
     cover: "",
     programName: "",
     programDescription: "",
-    mechanic: "spend",
+    mechanic: "points",
     terms: "",
     walletHeadline: "Tu fidelidad, siempre contigo",
   });
@@ -281,6 +281,15 @@ function OnboardingPage() {
           public_name: form.programName.trim(),
           description: form.programDescription || null,
           mechanic_type: form.mechanic,
+          mechanic_config:
+            form.mechanic === "stamps"
+              ? {
+                  stamps_per_purchase: 1,
+                  stamp_target: 10,
+                  welcome_stamps: 0,
+                  stamp_reward_name: "1 café",
+                }
+              : {},
           terms: form.terms || null,
         })
         .eq("id", ids.program);
@@ -628,13 +637,8 @@ function ProgramStep({ form, set }: { form: Form; set: Setter }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="spend">Acumulación por gasto</SelectItem>
-              <SelectItem value="points">Puntos</SelectItem>
+              <SelectItem value="points">Puntos (acumulación por gasto)</SelectItem>
               <SelectItem value="stamps">Sellos</SelectItem>
-              <SelectItem value="cashback">Cashback</SelectItem>
-              <SelectItem value="membership">Membresía</SelectItem>
-              <SelectItem value="coupon">Cupón</SelectItem>
-              <SelectItem value="gift_card">Tarjeta regalo</SelectItem>
             </SelectContent>
           </Select>
         </div>

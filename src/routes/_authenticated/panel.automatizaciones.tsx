@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
+import { communicationsModuleTabs, ModuleTabs } from "@/components/app/module-tabs";
 
 export const Route = createFileRoute("/_authenticated/panel/automatizaciones")({
   component: AutomatizacionesPage,
@@ -106,7 +107,7 @@ function AutomatizacionesPage() {
   return (
     <>
       <PageHeader
-        title="Automatizaciones"
+        title="Comunicación"
         description="Mensajes activados por comportamiento, fechas y recompensas."
         actions={
           <Button variant="outline" disabled={isGlobal || !locationId} onClick={() => void run()}>
@@ -114,6 +115,7 @@ function AutomatizacionesPage() {
           </Button>
         }
       />
+      <ModuleTabs tabs={communicationsModuleTabs} />
       {isGlobal ? <AdminScopeNotice action="ejecutar la cola de esa empresa" /> : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard

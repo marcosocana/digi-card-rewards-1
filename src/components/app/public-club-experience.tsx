@@ -7,9 +7,20 @@ import { JoinForm } from "@/components/app/join-form";
 export function PublicClubExperience({
   organizationSlug,
   locationSlug,
+  brandingOverride,
 }: {
   organizationSlug: string;
   locationSlug?: string;
+  brandingOverride?: Partial<{
+    primary_color: string;
+    secondary_color: string;
+    background_color: string;
+    text_color: string;
+    logo_url: string;
+    cover_url: string;
+    welcome_message: string;
+    program_description: string;
+  }>;
 }) {
   const { data, isLoading } = useQuery({
     queryKey: ["public-club-experience", organizationSlug, locationSlug ?? null],
@@ -84,7 +95,7 @@ export function PublicClubExperience({
       </main>
     );
 
-  const branding = data.branding;
+  const branding = { ...(data.branding ?? {}), ...(brandingOverride ?? {}) };
   const primary = branding?.primary_color || "#111111";
   const secondary = branding?.secondary_color || "#f8b9e7";
   const background = branding?.background_color || "#f5f5f4";

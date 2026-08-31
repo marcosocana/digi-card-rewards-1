@@ -2,15 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  BarChart3,
   Building2,
-  Gift,
   LayoutDashboard,
   LogOut,
   Menu,
   Bell,
-  Bot,
-  ChartNoAxesCombined,
   ChevronDown,
   CircleHelp,
   ScanLine,
@@ -25,7 +21,6 @@ import {
   PanelLeftOpen,
   Sun,
   Users,
-  Wallet,
   X,
   Search,
   Network,
@@ -77,6 +72,7 @@ interface NavItem {
   group: "Operaciones" | "Fidelización" | "Analítica" | "Administración";
   superadminScope?: "hidden" | "global" | "organization" | "location";
   superadminOnly?: boolean;
+  locationOnly?: boolean;
 }
 
 const nav: NavItem[] = [
@@ -121,50 +117,21 @@ const nav: NavItem[] = [
   },
   {
     to: "/panel/programa",
-    label: "Programa",
+    label: "Programa de fidelización",
     icon: Sparkles,
     roles: ["admin"],
     group: "Fidelización",
     superadminScope: "location",
-  },
-  {
-    to: "/panel/recompensas",
-    label: "Recompensas",
-    icon: Gift,
-    roles: ["admin"],
-    group: "Fidelización",
-    superadminScope: "location",
+    locationOnly: true,
   },
   {
     to: "/panel/notificaciones",
-    label: "Notificaciones",
+    label: "Comunicación",
     icon: Bell,
     roles: ["admin"],
     group: "Fidelización",
     superadminScope: "location",
-  },
-  {
-    to: "/panel/automatizaciones",
-    label: "Automatizaciones",
-    icon: Bot,
-    roles: ["admin"],
-    group: "Fidelización",
-    superadminScope: "location",
-  },
-  {
-    to: "/panel/estadisticas",
-    label: "Estadísticas",
-    icon: ChartNoAxesCombined,
-    roles: ["admin"],
-    group: "Analítica",
-  },
-  {
-    to: "/panel/captacion",
-    label: "Captación",
-    icon: BarChart3,
-    roles: ["admin", "manager"],
-    group: "Analítica",
-    superadminScope: "location",
+    locationOnly: true,
   },
   {
     to: "/panel/establecimientos",
@@ -178,14 +145,6 @@ const nav: NavItem[] = [
     to: "/panel/equipo",
     label: "Usuarios",
     icon: ShieldCheck,
-    roles: ["admin"],
-    group: "Administración",
-    superadminScope: "organization",
-  },
-  {
-    to: "/panel/wallet",
-    label: "Wallet",
-    icon: Wallet,
     roles: ["admin"],
     group: "Administración",
     superadminScope: "organization",
@@ -291,17 +250,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [selectedLocations, session?.locations]);
 
   const role = session?.isSuperadmin ? "admin" : (session?.org?.role ?? "staff");
+  const currentScopeLevel: AdminScopeLevel = selectedLocationScope.startsWith("organization:")
+    ? "organization"
+    : selectedLocationScope.startsWith("location:")
+      ? "location"
+      : "global";
   const items = nav.filter((item) => {
     if (!item.roles.includes(role)) return false;
     if (item.superadminOnly && !session?.isSuperadmin) return false;
+    if (item.locationOnly && currentScopeLevel !== "location") return false;
     if (!session?.isSuperadmin) return true;
     if (item.superadminScope === "hidden") return false;
-    const level: AdminScopeLevel = selectedLocationScope.startsWith("organization:")
-      ? "organization"
-      : selectedLocationScope.startsWith("location:")
-        ? "location"
-        : "global";
-    if (item.superadminScope && item.superadminScope !== level) return false;
+    if (item.superadminScope && item.superadminScope !== currentScopeLevel) return false;
     return true;
   });
   const roleName = t(session?.isSuperadmin ? "Superadmin" : role);
@@ -396,8 +356,22 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/auth", replace: true });
   };
 
-  const isActive = (to: string) =>
-    to === "/panel" ? pathname === "/panel" : pathname.startsWith(to);
+  const isActive = (to: string) => {
+    if (to === "/panel") return pathname === "/panel";
+    if (to === "/panel/programa")
+      return (
+        pathname.startsWith("/panel/programa") ||
+        pathname.startsWith("/panel/recompensas") ||
+        pathname.startsWith("/panel/captacion") ||
+        pathname.startsWith("/panel/wallet")
+      );
+    if (to === "/panel/notificaciones")
+      return (
+        pathname.startsWith("/panel/notificaciones") ||
+        pathname.startsWith("/panel/automatizaciones")
+      );
+    return pathname.startsWith(to);
+  };
 
   const groups = ["Operaciones", "Fidelización", "Analítica", "Administración"] as const;
   const searchResults = search.trim()
@@ -610,7 +584,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div
       className={cn(
-        "min-h-screen bg-background lg:grid",
+        "min-h-screen overflow-x-hidden bg-background lg:grid",
         collapsed ? "lg:grid-cols-[4.75rem_1fr]" : "lg:grid-cols-[15rem_1fr]",
       )}
     >
@@ -700,7 +674,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      <div className="min-w-0">
+      <div className="min-w-0 overflow-x-hidden">
         <header className="sticky top-0 z-20 hidden h-18 items-center justify-between border-b bg-card/95 px-8 backdrop-blur lg:flex">
           <div className="flex w-full max-w-2xl items-center gap-2">
             <Button
@@ -801,7 +775,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main className="min-w-0 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <div className="mx-auto w-full max-w-7xl space-y-7">{children}</div>
         </main>
       </div>

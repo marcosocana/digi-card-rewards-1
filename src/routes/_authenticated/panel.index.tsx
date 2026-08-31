@@ -20,6 +20,7 @@ import {
 import { fetchSessionInfo, sessionQueryKey, useAdminScope } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/panel/")({
   beforeLoad: async ({ context }) => {
@@ -367,6 +368,11 @@ function ResumenPage() {
               icon={<Receipt className="size-4" />}
               to="/panel/estadisticas"
             />
+          </div>
+          <div className="flex justify-end">
+            <Button asChild variant="outline">
+              <Link to="/panel/estadisticas">Ver más estadísticas</Link>
+            </Button>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">

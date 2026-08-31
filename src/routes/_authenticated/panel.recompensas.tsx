@@ -31,6 +31,12 @@ import {
 } from "@/components/ui/dialog";
 import { useAdminScope } from "@/lib/session";
 import { num } from "@/lib/format";
+import { loyaltyModuleTabs, ModuleTabs } from "@/components/app/module-tabs";
+import {
+  ProgramMechanicSwitch,
+  type ProgramMechanic,
+} from "@/components/app/program-mechanic-switch";
+import { setProgramMechanic } from "@/lib/loyalty-program";
 
 export const Route = createFileRoute("/_authenticated/panel/recompensas")({
   component: RecompensasPage,
@@ -47,6 +53,7 @@ function RecompensasPage() {
   } = useAdminScope();
   const locationId = selectedLocationIds[0] ?? null;
   const [open, setOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -62,14 +69,15 @@ function RecompensasPage() {
       let programsQuery = supabase
         .from("loyalty_programs")
         .select(
-          "id,organization_id,organizations(display_name),program_locations!inner(location_id)",
+          "id,organization_id,mechanic_type,mechanic_config,organizations(display_name),program_locations!inner(location_id)",
         )
         .order("created_at");
       if (orgId) programsQuery = programsQuery.eq("organization_id", orgId);
       if (locationId) programsQuery = programsQuery.eq("program_locations.location_id", locationId);
       const { data: programs, error: programsError } = await programsQuery;
       if (programsError) throw programsError;
-      if (!programs?.length) return { programId: null, rewards: [] };
+      if (!programs?.length)
+        return { programId: null, mechanicType: "points", stampTarget: 10, rewards: [] };
       const programById = new Map(programs.map((program) => [program.id, program]));
       let rewardsQuery = supabase
         .from("rewards")
@@ -86,6 +94,20 @@ function RecompensasPage() {
       if (error) throw error;
       return {
         programId: programs.length === 1 ? programs[0].id : null,
+        mechanicType: programs.length === 1 ? programs[0].mechanic_type : "points",
+        stampTarget:
+          programs.length === 1
+            ? Math.min(
+                20,
+                Math.max(
+                  5,
+                  Number(
+                    ((programs[0].mechanic_config ?? {}) as Record<string, unknown>).stamp_target ??
+                      10,
+                  ),
+                ),
+              )
+            : 10,
         rewards: (rewards ?? []).map((reward) => ({
           ...reward,
           organizationName: (
@@ -100,7 +122,8 @@ function RecompensasPage() {
 
   const create = async () => {
     if (!data?.programId) return;
-    if (form.name.trim().length < 2 || form.points_cost < 1) {
+    const isStamps = data.mechanicType === "stamps";
+    if (form.name.trim().length < 2 || (!isStamps && form.points_cost < 1)) {
       toast.error("Revisa el nombre y el coste en puntos");
       return;
     }
@@ -111,21 +134,48 @@ function RecompensasPage() {
       toast.error("Indica un límite de canjes válido");
       return;
     }
+    const previouslyActive = isStamps
+      ? data.rewards.find((reward) => reward.status === "active")?.id
+      : undefined;
+    if (isStamps && previouslyActive) {
+      const paused = await supabase
+        .from("rewards")
+        .update({ status: "paused" })
+        .eq("program_id", data.programId)
+        .eq("status", "active");
+      if (paused.error) {
+        toast.error("No se pudo cambiar la recompensa activa", {
+          description: paused.error.message,
+        });
+        return;
+      }
+    }
     const { data: created, error } = await supabase
       .from("rewards")
       .insert({
         program_id: data.programId,
         name: form.name.trim(),
         description: form.description.trim() || null,
-        points_cost: form.points_cost,
-        redemption_limit_type: form.limitType === "once" ? "per_customer" : form.limitType,
+        points_cost: isStamps ? data.stampTarget : form.points_cost,
+        redemption_limit_type: isStamps
+          ? "unlimited"
+          : form.limitType === "once"
+            ? "per_customer"
+            : form.limitType,
         redemption_limit_count:
-          form.limitType === "unlimited" ? null : form.limitType === "once" ? 1 : form.limitCount,
+          isStamps || form.limitType === "unlimited"
+            ? null
+            : form.limitType === "once"
+              ? 1
+              : form.limitCount,
         status: "active",
       })
       .select("id")
       .single();
     if (error) {
+      if (previouslyActive) {
+        await supabase.from("rewards").update({ status: "active" }).eq("id", previouslyActive);
+      }
       toast.error("No se pudo crear", { description: error.message });
       return;
     }
@@ -151,6 +201,20 @@ function RecompensasPage() {
   };
 
   const toggle = async (id: string, active: boolean) => {
+    if (active && data?.mechanicType === "stamps" && data.programId) {
+      const { error: pauseError } = await supabase
+        .from("rewards")
+        .update({ status: "paused" })
+        .eq("program_id", data.programId)
+        .neq("id", id)
+        .eq("status", "active");
+      if (pauseError) {
+        toast.error("No se pudo cambiar la recompensa activa", {
+          description: pauseError.message,
+        });
+        return;
+      }
+    }
     const { error } = await supabase
       .from("rewards")
       .update({ status: active ? "active" : "paused" })
@@ -162,11 +226,33 @@ function RecompensasPage() {
     void refetch();
   };
 
+  const changeMechanic = async (mechanic: ProgramMechanic) => {
+    if (!data?.programId || !locationId || mechanic === data.mechanicType) return;
+    setSwitching(true);
+    try {
+      await setProgramMechanic(data.programId, locationId, mechanic);
+      toast.success(
+        mechanic === "stamps" ? "Programa cambiado a Sellos" : "Programa cambiado a Puntos",
+      );
+      await refetch();
+    } catch (error) {
+      toast.error("No se pudo cambiar el tipo de programa", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   return (
     <>
       <PageHeader
-        title="Recompensas"
-        description="Catálogo canjeable por puntos en tus establecimientos."
+        title="Programa de fidelización"
+        description={
+          data?.mechanicType === "stamps"
+            ? `Crea varias recompensas y elige cuál estará activa al completar ${data.stampTarget} sellos.`
+            : "Catálogo canjeable por puntos en este establecimiento."
+        }
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -187,24 +273,27 @@ function RecompensasPage() {
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Límite de canjes</Label>
-                  <Select
-                    value={form.limitType}
-                    onValueChange={(limitType) => setForm({ ...form, limitType })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unlimited">Ilimitados</SelectItem>
-                      <SelectItem value="once">Una única vez por persona</SelectItem>
-                      <SelectItem value="per_customer">Varias veces por persona</SelectItem>
-                      <SelectItem value="global">Número máximo global</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {form.limitType === "per_customer" || form.limitType === "global" ? (
+                {data?.mechanicType !== "stamps" ? (
+                  <div className="space-y-1.5">
+                    <Label>Límite de canjes</Label>
+                    <Select
+                      value={form.limitType}
+                      onValueChange={(limitType) => setForm({ ...form, limitType })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unlimited">Ilimitados</SelectItem>
+                        <SelectItem value="once">Una única vez por persona</SelectItem>
+                        <SelectItem value="per_customer">Varias veces por persona</SelectItem>
+                        <SelectItem value="global">Número máximo global</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+                {data?.mechanicType !== "stamps" &&
+                (form.limitType === "per_customer" || form.limitType === "global") ? (
                   <div className="space-y-1.5">
                     <Label htmlFor="reward-limit">
                       {form.limitType === "global"
@@ -232,14 +321,22 @@ function RecompensasPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="rp">Coste en puntos</Label>
+                  <Label htmlFor="rp">
+                    {data?.mechanicType === "stamps" ? "Sellos necesarios" : "Coste en puntos"}
+                  </Label>
                   <Input
                     id="rp"
                     type="number"
                     min="1"
-                    value={form.points_cost}
+                    value={data?.mechanicType === "stamps" ? data.stampTarget : form.points_cost}
+                    disabled={data?.mechanicType === "stamps"}
                     onChange={(e) => setForm({ ...form, points_cost: Number(e.target.value) })}
                   />
+                  {data?.mechanicType === "stamps" ? (
+                    <p className="text-xs text-muted-foreground">
+                      Valor definido por el programa: {data?.stampTarget} sellos.
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <DialogFooter>
@@ -249,6 +346,14 @@ function RecompensasPage() {
           </Dialog>
         }
       />
+      {data?.programId ? (
+        <ProgramMechanicSwitch
+          value={data.mechanicType === "stamps" ? "stamps" : "points"}
+          onChange={(value) => void changeMechanic(value)}
+          disabled={switching}
+        />
+      ) : null}
+      <ModuleTabs tabs={loyaltyModuleTabs} />
 
       {isGlobal ? <AdminScopeNotice action="crear una recompensa para esa empresa" /> : null}
 
@@ -261,7 +366,7 @@ function RecompensasPage() {
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-display text-lg font-semibold">{r.name}</h2>
                 <Badge variant="secondary" className="shrink-0 font-mono">
-                  {num(r.points_cost)} pts
+                  {num(r.points_cost)} {data.mechanicType === "stamps" ? "sellos" : "pts"}
                 </Badge>
               </div>
               {r.description ? (

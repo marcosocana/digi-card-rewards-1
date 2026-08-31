@@ -31,6 +31,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
+import { communicationsModuleTabs, ModuleTabs } from "@/components/app/module-tabs";
 
 export const Route = createFileRoute("/_authenticated/panel/notificaciones")({
   component: NotificacionesPage,
@@ -291,7 +292,7 @@ function NotificacionesPage() {
   return (
     <>
       <PageHeader
-        title="Notificaciones"
+        title="Comunicación"
         description="Mensajes Wallet segmentados, con límite diario validado en backend."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
@@ -403,6 +404,7 @@ function NotificacionesPage() {
           </Dialog>
         }
       />
+      <ModuleTabs tabs={communicationsModuleTabs} />
       {isGlobal ? <AdminScopeNotice action="crear envíos para esa empresa" /> : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard label="Uso diario" value={`${num(data?.manualToday)}/${num(data?.limit)}`} />

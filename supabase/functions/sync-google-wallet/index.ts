@@ -102,7 +102,10 @@ const first = async <T>(url: string, headers: Record<string, string>) => {
 
 // Keep the visible loyalty balance provider-neutral: it is a number of points,
 // even when points are earned from spending or cashback rules.
-const pointsBalance = (balance: number) => String(balance);
+const pointsBalance = (balance: number, mechanicType: string, stampTarget = 10) =>
+  mechanicType === "stamps"
+    ? `${Math.max(0, Math.round(balance))} / ${Math.min(20, Math.max(5, Math.round(stampTarget)))}`
+    : String(balance);
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -161,8 +164,8 @@ Deno.serve(async (request) => {
     passId = walletPass.id;
 
     const [program, branding] = await Promise.all([
-      first<{ mechanic_type: string }>(
-        `${supabaseUrl}/rest/v1/loyalty_programs?id=eq.${membership.program_id}&select=mechanic_type&limit=1`,
+      first<{ mechanic_type: string; mechanic_config: Record<string, unknown> }>(
+        `${supabaseUrl}/rest/v1/loyalty_programs?id=eq.${membership.program_id}&select=mechanic_type,mechanic_config&limit=1`,
         dbHeaders,
       ),
       first<{ wallet_points_label: string | null }>(
@@ -189,7 +192,11 @@ Deno.serve(async (request) => {
               branding?.wallet_points_label ||
               (program.mechanic_type === "stamps" ? "Sellos" : "Puntos"),
             balance: {
-              string: pointsBalance(membership.cached_points_balance),
+              string: pointsBalance(
+                membership.cached_points_balance,
+                program.mechanic_type,
+                Number(program.mechanic_config?.stamp_target ?? 10),
+              ),
             },
           },
         }),

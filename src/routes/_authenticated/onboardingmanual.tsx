@@ -53,7 +53,7 @@ function ManualOnboardingPage() {
     cover: "",
     programName: "",
     programDescription: "",
-    mechanic: "spend",
+    mechanic: "points",
     terms: "",
     walletHeadline: "Tu fidelidad, siempre contigo",
     ownerName: "",
@@ -501,9 +501,8 @@ function ProgramStep({ form, set }: { form: Form; set: Setter }) {
             value={form.mechanic}
             onChange={(event) => set("mechanic", event.target.value)}
           >
-            <option value="spend">Puntos por compra</option>
-            <option value="visits">Sellos por visita</option>
-            <option value="hybrid">Híbrido</option>
+            <option value="points">Puntos (acumulación por gasto)</option>
+            <option value="stamps">Sellos</option>
           </select>
         </div>
         <div className="space-y-1.5 sm:col-span-2">

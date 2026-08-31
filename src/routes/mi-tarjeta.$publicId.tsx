@@ -184,11 +184,27 @@ function PortalPage() {
       <main className="p-10 text-center text-sm text-muted-foreground">Tarjeta no encontrada.</main>
     );
   const mechanic = data.program.mechanic_type ?? "points";
+  const mechanicConfig = (data.program.mechanic_config ?? {}) as Record<string, unknown>;
+  const stampTarget = 10;
+  const stampBalance = Math.min(stampTarget, Math.max(0, Math.round(data.membership.balance)));
+  const stampSymbol: Record<string, string> = {
+    coffee: "☕",
+    check: "✓",
+    star: "★",
+    gift: "🎁",
+    burger: "🍔",
+    pizza: "🍕",
+    beer: "🍺",
+    cake: "🍰",
+    heart: "♥",
+    scissors: "✂",
+  };
+  const stampIcon = stampSymbol[String(mechanicConfig.stamp_icon ?? "check")] ?? "✓";
   const balanceLabel =
     mechanic === "cashback"
       ? eur(data.membership.balance)
       : mechanic === "stamps"
-        ? `${num(data.membership.balance)} sellos`
+        ? `${num(stampBalance)} / ${stampTarget} sellos`
         : mechanic === "spend"
           ? `${num(data.membership.balance)} € acumulados`
           : `${num(data.membership.balance)} puntos`;
@@ -260,6 +276,22 @@ function PortalPage() {
             {data.account?.tier ? `Nivel ${data.account.tier} · ` : ""}
             {data.customer.first_name}
           </p>
+          {mechanic === "stamps" ? (
+            <div className="mx-auto mt-5 grid max-w-xs grid-cols-5 gap-2">
+              {Array.from({ length: stampTarget }, (_, index) => (
+                <span
+                  key={index}
+                  className={`grid aspect-square place-items-center rounded-full border-2 text-sm font-bold ${
+                    index < stampBalance
+                      ? "border-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "border-sidebar-foreground/45 text-sidebar-foreground/65"
+                  }`}
+                >
+                  {stampIcon}
+                </span>
+              ))}
+            </div>
+          ) : null}
           {qr ? (
             <img
               src={qr}
@@ -273,7 +305,9 @@ function PortalPage() {
             <p className="mt-2 font-mono text-sm tracking-[0.3em]">{data.short_code}</p>
           ) : null}
           <p className="mt-3 text-xs text-sidebar-foreground/70">
-            {ruleText(data.program.earning_mode, data.program.earning_value)}
+            {mechanic === "stamps"
+              ? `Cada compra suma sellos. Al completar ${stampTarget}, consigues tu recompensa.`
+              : ruleText(data.program.earning_mode, data.program.earning_value)}
           </p>
         </div>
 
@@ -321,12 +355,15 @@ function PortalPage() {
                   ) : null}
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-xs text-muted-foreground">{num(r.points_cost)} pts</p>
+                  <p className="text-xs text-muted-foreground">
+                    {num(r.points_cost)} {mechanic === "stamps" ? "sellos" : "pts"}
+                  </p>
                   {r.available ? (
                     <p className="text-sm font-medium text-emerald-600">Disponible</p>
                   ) : (
                     <p className="text-sm font-medium text-red-600">
-                      Faltan {num(Math.max(r.points_cost - data.membership.balance, 0))} puntos
+                      Faltan {num(Math.max(r.points_cost - data.membership.balance, 0))}{" "}
+                      {mechanic === "stamps" ? "sellos" : "puntos"}
                     </p>
                   )}
                 </div>

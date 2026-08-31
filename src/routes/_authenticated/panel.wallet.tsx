@@ -1,14 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
+  Check,
+  Circle,
+  Coffee,
+  Crown,
+  Diamond,
+  Flower2,
+  Gift,
+  Heart,
+  IceCreamBowl,
+  Leaf,
+  Moon,
+  Music,
+  Pizza,
+  Scissors,
+  Smile,
+  Sparkles,
+  Star,
+  Sun,
+  Utensils,
+  Zap,
   Clock3,
   EllipsisVertical,
   ImagePlus,
   LoaderCircle,
   QrCode,
-  Save,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +52,12 @@ import { num } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { qrPngDataUrl } from "@/lib/qr";
 import { AdminScopeNotice } from "@/components/app/admin-scope-notice";
+import { loyaltyModuleTabs, ModuleTabs } from "@/components/app/module-tabs";
+import {
+  ProgramMechanicSwitch,
+  type ProgramMechanic,
+} from "@/components/app/program-mechanic-switch";
+import { setProgramMechanic } from "@/lib/loyalty-program";
 
 export const Route = createFileRoute("/_authenticated/panel/wallet")({
   component: WalletPage,
@@ -45,10 +70,37 @@ const defaultDesign = {
   heroUrl: "",
   programName: "",
   pointsLabel: "Puntos",
+  stampColor: "#000000",
+  stampIcon: "coffee",
+  welcomeStamps: 0,
+  stampReward: "1 café",
+  stampTarget: 10,
 };
 
 type WalletProvider = "google" | "apple";
 type WalletDesign = typeof defaultDesign;
+const stampIcons = [
+  { id: "heart", label: "Corazón", Icon: Heart },
+  { id: "star", label: "Estrella", Icon: Star },
+  { id: "check", label: "Check", Icon: Check },
+  { id: "circle", label: "Círculo", Icon: Circle },
+  { id: "diamond", label: "Diamante", Icon: Diamond },
+  { id: "sparkles", label: "Destellos", Icon: Sparkles },
+  { id: "sun", label: "Sol", Icon: Sun },
+  { id: "moon", label: "Luna", Icon: Moon },
+  { id: "flower", label: "Flor", Icon: Flower2 },
+  { id: "leaf", label: "Hoja", Icon: Leaf },
+  { id: "smile", label: "Sonrisa", Icon: Smile },
+  { id: "crown", label: "Corona", Icon: Crown },
+  { id: "gift", label: "Regalo", Icon: Gift },
+  { id: "zap", label: "Rayo", Icon: Zap },
+  { id: "coffee", label: "Café", Icon: Coffee },
+  { id: "pizza", label: "Pizza", Icon: Pizza },
+  { id: "ice-cream", label: "Helado", Icon: IceCreamBowl },
+  { id: "utensils", label: "Cubiertos", Icon: Utensils },
+  { id: "scissors", label: "Tijeras", Icon: Scissors },
+  { id: "music", label: "Música", Icon: Music },
+];
 type HeroCrop = {
   file: File;
   previewUrl: string;
@@ -63,7 +115,14 @@ const GOOGLE_HERO_HEIGHT = 336;
 const GOOGLE_HERO_ASPECT = GOOGLE_HERO_WIDTH / GOOGLE_HERO_HEIGHT;
 
 function WalletPage() {
-  const { session, organizationId: orgId, isSuperadmin, isGlobal } = useAdminScope();
+  const {
+    session,
+    organizationId: orgId,
+    isSuperadmin,
+    isGlobal,
+    selectedLocationIds,
+  } = useAdminScope();
+  const locationId = selectedLocationIds.length === 1 ? selectedLocationIds[0] : null;
   const { t } = useI18n();
   const [design, setDesign] = useState(defaultDesign);
   const [provider, setProvider] = useState<WalletProvider>("google");
@@ -71,6 +130,9 @@ function WalletPage() {
   const [uploading, setUploading] = useState<"logoUrl" | "heroUrl" | null>(null);
   const [heroCrop, setHeroCrop] = useState<HeroCrop | null>(null);
   const [cropApplying, setCropApplying] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const hydrated = useRef(false);
+  const lastSaved = useRef("");
 
   useEffect(() => {
     const previewUrl = heroCrop?.previewUrl;
@@ -80,8 +142,8 @@ function WalletPage() {
   }, [heroCrop?.previewUrl]);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["wallet-passes", orgId, isSuperadmin],
-    enabled: Boolean(session && (orgId || isSuperadmin)),
+    queryKey: ["wallet-passes", orgId, isSuperadmin, locationId],
+    enabled: Boolean(session && orgId && locationId),
     queryFn: async () => {
       let passesQuery = supabase
         .from("wallet_passes")
@@ -105,34 +167,68 @@ function WalletPage() {
             .eq("organization_id", orgId)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null });
-      const [passes, organization, branding, settings] = await Promise.all([
+      const programQuery = supabase
+        .from("loyalty_programs")
+        .select("id,public_name,mechanic_type,mechanic_config,program_locations!inner(location_id)")
+        .eq("organization_id", orgId!)
+        .eq("program_locations.location_id", locationId!)
+        .limit(1)
+        .maybeSingle();
+      const [passes, organization, branding, settings, program] = await Promise.all([
         passesQuery,
         organizationQuery,
         brandingQuery,
         settingsQuery,
+        programQuery,
       ]);
       if (passes.error) throw passes.error;
       if (organization.error) throw organization.error;
       if (branding.error) throw branding.error;
       if (settings.error) throw settings.error;
+      if (program.error) throw program.error;
       return {
         passes: passes.data ?? [],
         organization: organization.data,
         branding: branding.data,
         settings: settings.data ?? [],
+        program: program.data,
       };
     },
   });
 
   useEffect(() => {
     if (!data) return;
+    const applySavedDesign = (nextDesign: WalletDesign) => {
+      lastSaved.current = JSON.stringify({ provider, design: nextDesign });
+      hydrated.current = true;
+      setDesign(nextDesign);
+    };
+    if (data.program?.mechanic_type === "stamps") {
+      const config = (data.program.mechanic_config ?? {}) as Record<string, unknown>;
+      const stampDesigns = (config.wallet_designs ?? {}) as Record<
+        WalletProvider,
+        Partial<WalletDesign> | undefined
+      >;
+      applySavedDesign({
+        ...defaultDesign,
+        ...stampDesigns[provider],
+        programName: data.program.public_name || data.organization.display_name || "Fideleo",
+        pointsLabel: "Sellos",
+        welcomeStamps: Number(config.welcome_stamps ?? 0),
+        stampReward: String(config.stamp_reward_name ?? "1 café"),
+        stampColor: String(config.stamp_color ?? "#000000"),
+        stampIcon: String(config.stamp_icon ?? "coffee"),
+        stampTarget: Math.min(20, Math.max(5, Number(config.stamp_target ?? 10))),
+      });
+      return;
+    }
     const providerDesigns = (data.branding?.wallet_provider_designs ?? {}) as Record<
       WalletProvider,
       Partial<WalletDesign> | undefined
     >;
     const savedDesign = providerDesigns[provider];
     if (savedDesign) {
-      setDesign({
+      applySavedDesign({
         ...defaultDesign,
         programName: data.organization.display_name ?? "Fideleo",
         ...savedDesign,
@@ -141,7 +237,7 @@ function WalletPage() {
     }
 
     if (provider === "apple") {
-      setDesign({
+      applySavedDesign({
         ...defaultDesign,
         backgroundColor: "#111111",
         programName: data.organization.display_name ?? "Fideleo",
@@ -149,7 +245,7 @@ function WalletPage() {
       return;
     }
 
-    setDesign({
+    applySavedDesign({
       backgroundColor:
         data.branding?.wallet_background_color ??
         data.branding?.primary_color ??
@@ -163,6 +259,8 @@ function WalletPage() {
       pointsLabel: data.branding?.wallet_points_label ?? defaultDesign.pointsLabel,
     });
   }, [data, provider]);
+
+  const isStampProgram = data?.program?.mechanic_type === "stamps";
 
   const passes = data?.passes ?? [];
   const providerSetting = data?.settings.find((setting) => setting.provider === provider);
@@ -314,12 +412,48 @@ function WalletPage() {
     }
   };
 
-  const saveDesign = async () => {
-    if (!orgId || !design.programName.trim() || !design.pointsLabel.trim()) {
-      toast.error(t("Completa el nombre del programa y la etiqueta de puntos"));
+  const saveDesign = async (snapshot = design) => {
+    if (!orgId || !snapshot.programName.trim() || !snapshot.pointsLabel.trim()) return;
+    setSaving(true);
+    if (isStampProgram && data?.program) {
+      const currentConfig = (data.program.mechanic_config ?? {}) as Record<string, unknown>;
+      const currentDesigns = (currentConfig.wallet_designs ?? {}) as Record<string, unknown>;
+      const { error } = await supabase
+        .from("loyalty_programs")
+        .update({
+          mechanic_config: {
+            ...currentConfig,
+            stamp_target: snapshot.stampTarget,
+            welcome_stamps: Math.min(
+              snapshot.stampTarget - 1,
+              Math.max(0, Math.round(snapshot.welcomeStamps)),
+            ),
+            stamp_icon: snapshot.stampIcon,
+            stamp_color: snapshot.stampColor,
+            wallet_designs: {
+              ...currentDesigns,
+              [provider]: {
+                ...snapshot,
+                programName: snapshot.programName.trim(),
+                pointsLabel: "Sellos",
+              },
+            },
+          },
+          initial_points: Math.min(
+            snapshot.stampTarget - 1,
+            Math.max(0, Math.round(snapshot.welcomeStamps)),
+          ),
+        })
+        .eq("id", data.program.id);
+      if (error) {
+        setSaving(false);
+        toast.error(t("No se pudo guardar"), { description: error.message });
+        return;
+      }
+      setSaving(false);
+      lastSaved.current = JSON.stringify({ provider, design: snapshot });
       return;
     }
-    setSaving(true);
     const storedDesigns = (data?.branding?.wallet_provider_designs ?? {}) as Record<
       string,
       Partial<WalletDesign>
@@ -329,19 +463,19 @@ function WalletPage() {
       wallet_provider_designs: {
         ...storedDesigns,
         [provider]: {
-          ...design,
-          programName: design.programName.trim(),
-          pointsLabel: design.pointsLabel.trim(),
+          ...snapshot,
+          programName: snapshot.programName.trim(),
+          pointsLabel: snapshot.pointsLabel.trim(),
         },
       },
       ...(provider === "google"
         ? {
-            wallet_background_color: design.backgroundColor,
-            wallet_text_color: design.textColor,
-            wallet_logo_url: design.logoUrl || null,
-            wallet_hero_url: design.heroUrl || null,
-            wallet_program_name: design.programName.trim(),
-            wallet_points_label: design.pointsLabel.trim(),
+            wallet_background_color: snapshot.backgroundColor,
+            wallet_text_color: snapshot.textColor,
+            wallet_logo_url: snapshot.logoUrl || null,
+            wallet_hero_url: snapshot.heroUrl || null,
+            wallet_program_name: snapshot.programName.trim(),
+            wallet_points_label: snapshot.pointsLabel.trim(),
           }
         : {}),
     };
@@ -361,15 +495,52 @@ function WalletPage() {
         toast.warning(t("Diseño guardado, pero Google Wallet no pudo actualizarse"), {
           description: syncResult?.error ?? syncError?.message,
         });
-        void refetch();
         return;
       }
     }
     setSaving(false);
-    toast.success(t("Diseño de Wallet actualizado para todas las tarjetas"));
-    void refetch();
+    lastSaved.current = JSON.stringify({ provider, design: snapshot });
+  };
+  const saveDesignRef = useRef(saveDesign);
+  saveDesignRef.current = saveDesign;
+
+  useEffect(() => {
+    if (!hydrated.current || !data || switching || uploading !== null || heroCrop) return;
+    const serialized = JSON.stringify({ provider, design });
+    if (serialized === lastSaved.current) return;
+    const timer = window.setTimeout(() => void saveDesignRef.current(design), 900);
+    return () => window.clearTimeout(timer);
+  }, [design, provider, data, switching, uploading, heroCrop]);
+
+  const changeMechanic = async (mechanic: ProgramMechanic) => {
+    if (!data?.program || !locationId || mechanic === (isStampProgram ? "stamps" : "points"))
+      return;
+    setSwitching(true);
+    try {
+      await setProgramMechanic(data.program.id, locationId, mechanic);
+      toast.success(
+        mechanic === "stamps" ? "Programa cambiado a Sellos" : "Programa cambiado a Puntos",
+      );
+      await refetch();
+    } catch (error) {
+      toast.error("No se pudo cambiar el tipo de programa", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSwitching(false);
+    }
   };
 
+  if (!locationId)
+    return (
+      <>
+        <PageHeader
+          title="Programa de fidelización"
+          description="Configuración por establecimiento."
+        />
+        <AdminScopeNotice action="personalizar el Wallet de ese establecimiento" />
+      </>
+    );
   if (isLoading) return <Skeleton className="h-96 rounded-xl" />;
 
   const imageField = (kind: "logoUrl" | "heroUrl", label: string, help: string) => (
@@ -498,10 +669,20 @@ function WalletPage() {
         </DialogContent>
       </Dialog>
       <PageHeader
-        title="Wallet"
+        title="Programa de fidelización"
         description={t("Consulta el uso de cada Wallet y personaliza el aspecto de las tarjetas.")}
       />
-      {isGlobal ? <AdminScopeNotice action="personalizar el Wallet de esa empresa" /> : null}
+      {data?.program ? (
+        <ProgramMechanicSwitch
+          value={isStampProgram ? "stamps" : "points"}
+          onChange={(value) => void changeMechanic(value)}
+          disabled={switching || saving}
+        />
+      ) : null}
+      <ModuleTabs tabs={loyaltyModuleTabs} />
+      {isGlobal || !locationId ? (
+        <AdminScopeNotice action="personalizar el Wallet de ese establecimiento" />
+      ) : null}
       <section className="surface p-3 sm:p-4">
         <div className="grid gap-2 sm:grid-cols-2">
           {(["google", "apple"] as const).map((walletProvider) => {
@@ -631,17 +812,13 @@ function WalletPage() {
               )}
             </p>
           </div>
-          <Button
-            disabled={isGlobal || saving || uploading !== null}
-            onClick={() => void saveDesign()}
-          >
-            {saving ? (
-              <LoaderCircle className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
-            {saving ? t("Guardando…") : t("Guardar diseño")}
-          </Button>
+          <span className="text-sm text-muted-foreground">
+            {uploading !== null
+              ? t("Subiendo…")
+              : saving
+                ? t("Guardando…")
+                : t("Guardado automático")}
+          </span>
         </div>
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.9fr)]">
           <section className="surface space-y-5 p-5 sm:p-6">
@@ -692,17 +869,72 @@ function WalletPage() {
                   />
                 </div>
               ) : null}
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="wallet-points-label">{t("Etiqueta del saldo")}</Label>
-                <Input
-                  id="wallet-points-label"
-                  maxLength={24}
-                  value={design.pointsLabel}
-                  onChange={(event) =>
-                    setDesign((current) => ({ ...current, pointsLabel: event.target.value }))
-                  }
-                />
-              </div>
+              {!isStampProgram ? (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="wallet-points-label">{t("Etiqueta del saldo")}</Label>
+                  <Input
+                    id="wallet-points-label"
+                    maxLength={24}
+                    value={design.pointsLabel}
+                    onChange={(event) =>
+                      setDesign((current) => ({ ...current, pointsLabel: event.target.value }))
+                    }
+                  />
+                </div>
+              ) : null}
+              {isStampProgram ? (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wallet-stamp-color">Color de los sellos</Label>
+                    <Input
+                      id="wallet-stamp-color"
+                      type="color"
+                      value={design.stampColor}
+                      onChange={(event) =>
+                        setDesign((current) => ({ ...current, stampColor: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wallet-welcome-stamps">Sellos al reclamar la tarjeta</Label>
+                    <Input
+                      id="wallet-welcome-stamps"
+                      type="number"
+                      min="0"
+                      max={design.stampTarget - 1}
+                      value={design.welcomeStamps}
+                      onChange={(event) =>
+                        setDesign((current) => ({
+                          ...current,
+                          welcomeStamps: Math.min(
+                            current.stampTarget - 1,
+                            Math.max(0, Number(event.target.value)),
+                          ),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Icono del sello</Label>
+                    <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+                      {stampIcons.map((icon) => (
+                        <button
+                          key={icon.id}
+                          type="button"
+                          aria-label={icon.label}
+                          title={icon.label}
+                          onClick={() =>
+                            setDesign((current) => ({ ...current, stampIcon: icon.id }))
+                          }
+                          className={`grid aspect-square place-items-center rounded-xl border transition ${design.stampIcon === icon.id ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "hover:bg-muted"}`}
+                        >
+                          <icon.Icon className="size-5" strokeWidth={1.8} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : null}
               <div className="sm:col-span-2">
                 {imageField("logoUrl", "Logo de la tarjeta", "PNG, JPG o WebP · máximo 5 MB.")}
               </div>
@@ -728,7 +960,12 @@ function WalletPage() {
                 {t("En tiempo real")}
               </span>
             </div>
-            {provider === "google" ? (
+            {isStampProgram ? (
+              <StampWalletPreview
+                design={design}
+                issuerName={data?.organization.display_name ?? "Fideleo"}
+              />
+            ) : provider === "google" ? (
               <GoogleWalletPreview
                 design={design}
                 issuerName={data?.organization.display_name ?? "Fideleo"}
@@ -747,6 +984,103 @@ function WalletPage() {
         </div>
       </section>
     </>
+  );
+}
+
+function StampWalletPreview({ design, issuerName }: { design: WalletDesign; issuerName: string }) {
+  const [qrUrl, setQrUrl] = useState("");
+  const textColor = walletContrastColor(design.backgroundColor);
+  const StampIcon = stampIcons.find((item) => item.id === design.stampIcon)?.Icon ?? Check;
+  const stampTarget = Math.min(20, Math.max(5, Math.round(design.stampTarget)));
+  const completed = Math.min(stampTarget - 1, Math.max(0, Math.round(design.welcomeStamps)));
+
+  useEffect(() => {
+    let mounted = true;
+    void qrPngDataUrl("F7D4K2", "#000000").then((url) => {
+      if (mounted) setQrUrl(url);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-md rounded-[2rem] bg-[#eef2f7] p-3 shadow-inner ring-1 ring-black/5 sm:p-5 dark:bg-[#17191d] dark:ring-white/10">
+      <div className="mb-3 flex items-center justify-between px-1 text-[#3c4043] dark:text-[#e8eaed]">
+        <span className="text-sm font-semibold">Tarjeta de sellos</span>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide dark:bg-white/10">
+          Vista previa
+        </span>
+      </div>
+      <div className="overflow-hidden rounded-[1.35rem] bg-white text-black shadow-xl ring-1 ring-black/10">
+        <div
+          className="flex items-center gap-3 p-5"
+          style={{ backgroundColor: design.backgroundColor, color: textColor }}
+        >
+          <div className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/90 text-sm font-bold text-neutral-900">
+            {design.logoUrl ? (
+              <img
+                src={design.logoUrl}
+                alt="Logo del programa"
+                className="size-full object-contain p-1"
+              />
+            ) : (
+              (design.programName || issuerName).slice(0, 1).toUpperCase()
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs opacity-70">{issuerName}</p>
+            <p className="truncate font-semibold">{design.programName || issuerName}</p>
+          </div>
+        </div>
+        <div
+          className="grid gap-3 p-5 sm:gap-4"
+          style={{ gridTemplateColumns: `repeat(${Math.min(5, stampTarget)}, minmax(0, 1fr))` }}
+        >
+          {Array.from({ length: stampTarget }, (_, index) => {
+            const filled = index < completed;
+            return (
+              <div
+                key={index}
+                className="grid aspect-square place-items-center rounded-full border-2 text-lg font-bold sm:text-xl"
+                style={{
+                  borderColor: design.stampColor,
+                  backgroundColor: filled ? design.stampColor : "transparent",
+                  color: filled ? walletContrastColor(design.stampColor) : design.stampColor,
+                }}
+              >
+                <StampIcon className="size-5" strokeWidth={2} />
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-end justify-between gap-4 border-t px-5 py-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Recompensa
+            </p>
+            <p className="mt-1 font-semibold">{design.stampReward || "1 café"}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Sellos
+            </p>
+            <p className="mt-1 font-semibold">
+              {completed} / {stampTarget}
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-center border-t p-5">
+          <div className="rounded-xl bg-white p-2 ring-1 ring-black/5">
+            {qrUrl ? (
+              <img src={qrUrl} alt="Código QR de ejemplo" className="size-28" />
+            ) : (
+              <QrCode className="size-28" />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

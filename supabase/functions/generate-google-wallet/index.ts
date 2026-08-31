@@ -110,7 +110,10 @@ const first = async <T>(url: string, headers: Record<string, string>) => {
 
 // Google Wallet must display the loyalty balance as points, never as money.
 // The earning mechanic controls how points accrue, not how the balance is labelled.
-const pointsBalance = (balance: number) => String(balance);
+const pointsBalance = (balance: number, mechanicType: string, stampTarget = 10) =>
+  mechanicType === "stamps"
+    ? `${Math.max(0, Math.round(balance))} / ${Math.min(20, Math.max(5, Math.round(stampTarget)))}`
+    : String(balance);
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -169,8 +172,12 @@ Deno.serve(async (request) => {
         `${supabaseUrl}/rest/v1/organization_branding?organization_id=eq.${membership.organization_id}&select=wallet_background_color,wallet_logo_url,wallet_hero_url,wallet_program_name,wallet_points_label,logo_url,primary_color&limit=1`,
         dbHeaders,
       ),
-      first<{ mechanic_type: string; public_name: string }>(
-        `${supabaseUrl}/rest/v1/loyalty_programs?id=eq.${membership.program_id}&select=mechanic_type,public_name&limit=1`,
+      first<{
+        mechanic_type: string;
+        public_name: string;
+        mechanic_config: Record<string, unknown>;
+      }>(
+        `${supabaseUrl}/rest/v1/loyalty_programs?id=eq.${membership.program_id}&select=mechanic_type,public_name,mechanic_config&limit=1`,
         dbHeaders,
       ),
       first<{ short_code: string }>(
@@ -267,7 +274,13 @@ Deno.serve(async (request) => {
         label:
           branding?.wallet_points_label ||
           (program.mechanic_type === "stamps" ? "Sellos" : "Puntos"),
-        balance: { string: pointsBalance(membership.cached_points_balance) },
+        balance: {
+          string: pointsBalance(
+            membership.cached_points_balance,
+            program.mechanic_type,
+            Number(program.mechanic_config?.stamp_target ?? 10),
+          ),
+        },
       },
     };
 
