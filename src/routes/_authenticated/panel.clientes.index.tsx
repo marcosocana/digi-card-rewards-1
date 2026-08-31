@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Users } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/page-header";
@@ -9,10 +9,9 @@ import { EmptyState } from "@/components/app/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminScope } from "@/lib/session";
-import { dateOnly, num } from "@/lib/format";
+import { num } from "@/lib/format";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +43,12 @@ function ClientesPage() {
   } = useAdminScope();
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{
+    column: "name" | "email" | "location" | "points";
+    ascending: boolean;
+  }>({ column: "name", ascending: true });
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -64,6 +69,11 @@ function ClientesPage() {
       (!isSuperadmin ||
         !effectiveOrganizationId ||
         location.organizationId === effectiveOrganizationId) &&
+      (!selectedLocationIds.length || selectedLocationIds.includes(location.id)),
+  );
+  const listLocations = (session?.locations ?? []).filter(
+    (location) =>
+      (!orgId || location.organizationId === orgId) &&
       (!selectedLocationIds.length || selectedLocationIds.includes(location.id)),
   );
 
@@ -88,45 +98,80 @@ function ClientesPage() {
     },
   });
 
+  const pageSize = 50;
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["memberships", orgId, isSuperadmin, [...selectedLocationIds].sort().join(",")],
+    queryKey: [
+      "memberships",
+      orgId,
+      isSuperadmin,
+      [...selectedLocationIds].sort().join(","),
+      term,
+      locationFilter,
+      page,
+      sort.column,
+      sort.ascending,
+    ],
     enabled: Boolean(session && (orgId || isSuperadmin)),
     queryFn: async () => {
       let query = supabase
         .from("memberships")
         .select(
-          "id, public_id, cached_points_balance, status, joined_at, acquisition_location_id, acquisition_source_id, customers(first_name, last_name, email), organizations(display_name), locations(name)",
+          "id, public_id, cached_points_balance, status, acquisition_location_id, customers!inner(first_name, last_name, email), organizations(display_name), locations(name)",
+          { count: "exact" },
         )
-        .order("joined_at", { ascending: false })
-        .limit(500);
+        .range(page * pageSize, page * pageSize + pageSize - 1);
       if (orgId) query = query.eq("organization_id", orgId);
       if (selectedLocationIds.length) {
         query = query.in("acquisition_location_id", selectedLocationIds);
       }
-      const { data, error } = await query;
+      if (locationFilter !== "all") {
+        query = query.eq("acquisition_location_id", locationFilter);
+      }
+      const cleanTerm = term.trim().replace(/[,%()]/g, " ");
+      if (cleanTerm) {
+        query = query.or(
+          `first_name.ilike.%${cleanTerm}%,last_name.ilike.%${cleanTerm}%,email.ilike.%${cleanTerm}%`,
+          { referencedTable: "customers" },
+        );
+      }
+      if (sort.column === "name") {
+        query = query
+          .order("first_name", { ascending: sort.ascending, referencedTable: "customers" })
+          .order("last_name", { ascending: sort.ascending, referencedTable: "customers" });
+      } else if (sort.column === "email") {
+        query = query.order("email", {
+          ascending: sort.ascending,
+          referencedTable: "customers",
+        });
+      } else if (sort.column === "location") {
+        query = query.order("name", {
+          ascending: sort.ascending,
+          referencedTable: "locations",
+        });
+      } else {
+        query = query.order("cached_points_balance", { ascending: sort.ascending });
+      }
+      query = query.order("id", { ascending: true });
+      const { data: rows, error, count } = await query;
       if (error) throw error;
-      const sourceIds = [
-        ...new Set((data ?? []).map((item) => item.acquisition_source_id).filter(Boolean)),
-      ] as string[];
-      const { data: sources, error: sourcesError } = sourceIds.length
-        ? await supabase.from("acquisition_sources").select("id,name").in("id", sourceIds)
-        : { data: [], error: null };
-      if (sourcesError) throw sourcesError;
-      const sourceNames = new Map((sources ?? []).map((source) => [source.id, source.name]));
-      return (data ?? []).map((item) => ({
-        ...item,
-        acquisition_source_name: item.acquisition_source_id
-          ? (sourceNames.get(item.acquisition_source_id) ?? null)
-          : null,
-      }));
+      return { rows: rows ?? [], count: count ?? 0 };
     },
   });
 
-  const filtered = (data ?? []).filter((m) => {
-    const c = m.customers as { first_name: string; last_name: string | null; email: string } | null;
-    const hay = `${c?.first_name ?? ""} ${c?.last_name ?? ""} ${c?.email ?? ""}`.toLowerCase();
-    return hay.includes(term.toLowerCase());
-  });
+  useEffect(() => {
+    setPage(0);
+  }, [term, locationFilter, sort.column, sort.ascending]);
+
+  const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / pageSize));
+  useEffect(() => {
+    if (page >= totalPages) setPage(totalPages - 1);
+  }, [page, totalPages]);
+  const toggleSort = (column: typeof sort.column) => {
+    setSort((current) => ({
+      column,
+      ascending: current.column === column ? !current.ascending : true,
+    }));
+  };
 
   const createCustomer = async () => {
     const program = locationPrograms?.find((item) => item.location_id === form.locationId);
@@ -307,17 +352,32 @@ function ClientesPage() {
         }
       />
 
-      <div className="relative">
-        <Search
-          aria-hidden
-          className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          className="pl-9"
-          placeholder="Buscar por nombre o email"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-        />
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="relative">
+          <Search
+            aria-hidden
+            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por nombre o email"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+          />
+        </div>
+        <Select value={locationFilter} onValueChange={setLocationFilter}>
+          <SelectTrigger aria-label="Filtrar por establecimiento">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los establecimientos</SelectItem>
+            {listLocations.map((location) => (
+              <SelectItem key={location.id} value={location.id}>
+                {location.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -326,49 +386,119 @@ function ClientesPage() {
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : !data?.rows.length ? (
         <EmptyState
           icon={<Users className="size-8" />}
           title="Sin clientes todavía"
           description="Comparte el QR de captación de tus establecimientos para empezar a sumar miembros."
         />
       ) : (
-        <div className="surface divide-y overflow-hidden">
-          {filtered.map((m) => {
-            const c = m.customers as {
-              first_name: string;
-              last_name: string | null;
-              email: string;
-            } | null;
-            return (
-              <Link
-                key={m.id}
-                to="/panel/clientes/$membershipId"
-                params={{ membershipId: m.id }}
-                className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-secondary"
+        <div className="surface overflow-hidden">
+          <table className="w-full table-fixed border-collapse">
+            <thead className="border-b bg-secondary/60">
+              <tr>
+                {(
+                  [
+                    ["name", "Nombre", "w-[27%]"],
+                    ["email", "Mail", "w-[32%]"],
+                    ["location", "Establecimiento", "w-[27%]"],
+                    ["points", "Puntos", "w-[14%] text-right"],
+                  ] as const
+                ).map(([column, label, className]) => (
+                  <th key={column} scope="col" className={`px-2 py-3 sm:px-4 ${className}`}>
+                    <button
+                      type="button"
+                      className={`inline-flex max-w-full items-center gap-1 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground sm:text-xs ${column === "points" ? "justify-end" : ""}`}
+                      onClick={() => toggleSort(column)}
+                    >
+                      <span className="truncate">{label}</span>
+                      <ArrowUpDown aria-hidden className="size-3 shrink-0" />
+                    </button>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {data.rows.map((membership) => {
+                const customer = membership.customers as {
+                  first_name: string;
+                  last_name: string | null;
+                  email: string;
+                } | null;
+                const detailLink = {
+                  to: "/panel/clientes/$membershipId" as const,
+                  params: { membershipId: membership.id },
+                };
+                return (
+                  <tr key={membership.id} className="transition-colors hover:bg-secondary/60">
+                    <td className="px-2 py-3 sm:px-4">
+                      <Link
+                        {...detailLink}
+                        className="block truncate text-xs font-medium sm:text-sm"
+                      >
+                        {`${customer?.first_name ?? ""} ${customer?.last_name ?? ""}`.trim() ||
+                          "Sin nombre"}
+                      </Link>
+                      {isSuperadmin ? (
+                        <span className="block truncate text-[10px] text-muted-foreground sm:text-xs">
+                          {(membership.organizations as { display_name: string } | null)
+                            ?.display_name ?? "Sin empresa"}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-2 py-3 sm:px-4">
+                      <Link
+                        {...detailLink}
+                        className="block truncate text-[11px] text-muted-foreground sm:text-sm"
+                      >
+                        {customer?.email ?? "—"}
+                      </Link>
+                    </td>
+                    <td className="px-2 py-3 sm:px-4">
+                      <span className="block truncate text-[11px] sm:text-sm">
+                        {(membership.locations as { name: string } | null)?.name ?? "Sin asignar"}
+                      </span>
+                    </td>
+                    <td className="px-2 py-3 text-right font-mono text-xs font-semibold sm:px-4 sm:text-sm">
+                      {num(membership.cached_points_balance)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-3 sm:px-4">
+            <p className="text-xs text-muted-foreground">
+              {data.count
+                ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, data.count)} de ${data.count}`
+                : "0 clientes"}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((current) => Math.max(0, current - 1))}
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {c?.first_name} {c?.last_name ?? ""}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {c?.email} · alta {dateOnly(m.joined_at)}
-                    {isSuperadmin
-                      ? ` · ${(m.organizations as { display_name: string } | null)?.display_name ?? "Sin empresa"}`
-                      : ""}
-                    {` · ${(m.locations as { name: string } | null)?.name ?? "Sin establecimiento"}`}
-                    {m.acquisition_source_name ? ` · vía ${m.acquisition_source_name}` : ""}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {m.status !== "active" ? <Badge variant="outline">{m.status}</Badge> : null}
-                  <span className="font-mono text-sm font-semibold">
-                    {num(m.cached_points_balance)} pts
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+                <ChevronLeft aria-hidden className="size-4" />
+                <span className="hidden sm:inline">Anterior</span>
+              </Button>
+              <span className="min-w-16 text-center text-xs text-muted-foreground">
+                {page + 1} / {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page + 1 >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+              >
+                <span className="hidden sm:inline">Siguiente</span>
+                <ChevronRight aria-hidden className="size-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </>

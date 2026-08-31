@@ -230,7 +230,6 @@ function CaptacionPage() {
     <>
       <PageHeader
         title="Programa de fidelización"
-        description="Configura la página pública desde la que tus clientes se unen al club."
         actions={
           <span className="text-sm text-muted-foreground">
             {uploadingAsset !== null

@@ -76,13 +76,12 @@ function RecompensasPage() {
       if (locationId) programsQuery = programsQuery.eq("program_locations.location_id", locationId);
       const { data: programs, error: programsError } = await programsQuery;
       if (programsError) throw programsError;
-      if (!programs?.length)
-        return { programId: null, mechanicType: "points", stampTarget: 10, rewards: [] };
+      if (!programs?.length) return { programId: null, mechanicType: "points", rewards: [] };
       const programById = new Map(programs.map((program) => [program.id, program]));
       let rewardsQuery = supabase
         .from("rewards")
         .select(
-          "id, name, description, points_cost, status, program_id,redemption_limit_type,redemption_limit_count,reward_locations!inner(location_id)",
+          "id, name, description, points_cost, status, program_id, mechanic_type,redemption_limit_type,redemption_limit_count,reward_locations!inner(location_id)",
         )
         .in(
           "program_id",
@@ -90,24 +89,17 @@ function RecompensasPage() {
         )
         .order("points_cost");
       if (locationId) rewardsQuery = rewardsQuery.eq("reward_locations.location_id", locationId);
+      if (programs.length === 1) {
+        rewardsQuery = rewardsQuery.eq(
+          "mechanic_type",
+          programs[0].mechanic_type === "stamps" ? "stamps" : "points",
+        );
+      }
       const { data: rewards, error } = await rewardsQuery;
       if (error) throw error;
       return {
         programId: programs.length === 1 ? programs[0].id : null,
         mechanicType: programs.length === 1 ? programs[0].mechanic_type : "points",
-        stampTarget:
-          programs.length === 1
-            ? Math.min(
-                20,
-                Math.max(
-                  5,
-                  Number(
-                    ((programs[0].mechanic_config ?? {}) as Record<string, unknown>).stamp_target ??
-                      10,
-                  ),
-                ),
-              )
-            : 10,
         rewards: (rewards ?? []).map((reward) => ({
           ...reward,
           organizationName: (
@@ -142,6 +134,7 @@ function RecompensasPage() {
         .from("rewards")
         .update({ status: "paused" })
         .eq("program_id", data.programId)
+        .eq("mechanic_type", "stamps")
         .eq("status", "active");
       if (paused.error) {
         toast.error("No se pudo cambiar la recompensa activa", {
@@ -156,7 +149,8 @@ function RecompensasPage() {
         program_id: data.programId,
         name: form.name.trim(),
         description: form.description.trim() || null,
-        points_cost: isStamps ? data.stampTarget : form.points_cost,
+        mechanic_type: isStamps ? "stamps" : "points",
+        points_cost: isStamps ? 1 : form.points_cost,
         redemption_limit_type: isStamps
           ? "unlimited"
           : form.limitType === "once"
@@ -206,6 +200,7 @@ function RecompensasPage() {
         .from("rewards")
         .update({ status: "paused" })
         .eq("program_id", data.programId)
+        .eq("mechanic_type", "stamps")
         .neq("id", id)
         .eq("status", "active");
       if (pauseError) {
@@ -248,11 +243,6 @@ function RecompensasPage() {
     <>
       <PageHeader
         title="Programa de fidelización"
-        description={
-          data?.mechanicType === "stamps"
-            ? `Crea varias recompensas y elige cuál estará activa al completar ${data.stampTarget} sellos.`
-            : "Catálogo canjeable por puntos en este establecimiento."
-        }
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -320,24 +310,18 @@ function RecompensasPage() {
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rp">
-                    {data?.mechanicType === "stamps" ? "Sellos necesarios" : "Coste en puntos"}
-                  </Label>
-                  <Input
-                    id="rp"
-                    type="number"
-                    min="1"
-                    value={data?.mechanicType === "stamps" ? data.stampTarget : form.points_cost}
-                    disabled={data?.mechanicType === "stamps"}
-                    onChange={(e) => setForm({ ...form, points_cost: Number(e.target.value) })}
-                  />
-                  {data?.mechanicType === "stamps" ? (
-                    <p className="text-xs text-muted-foreground">
-                      Valor definido por el programa: {data?.stampTarget} sellos.
-                    </p>
-                  ) : null}
-                </div>
+                {data?.mechanicType !== "stamps" ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rp">Coste en puntos</Label>
+                    <Input
+                      id="rp"
+                      type="number"
+                      min="1"
+                      value={form.points_cost}
+                      onChange={(e) => setForm({ ...form, points_cost: Number(e.target.value) })}
+                    />
+                  </div>
+                ) : null}
               </div>
               <DialogFooter>
                 <Button onClick={() => void create()}>Crear</Button>
@@ -365,9 +349,11 @@ function RecompensasPage() {
             <div key={r.id} className="surface flex flex-col gap-2 p-5">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-display text-lg font-semibold">{r.name}</h2>
-                <Badge variant="secondary" className="shrink-0 font-mono">
-                  {num(r.points_cost)} {data.mechanicType === "stamps" ? "sellos" : "pts"}
-                </Badge>
+                {data.mechanicType !== "stamps" ? (
+                  <Badge variant="secondary" className="shrink-0 font-mono">
+                    {num(r.points_cost)} pts
+                  </Badge>
+                ) : null}
               </div>
               {r.description ? (
                 <p className="text-sm text-muted-foreground">{r.description}</p>

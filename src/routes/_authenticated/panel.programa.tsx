@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAdminScope } from "@/lib/session";
-import { ruleText } from "@/lib/format";
 import { setProgramMechanic } from "@/lib/loyalty-program";
 
 export const Route = createFileRoute("/_authenticated/panel/programa")({ component: ProgramaPage });
@@ -162,17 +161,6 @@ function ProgramaPage() {
       toast.error("No se pudo guardar", { description: result.error.message });
       return;
     }
-    if (isStamps) {
-      const rewards = await supabase
-        .from("rewards")
-        .update({ points_cost: mechanicConfig.stamp_target })
-        .eq("program_id", data.id);
-      if (rewards.error) {
-        toast.error("El programa se guardó, pero no se actualizaron las recompensas", {
-          description: rewards.error.message,
-        });
-      }
-    }
     lastSaved.current = JSON.stringify(snapshot);
     setSaving(false);
   };
@@ -208,19 +196,7 @@ function ProgramaPage() {
 
   return (
     <>
-      <PageHeader
-        title="Programa de fidelización"
-        description={
-          form.mechanic_type === "stamps"
-            ? `${form.mechanic_config.stamps_per_purchase} sello${form.mechanic_config.stamps_per_purchase === 1 ? "" : "s"} por compra · ${form.mechanic_config.stamp_target} sellos = 1 recompensa`
-            : ruleText(form.earning_mode, form.earning_value)
-        }
-        actions={
-          <span className="text-sm text-muted-foreground">
-            {saving ? "Guardando…" : "Guardado automático"}
-          </span>
-        }
-      />
+      <PageHeader title="Programa de fidelización" />
       <ProgramMechanicSwitch
         value={form.mechanic_type}
         onChange={(value) => void changeMechanic(value)}

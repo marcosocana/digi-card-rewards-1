@@ -185,7 +185,10 @@ function PortalPage() {
     );
   const mechanic = data.program.mechanic_type ?? "points";
   const mechanicConfig = (data.program.mechanic_config ?? {}) as Record<string, unknown>;
-  const stampTarget = 10;
+  const stampTarget = Math.min(
+    20,
+    Math.max(5, Math.round(Number(mechanicConfig.stamp_target ?? 10))),
+  );
   const stampBalance = Math.min(stampTarget, Math.max(0, Math.round(data.membership.balance)));
   const stampSymbol: Record<string, string> = {
     coffee: "☕",
@@ -355,9 +358,9 @@ function PortalPage() {
                   ) : null}
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-xs text-muted-foreground">
-                    {num(r.points_cost)} {mechanic === "stamps" ? "sellos" : "pts"}
-                  </p>
+                  {mechanic !== "stamps" ? (
+                    <p className="text-xs text-muted-foreground">{num(r.points_cost)} pts</p>
+                  ) : null}
                   {r.available ? (
                     <p className="text-sm font-medium text-emerald-600">Disponible</p>
                   ) : (

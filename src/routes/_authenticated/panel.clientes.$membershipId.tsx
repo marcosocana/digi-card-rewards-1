@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Gift,
   SlidersHorizontal,
-  Wallet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -33,12 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/lib/session";
 import { dateTime, eur, num, txnLabel } from "@/lib/format";
-import {
-  adjustPoints,
-  redeemReward,
-  requestWalletUpdate,
-  syncGoogleWallet,
-} from "@/lib/operations";
+import { adjustPoints, redeemReward, syncGoogleWallet } from "@/lib/operations";
 
 export const Route = createFileRoute("/_authenticated/panel/clientes/$membershipId")({
   component: ClienteDetalle,
@@ -71,7 +65,7 @@ function ClienteDetalle() {
         supabase
           .from("memberships")
           .select(
-            "id, public_id, program_id, cached_points_balance, status, joined_at, acquisition_location_id, customers(first_name, last_name, email, phone)",
+            "id, public_id, program_id, cached_points_balance, status, joined_at, acquisition_location_id, customers(first_name, last_name, email, phone), loyalty_programs(mechanic_type,mechanic_config)",
           )
           .eq("id", membershipId)
           .maybeSingle(),
@@ -97,13 +91,16 @@ function ClienteDetalle() {
       if (p.error) throw p.error;
       if (deliveries.error) throw deliveries.error;
 
+      const mechanic = m.data?.loyalty_programs?.mechanic_type === "stamps" ? "stamps" : "points";
+
       const rewardsResult = m.data?.program_id
         ? await supabase
             .from("rewards")
             .select(
-              "id,name,description,points_cost,status,redemption_limit_type,redemption_limit_count,reward_locations(location_id)",
+              "id,name,description,points_cost,status,mechanic_type,redemption_limit_type,redemption_limit_count,reward_locations(location_id)",
             )
             .eq("program_id", m.data.program_id)
+            .eq("mechanic_type", mechanic)
             .order("points_cost")
         : { data: [], error: null };
       if (rewardsResult.error) throw rewardsResult.error;
@@ -115,6 +112,9 @@ function ClienteDetalle() {
             .in("reward_id", rewardIds)
         : { data: [], error: null };
       if (redemptionsResult.error) throw redemptionsResult.error;
+      const segmentsResult = await supabase.rpc("get_membership_segments", {
+        _membership_id: membershipId,
+      });
       return {
         membership: m.data,
         transactions: t.data ?? [],
@@ -122,6 +122,7 @@ function ClienteDetalle() {
         rewards: rewardsResult.data ?? [],
         redemptions: redemptionsResult.data ?? [],
         deliveries: deliveries.data ?? [],
+        segments: segmentsResult.error ? [] : (segmentsResult.data ?? []),
       };
     },
   });
@@ -161,18 +162,6 @@ function ClienteDetalle() {
     }
   };
 
-  const syncWallet = async () => {
-    try {
-      await requestWalletUpdate(membershipId);
-      const result = await syncGoogleWallet(membershipId);
-      if (result.synced) toast.success("Tarjeta de Google Wallet actualizada");
-      else toast.info("Este cliente todavía no tiene una tarjeta de Google Wallet instalada");
-      void refetch();
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  };
-
   const exportData = async () => {
     const { data: result, error } = await supabase.rpc("export_customer_data", {
       _membership_id: membershipId,
@@ -188,25 +177,41 @@ function ClienteDetalle() {
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;");
-    const rows: Array<[string, unknown]> = [];
-    for (const [section, value] of Object.entries(payload)) {
-      if (Array.isArray(value)) {
-        rows.push([section.toUpperCase(), ""]);
-        value.forEach((item, index) =>
-          rows.push([`${index + 1}`, typeof item === "object" ? JSON.stringify(item) : item]),
-        );
-      } else if (value && typeof value === "object") {
-        rows.push([section.toUpperCase(), ""]);
-        Object.entries(value as Record<string, unknown>).forEach(([key, item]) =>
-          rows.push([key, typeof item === "object" ? JSON.stringify(item) : item]),
-        );
-      } else {
-        rows.push([section, value]);
-      }
-    }
-    const workbook = `<!doctype html><html><head><meta charset="utf-8"></head><body><table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody>${rows
-      .map(([key, value]) => `<tr><td>${escape(key)}</td><td>${escape(value)}</td></tr>`)
-      .join("")}</tbody></table></body></html>`;
+    const displayValue = (value: unknown) =>
+      value && typeof value === "object" ? JSON.stringify(value) : value;
+    const sections = Object.entries(payload)
+      .map(([section, value]) => {
+        if (Array.isArray(value)) {
+          const records = value.map((item) =>
+            item && typeof item === "object" ? (item as Record<string, unknown>) : { valor: item },
+          );
+          const columns = [...new Set(records.flatMap((record) => Object.keys(record)))];
+          return `<h2>${escape(section)}</h2><table><thead><tr>${columns
+            .map((column) => `<th>${escape(column)}</th>`)
+            .join("")}</tr></thead><tbody>${records
+            .map(
+              (record) =>
+                `<tr>${columns
+                  .map((column) => `<td>${escape(displayValue(record[column]))}</td>`)
+                  .join("")}</tr>`,
+            )
+            .join("")}</tbody></table>`;
+        }
+        const record =
+          value && typeof value === "object"
+            ? (value as Record<string, unknown>)
+            : { valor: value };
+        return `<h2>${escape(section)}</h2><table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody>${Object.entries(
+          record,
+        )
+          .map(
+            ([key, item]) =>
+              `<tr><td>${escape(key)}</td><td>${escape(displayValue(item))}</td></tr>`,
+          )
+          .join("")}</tbody></table>`;
+      })
+      .join("");
+    const workbook = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;color:#111}h2{margin:24px 0 8px;text-transform:capitalize}table{border-collapse:collapse;margin-bottom:18px}th{background:#f2f2f2;font-weight:700}th,td{border:1px solid #ccc;padding:7px 10px;text-align:left;vertical-align:top;white-space:nowrap}</style></head><body>${sections}</body></html>`;
     const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel" });
     const href = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -253,6 +258,15 @@ function ClienteDetalle() {
     email: string;
     phone: string | null;
   } | null;
+  const program = m.loyalty_programs as {
+    mechanic_type: string;
+    mechanic_config: Record<string, unknown> | null;
+  } | null;
+  const isStampProgram = program?.mechanic_type === "stamps";
+  const stampTarget = Math.min(
+    20,
+    Math.max(5, Math.round(Number(program?.mechanic_config?.stamp_target ?? 10))),
+  );
   const parsedDelta = parsePointsDelta(delta);
   const roundedDelta = Number.isFinite(parsedDelta) ? roundPointsDelta(parsedDelta) : null;
   const validDelta =
@@ -292,6 +306,18 @@ function ClienteDetalle() {
               {[c?.email, c?.phone].filter(Boolean).join(" · ")}
             </p>
           ) : null}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Segmentos:</span>
+            {data.segments.length ? (
+              data.segments.map((segment) => (
+                <Badge key={segment.id} variant="secondary">
+                  {segment.name}
+                </Badge>
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground">Sin segmentos</span>
+            )}
+          </div>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -305,9 +331,6 @@ function ClienteDetalle() {
                 <Download /> Exportar datos
               </DropdownMenuItem>
             ) : null}
-            <DropdownMenuItem onSelect={() => void syncWallet()}>
-              <Wallet /> Actualizar tarjeta
-            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a href={`/mi-tarjeta/${m.public_id}`} target="_blank" rel="noreferrer">
                 <ExternalLink /> Ver portal
@@ -328,9 +351,6 @@ function ClienteDetalle() {
             <Download aria-hidden className="size-4" /> Exportar datos
           </Button>
         ) : null}
-        <Button variant="outline" onClick={() => void syncWallet()}>
-          <Wallet aria-hidden className="size-4" /> Actualizar tarjeta
-        </Button>
         <Button asChild variant="outline">
           <a href={`/mi-tarjeta/${m.public_id}`} target="_blank" rel="noreferrer">
             <ExternalLink aria-hidden className="size-4" /> Ver portal
@@ -434,7 +454,8 @@ function ClienteDetalle() {
               const globalLimitReached =
                 reward.redemption_limit_type === "global" &&
                 globalCount >= (reward.redemption_limit_count ?? 0);
-              const hasPoints = m.cached_points_balance >= reward.points_cost;
+              const redemptionCost = isStampProgram ? stampTarget : reward.points_cost;
+              const hasPoints = m.cached_points_balance >= redemptionCost;
               const available =
                 reward.status === "active" &&
                 Boolean(m.acquisition_location_id) &&
@@ -452,7 +473,7 @@ function ClienteDetalle() {
                       : globalLimitReached
                         ? "Límite global alcanzado"
                         : !hasPoints
-                          ? `Faltan ${num(reward.points_cost - m.cached_points_balance)} puntos`
+                          ? `Faltan ${num(redemptionCost - m.cached_points_balance)} ${isStampProgram ? "sellos" : "puntos"}`
                           : null;
               return (
                 <li
@@ -462,9 +483,11 @@ function ClienteDetalle() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold">{reward.name}</p>
-                      <Badge variant="outline" className="font-mono">
-                        {num(reward.points_cost)} pts
-                      </Badge>
+                      {!isStampProgram ? (
+                        <Badge variant="outline" className="font-mono">
+                          {num(reward.points_cost)} pts
+                        </Badge>
+                      ) : null}
                     </div>
                     {reward.description ? (
                       <p className="mt-1 text-xs text-muted-foreground">{reward.description}</p>
@@ -519,8 +542,9 @@ function ClienteDetalle() {
           <DialogHeader>
             <DialogTitle>Confirmar canje</DialogTitle>
             <DialogDescription>
-              ¿Quieres canjear “{rewardToRedeem?.name ?? "Recompensa"}”? Se descontarán{" "}
-              {num(rewardToRedeem?.points_cost ?? 0)} puntos del saldo del cliente.
+              {isStampProgram
+                ? `¿Quieres canjear “${rewardToRedeem?.name ?? "Recompensa"}”? Se completará la tarjeta de sellos del cliente.`
+                : `¿Quieres canjear “${rewardToRedeem?.name ?? "Recompensa"}”? Se descontarán ${num(rewardToRedeem?.points_cost ?? 0)} puntos del saldo del cliente.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

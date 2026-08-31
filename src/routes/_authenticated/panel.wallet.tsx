@@ -668,10 +668,7 @@ function WalletPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <PageHeader
-        title="Programa de fidelización"
-        description={t("Consulta el uso de cada Wallet y personaliza el aspecto de las tarjetas.")}
-      />
+      <PageHeader title="Programa de fidelización" />
       {data?.program ? (
         <ProgramMechanicSwitch
           value={isStampProgram ? "stamps" : "points"}

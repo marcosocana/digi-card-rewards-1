@@ -2380,6 +2380,7 @@ export type Database = {
           ends_at: string | null;
           id: string;
           image_url: string | null;
+          mechanic_type: string;
           name: string;
           points_cost: number;
           program_id: string;
@@ -2398,6 +2399,7 @@ export type Database = {
           ends_at?: string | null;
           id?: string;
           image_url?: string | null;
+          mechanic_type?: string;
           name: string;
           points_cost: number;
           program_id: string;
@@ -2416,6 +2418,7 @@ export type Database = {
           ends_at?: string | null;
           id?: string;
           image_url?: string | null;
+          mechanic_type?: string;
           name?: string;
           points_cost?: number;
           program_id?: string;
@@ -2735,6 +2738,10 @@ export type Database = {
         Returns: string;
       };
       export_customer_data: { Args: { _membership_id: string }; Returns: Json };
+      get_membership_segments: {
+        Args: { _membership_id: string };
+        Returns: { id: string; name: string }[];
+      };
       get_membership_portal: { Args: { _public_id: string }; Returns: Json };
       get_wallet_install_state: {
         Args: {
