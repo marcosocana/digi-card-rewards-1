@@ -232,6 +232,8 @@ function AuthPage() {
     void finishOAuth();
     const timeout = window.setTimeout(() => {
       if (cancelled || welcomeHandled.current) return;
+      window.localStorage.removeItem("fideleo:google-oauth-intent");
+      window.localStorage.removeItem("fideleo:google-oauth-next");
       setOauthLoading(null);
       toast.error("No hemos podido completar el acceso con Google", {
         description: "No se ha recibido una sesión válida. Vuelve a intentarlo.",
