@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import type { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { getGoogleOAuthClient, supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { sendTransactionalEmail } from "@/lib/transactional-email";
+import { fetchSessionInfo, sessionQueryKey } from "@/lib/session";
 
 const isEnabledSearchFlag = (value: unknown) =>
   value === true || value === 1 || value === "1" || value === "true";
@@ -154,6 +155,8 @@ const needsGoogleRegistrationDetails = async (user: User) => {
 
 function AuthPage() {
   const search = Route.useSearch();
+  const router = useRouter();
+  const queryClient = router.options.context.queryClient;
   const destination = search.next;
   const welcomeHandled = useRef(false);
   const demoHandled = useRef(false);
@@ -173,6 +176,19 @@ function AuthPage() {
   const [accountExists, setAccountExists] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"signin" | "signup" | null>(null);
+
+  const navigateAfterAuthentication = useCallback(
+    async (requestedDestination = destination) => {
+      const sessionInfo = await fetchSessionInfo();
+      queryClient.setQueryData(sessionQueryKey, sessionInfo);
+      const resolvedDestination =
+        requestedDestination === "/panel" && sessionInfo?.org?.role === "staff"
+          ? "/panel/caja"
+          : requestedDestination;
+      await router.navigate({ href: resolvedDestination, replace: true });
+    },
+    [destination, queryClient, router],
+  );
 
   useEffect(() => {
     if (!search.oauth) return;
@@ -273,7 +289,7 @@ function AuthPage() {
           console.error("No se pudo enviar el email de bienvenida", emailError);
         }
       }
-      window.location.assign(destination);
+      await navigateAfterAuthentication(destination);
     };
 
     void finishOAuth();
@@ -296,7 +312,7 @@ function AuthPage() {
       window.clearTimeout(timeout);
       listener.subscription.unsubscribe();
     };
-  }, [destination, search.oauth]);
+  }, [destination, navigateAfterAuthentication, search.oauth]);
 
   useEffect(() => {
     if (!search.confirmed || welcomeHandled.current) return;
@@ -321,7 +337,7 @@ function AuthPage() {
         console.error("No se pudo enviar el email de bienvenida", emailError);
       }
       toast.success("Email verificado", { description: "Tu cuenta de Fideleo ya está activa." });
-      window.location.assign(destination);
+      await navigateAfterAuthentication(destination);
     };
 
     void finishConfirmation();
@@ -332,7 +348,7 @@ function AuthPage() {
       cancelled = true;
       listener.subscription.unsubscribe();
     };
-  }, [businessName, destination, search.confirmed]);
+  }, [businessName, destination, navigateAfterAuthentication, search.confirmed]);
 
   const signInWithCredentials = useCallback(
     async (loginEmail: string, loginPassword: string, nextDestination = destination) => {
@@ -356,9 +372,9 @@ function AuthPage() {
         return;
       }
       setLoading(false);
-      window.location.assign(nextDestination);
+      await navigateAfterAuthentication(nextDestination);
     },
-    [destination],
+    [destination, navigateAfterAuthentication],
   );
 
   useEffect(() => {
@@ -497,7 +513,7 @@ function AuthPage() {
     toast.success("Email verificado", {
       description: "Tu empresa se ha creado con el Plan gratis.",
     });
-    window.location.assign("/panel");
+    await navigateAfterAuthentication("/panel");
   };
 
   const resendConfirmation = async () => {
@@ -554,7 +570,7 @@ function AuthPage() {
         description: error.message,
       });
     toast.success("Contraseña actualizada");
-    window.location.assign("/panel");
+    await navigateAfterAuthentication("/panel");
   };
 
   return (
