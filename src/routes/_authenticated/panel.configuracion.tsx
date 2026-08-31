@@ -229,15 +229,7 @@ function ConfiguracionPage() {
 
   return (
     <>
-      <PageHeader
-        title="Configuración"
-        description="Datos, identidad y presencia pública del negocio."
-        actions={
-          <span className="text-sm text-muted-foreground">
-            {saving ? "Guardando…" : "Guardado automático"}
-          </span>
-        }
-      />
+      <PageHeader title="Configuración" />
       <Tabs defaultValue="business" className="space-y-4">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="business">Negocio</TabsTrigger>

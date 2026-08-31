@@ -114,6 +114,15 @@ function RootComponent() {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (
+        event === "SIGNED_IN" &&
+        window.localStorage.getItem("fideleo:google-oauth-intent") &&
+        window.location.pathname !== "/auth"
+      ) {
+        const storedNext = window.localStorage.getItem("fideleo:google-oauth-next");
+        const next = storedNext?.startsWith("/panel") ? storedNext : "/panel";
+        window.location.assign(`/auth?oauth=1&next=${encodeURIComponent(next)}`);
+      }
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);

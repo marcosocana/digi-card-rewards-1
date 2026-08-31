@@ -171,10 +171,26 @@ function AuthPage() {
     let cancelled = false;
 
     const finishOAuth = async (receivedSession?: Session | null) => {
-      const sessionResult =
+      let sessionResult =
         receivedSession === undefined
           ? await supabase.auth.getSession()
           : { data: { session: receivedSession }, error: null };
+      if (!sessionResult.data.session && typeof window !== "undefined") {
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        if (accessToken && refreshToken) {
+          sessionResult = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          window.history.replaceState(
+            window.history.state,
+            "",
+            `${window.location.pathname}${window.location.search}`,
+          );
+        }
+      }
       const { data, error } = sessionResult;
       if (cancelled) return;
       if (error) {
@@ -189,6 +205,7 @@ function AuthPage() {
 
       const intent = window.localStorage.getItem("fideleo:google-oauth-intent");
       window.localStorage.removeItem("fideleo:google-oauth-intent");
+      window.localStorage.removeItem("fideleo:google-oauth-next");
       try {
         await ensureBusinessAccount();
         if (await needsGoogleRegistrationDetails(data.session.user)) {
@@ -213,6 +230,13 @@ function AuthPage() {
     };
 
     void finishOAuth();
+    const timeout = window.setTimeout(() => {
+      if (cancelled || welcomeHandled.current) return;
+      setOauthLoading(null);
+      toast.error("No hemos podido completar el acceso con Google", {
+        description: "No se ha recibido una sesión válida. Vuelve a intentarlo.",
+      });
+    }, 12_000);
     const { data: listener } = supabase.auth.onAuthStateChange((_event, authSession) => {
       window.setTimeout(() => {
         if (!cancelled) void finishOAuth(authSession);
@@ -220,6 +244,7 @@ function AuthPage() {
     });
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
       listener.subscription.unsubscribe();
     };
   }, [destination, search.oauth]);
@@ -301,6 +326,7 @@ function AuthPage() {
   const continueWithGoogle = async (intent: "signin" | "signup") => {
     setOauthLoading(intent);
     window.localStorage.setItem("fideleo:google-oauth-intent", intent);
+    window.localStorage.setItem("fideleo:google-oauth-next", destination);
     const callbackUrl = new URL("/auth", window.location.origin);
     callbackUrl.searchParams.set("oauth", "1");
     callbackUrl.searchParams.set("next", destination);
@@ -314,6 +340,7 @@ function AuthPage() {
     });
     if (error) {
       window.localStorage.removeItem("fideleo:google-oauth-intent");
+      window.localStorage.removeItem("fideleo:google-oauth-next");
       setOauthLoading(null);
       const providerDisabled = /provider.*not enabled|unsupported provider/i.test(error.message);
       toast.error("No hemos podido conectar con Google", {
@@ -325,6 +352,7 @@ function AuthPage() {
     }
     if (!data.url) {
       window.localStorage.removeItem("fideleo:google-oauth-intent");
+      window.localStorage.removeItem("fideleo:google-oauth-next");
       setOauthLoading(null);
       toast.error("No hemos podido conectar con Google", {
         description: "El proveedor no ha devuelto una dirección de acceso válida.",
