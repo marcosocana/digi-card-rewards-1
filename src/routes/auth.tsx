@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import type { User } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -170,8 +170,12 @@ function AuthPage() {
     if (!search.oauth) return;
     let cancelled = false;
 
-    const finishOAuth = async () => {
-      const { data, error } = await supabase.auth.getSession();
+    const finishOAuth = async (receivedSession?: Session | null) => {
+      const sessionResult =
+        receivedSession === undefined
+          ? await supabase.auth.getSession()
+          : { data: { session: receivedSession }, error: null };
+      const { data, error } = sessionResult;
       if (cancelled) return;
       if (error) {
         toast.error("No hemos podido completar el acceso con Google", {
@@ -209,7 +213,11 @@ function AuthPage() {
     };
 
     void finishOAuth();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => void finishOAuth());
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, authSession) => {
+      window.setTimeout(() => {
+        if (!cancelled) void finishOAuth(authSession);
+      }, 0);
+    });
     return () => {
       cancelled = true;
       listener.subscription.unsubscribe();
