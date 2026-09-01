@@ -16,6 +16,8 @@ export function PublicClubExperience({
     secondary_color: string;
     background_color: string;
     text_color: string;
+    cover_mode: string;
+    cover_text_color: string;
     logo_url: string;
     cover_url: string;
     welcome_message: string;
@@ -100,24 +102,37 @@ export function PublicClubExperience({
   const secondary = branding?.secondary_color || "#f8b9e7";
   const background = branding?.background_color || "#f5f5f4";
   const text = branding?.text_color || "#111111";
+  const coverMode = ["gradient", "solid", "image"].includes(branding?.cover_mode ?? "")
+    ? branding?.cover_mode
+    : branding?.cover_url
+      ? "image"
+      : "gradient";
+  const coverText = branding?.cover_text_color || "#ffffff";
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: background, color: text }}>
       <section className="relative min-h-[28rem] overflow-hidden">
-        {branding?.cover_url ? (
+        {coverMode === "image" && branding?.cover_url ? (
           <img
             src={branding.cover_url}
             alt={`Portada de ${data.organization.display_name}`}
             className="absolute inset-0 size-full object-cover"
           />
+        ) : coverMode === "solid" ? (
+          <div className="absolute inset-0" style={{ backgroundColor: primary }} />
         ) : (
           <div
             className="absolute inset-0"
             style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/20 to-black/70" />
-        <div className="relative mx-auto flex min-h-[28rem] max-w-5xl flex-col items-center justify-end px-5 pb-12 text-center text-white">
+        {coverMode === "image" ? (
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/15 to-black/65" />
+        ) : null}
+        <div
+          className="relative mx-auto flex min-h-[28rem] max-w-5xl flex-col items-center justify-end px-5 pb-12 text-center"
+          style={{ color: coverText }}
+        >
           {branding?.logo_url ? (
             <div className="mb-6 grid min-h-24 min-w-24 place-items-center rounded-2xl bg-white p-4 shadow-2xl">
               <img
@@ -132,14 +147,14 @@ export function PublicClubExperience({
             </div>
           )}
           {data.location ? (
-            <p className="mb-3 rounded-full border border-white/30 bg-black/20 px-3 py-1 text-xs font-bold uppercase tracking-[.16em] backdrop-blur">
+            <p className="mb-3 rounded-full border border-current/30 bg-black/10 px-3 py-1 text-xs font-bold uppercase tracking-[.16em] backdrop-blur">
               {data.location.name}
             </p>
           ) : null}
           <h1 className="max-w-3xl text-4xl font-semibold leading-[.95] tracking-[-.05em] sm:text-6xl">
             {branding?.welcome_message || data.program.public_name}
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">
+          <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-80 sm:text-base">
             {branding?.program_description ||
               data.program.description ||
               `Únete al club de ${data.organization.display_name} y convierte cada visita en una recompensa.`}

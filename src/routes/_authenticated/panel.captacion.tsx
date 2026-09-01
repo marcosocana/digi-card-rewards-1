@@ -31,6 +31,8 @@ const emptyBranding = {
   secondary_color: "#f8b9e7",
   background_color: "#f5f5f4",
   text_color: "#111111",
+  cover_mode: "gradient" as "gradient" | "solid" | "image",
+  cover_text_color: "#ffffff",
   logo_url: "",
   cover_url: "",
   welcome_message: "",
@@ -75,7 +77,7 @@ function CaptacionPage() {
         supabase
           .from("organization_branding")
           .select(
-            "primary_color,secondary_color,background_color,text_color,logo_url,cover_url,welcome_message,program_description",
+            "primary_color,secondary_color,background_color,text_color,cover_mode,cover_text_color,logo_url,cover_url,welcome_message,program_description",
           )
           .eq("organization_id", orgId!)
           .maybeSingle(),
@@ -101,6 +103,11 @@ function CaptacionPage() {
       secondary_color: data.branding?.secondary_color ?? emptyBranding.secondary_color,
       background_color: data.branding?.background_color ?? emptyBranding.background_color,
       text_color: data.branding?.text_color ?? emptyBranding.text_color,
+      cover_mode:
+        data.branding?.cover_mode === "solid" || data.branding?.cover_mode === "image"
+          ? data.branding.cover_mode
+          : emptyBranding.cover_mode,
+      cover_text_color: data.branding?.cover_text_color ?? emptyBranding.cover_text_color,
       logo_url: data.branding?.logo_url ?? "",
       cover_url: data.branding?.cover_url ?? "",
       welcome_message: data.branding?.welcome_message ?? "",
@@ -148,6 +155,9 @@ function CaptacionPage() {
       return;
     }
     const objectUrl = URL.createObjectURL(file);
+    if (kind === "cover_url") {
+      setBranding((current) => ({ ...current, cover_mode: "image" }));
+    }
     setPreviewAssets((current) => {
       const previous = current[kind];
       if (previous?.startsWith("blob:")) URL.revokeObjectURL(previous);
@@ -168,7 +178,11 @@ function CaptacionPage() {
       return;
     }
     const publishedUrl = supabase.storage.from("brand-assets").getPublicUrl(path).data.publicUrl;
-    const nextBranding = { ...branding, [kind]: publishedUrl };
+    const nextBranding = {
+      ...branding,
+      ...(kind === "cover_url" ? { cover_mode: "image" as const } : {}),
+      [kind]: publishedUrl,
+    };
     const persisted = await supabase.from("organization_branding").upsert({
       organization_id: orgId,
       ...nextBranding,
@@ -267,6 +281,7 @@ function CaptacionPage() {
               <BrandingEditor
                 branding={branding}
                 setBranding={setBranding}
+                previewAssets={previewAssets}
                 uploadingAsset={uploadingAsset}
                 uploadBrandAsset={uploadBrandAsset}
                 clearPreviewAsset={(kind) =>
@@ -366,26 +381,86 @@ type Branding = typeof emptyBranding;
 function BrandingEditor({
   branding,
   setBranding,
+  previewAssets,
   uploadingAsset,
   uploadBrandAsset,
   clearPreviewAsset,
 }: {
   branding: Branding;
   setBranding: React.Dispatch<React.SetStateAction<Branding>>;
+  previewAssets: Partial<Pick<Branding, "logo_url" | "cover_url">>;
   uploadingAsset: "logo_url" | "cover_url" | null;
   uploadBrandAsset: (file: File, kind: "logo_url" | "cover_url") => Promise<void>;
   clearPreviewAsset: (kind: "logo_url" | "cover_url") => void;
 }) {
-  const colors = [
-    ["primary_color", "Color principal"],
-    ["secondary_color", "Color secundario"],
-    ["background_color", "Color de fondo"],
-    ["text_color", "Color de texto"],
+  const pageColors = [
+    ["background_color", "Color de fondo de la página"],
+    ["text_color", "Color de texto de la página"],
   ] as const;
-  const assets = [
-    ["logo_url", "Logo", "Se mostrará sobre la portada"],
-    ["cover_url", "Imagen de portada", "Recomendado: formato horizontal"],
-  ] as const;
+
+  const assetField = (kind: "logo_url" | "cover_url", label: string, help: string) => {
+    const visibleUrl = previewAssets[kind] || branding[kind];
+    return (
+      <div className="space-y-2 sm:col-span-2">
+        <Label htmlFor={`capture-${kind}`}>{label}</Label>
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed p-3">
+          {visibleUrl ? (
+            <img
+              src={visibleUrl}
+              alt={`Vista previa de ${label.toLowerCase()}`}
+              className={
+                kind === "logo_url"
+                  ? "h-16 w-24 bg-white object-contain p-2"
+                  : "h-20 w-32 object-cover"
+              }
+            />
+          ) : null}
+          <Input
+            id={`capture-${kind}`}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="sr-only"
+            disabled={uploadingAsset !== null}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void uploadBrandAsset(file, kind);
+            }}
+          />
+          <Button asChild type="button" variant="outline" disabled={uploadingAsset !== null}>
+            <label htmlFor={`capture-${kind}`} className="cursor-pointer">
+              {uploadingAsset === kind ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <ImagePlus className="size-4" />
+              )}
+              {uploadingAsset === kind
+                ? "Subiendo…"
+                : branding[kind]
+                  ? `Cambiar ${label.toLowerCase()}`
+                  : `Seleccionar ${label.toLowerCase()}`}
+            </label>
+          </Button>
+          {visibleUrl ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                clearPreviewAsset(kind);
+                setBranding((current) => ({ ...current, [kind]: "" }));
+              }}
+            >
+              <X className="size-4" /> Quitar
+            </Button>
+          ) : null}
+          <p className="basis-full text-xs text-muted-foreground">
+            {help}. PNG, JPG o WebP · máximo 5 MB.
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section className="surface grid gap-4 p-5 sm:grid-cols-2">
@@ -395,7 +470,74 @@ function BrandingEditor({
           Personaliza la landing que se abre al escanear el QR.
         </p>
       </div>
-      {colors.map(([key, label]) => (
+      <div className="space-y-2 sm:col-span-2">
+        <Label>Tipo de portada</Label>
+        <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted p-1" role="radiogroup">
+          {(
+            [
+              ["gradient", "Degradado"],
+              ["solid", "Color sólido"],
+              ["image", "Imagen"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={branding.cover_mode === value}
+              onClick={() => setBranding((current) => ({ ...current, cover_mode: value }))}
+              className={`rounded-lg px-2 py-2 text-sm font-medium transition ${
+                branding.cover_mode === value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="primary_color">
+          {branding.cover_mode === "solid" ? "Color de portada" : "Color principal"}
+        </Label>
+        <Input
+          id="primary_color"
+          type="color"
+          value={branding.primary_color}
+          onChange={(event) =>
+            setBranding((current) => ({ ...current, primary_color: event.target.value }))
+          }
+        />
+      </div>
+      {branding.cover_mode === "gradient" ? (
+        <div className="space-y-1.5">
+          <Label htmlFor="secondary_color">Color secundario</Label>
+          <Input
+            id="secondary_color"
+            type="color"
+            value={branding.secondary_color}
+            onChange={(event) =>
+              setBranding((current) => ({ ...current, secondary_color: event.target.value }))
+            }
+          />
+        </div>
+      ) : null}
+      <div className="space-y-1.5">
+        <Label htmlFor="cover_text_color">Color de texto de la portada</Label>
+        <Input
+          id="cover_text_color"
+          type="color"
+          value={branding.cover_text_color}
+          onChange={(event) =>
+            setBranding((current) => ({ ...current, cover_text_color: event.target.value }))
+          }
+        />
+      </div>
+      {branding.cover_mode === "image"
+        ? assetField("cover_url", "Imagen de portada", "Recomendado: formato horizontal")
+        : null}
+      {pageColors.map(([key, label]) => (
         <div key={key} className="space-y-1.5">
           <Label htmlFor={key}>{label}</Label>
           <Input
@@ -408,55 +550,7 @@ function BrandingEditor({
           />
         </div>
       ))}
-      {assets.map(([kind, label, help]) => (
-        <div key={kind} className="space-y-2 sm:col-span-2">
-          <Label htmlFor={`capture-${kind}`}>{label}</Label>
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed p-3">
-            <Input
-              id={`capture-${kind}`}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="sr-only"
-              disabled={uploadingAsset !== null}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                if (file) void uploadBrandAsset(file, kind);
-              }}
-            />
-            <Button asChild type="button" variant="outline" disabled={uploadingAsset !== null}>
-              <label htmlFor={`capture-${kind}`} className="cursor-pointer">
-                {uploadingAsset === kind ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <ImagePlus className="size-4" />
-                )}
-                {uploadingAsset === kind
-                  ? "Subiendo…"
-                  : branding[kind]
-                    ? `Cambiar ${label.toLowerCase()}`
-                    : `Seleccionar ${label.toLowerCase()}`}
-              </label>
-            </Button>
-            {branding[kind] ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  clearPreviewAsset(kind);
-                  setBranding((current) => ({ ...current, [kind]: "" }));
-                }}
-              >
-                <X className="size-4" /> Quitar
-              </Button>
-            ) : null}
-            <p className="basis-full text-xs text-muted-foreground">
-              {help}. PNG, JPG o WebP · máximo 5 MB.
-            </p>
-          </div>
-        </div>
-      ))}
+      {assetField("logo_url", "Logo", "Se mostrará sobre la portada")}
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="capture-welcome">Mensaje de bienvenida</Label>
         <Textarea

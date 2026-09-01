@@ -88,7 +88,7 @@ function RecompensasPage() {
           "program_id",
           programs.map((program) => program.id),
         )
-        .order("points_cost");
+        .order("created_at", { ascending: true });
       if (locationId) rewardsQuery = rewardsQuery.eq("reward_locations.location_id", locationId);
       if (singleProgram) {
         rewardsQuery = rewardsQuery.eq(
@@ -198,6 +198,10 @@ function RecompensasPage() {
   };
 
   const toggle = async (id: string, active: boolean) => {
+    if (!active && data?.mechanicType === "stamps") {
+      toast.info("En un programa de Sellos siempre debe haber una recompensa activa");
+      return;
+    }
     if (active && data?.mechanicType === "stamps" && data.programId) {
       const { error: pauseError } = await supabase
         .from("rewards")
@@ -381,6 +385,7 @@ function RecompensasPage() {
                 </span>
                 <Switch
                   checked={r.status === "active"}
+                  disabled={data.mechanicType === "stamps" && r.status === "active"}
                   onCheckedChange={(v) => void toggle(r.id, v)}
                   aria-label={`Activar ${r.name}`}
                 />

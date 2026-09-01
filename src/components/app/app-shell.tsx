@@ -522,7 +522,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <X className="size-5" />
         </button>
       </div>
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 lg:overflow-hidden">
         {groups.map((group) => {
           const groupItems = items.filter((item) => item.group === group);
           if (!groupItems.length) return null;

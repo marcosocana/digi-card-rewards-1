@@ -1823,6 +1823,8 @@ export type Database = {
           background_color: string;
           border_style: string;
           compact_logo_url: string | null;
+          cover_mode: string;
+          cover_text_color: string;
           cover_url: string | null;
           created_at: string;
           font_family: string;
@@ -1851,6 +1853,8 @@ export type Database = {
           background_color?: string;
           border_style?: string;
           compact_logo_url?: string | null;
+          cover_mode?: string;
+          cover_text_color?: string;
           cover_url?: string | null;
           created_at?: string;
           font_family?: string;
@@ -1879,6 +1883,8 @@ export type Database = {
           background_color?: string;
           border_style?: string;
           compact_logo_url?: string | null;
+          cover_mode?: string;
+          cover_text_color?: string;
           cover_url?: string | null;
           created_at?: string;
           font_family?: string;

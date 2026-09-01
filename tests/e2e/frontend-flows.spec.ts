@@ -78,6 +78,33 @@ test("administrator can enter the dashboard and open the main read-only modules"
   expect(failures).toEqual([]);
 });
 
+test("administrator can open capture personalization and create automation form", async ({
+  page,
+}) => {
+  const failures = watchCriticalFailures(page);
+  await signIn(page, "admin.basico@demo.fideleo.app", "/panel/captacion");
+
+  await expect(page.getByRole("radio", { name: "Degradado" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Color sólido" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Imagen" })).toBeVisible();
+  await expect(page.getByLabel("Color de texto de la portada")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vista previa real" })).toBeVisible();
+
+  const sidebarNavigation = page.locator("aside nav");
+  await expect(sidebarNavigation).toBeVisible();
+  await expect
+    .poll(() => sidebarNavigation.evaluate((element) => getComputedStyle(element).overflowY))
+    .toBe("hidden");
+
+  await page.goto("/panel/automatizaciones");
+  await page.getByRole("button", { name: "Nueva automatización" }).click();
+  await expect(page.getByRole("dialog", { name: "Nueva automatización" })).toBeVisible();
+  await expect(page.getByLabel("Nombre interno")).toBeVisible();
+  await expect(page.getByLabel("Título de la notificación")).toBeVisible();
+  await expect(page.getByLabel("Mensaje")).toBeVisible();
+  expect(failures).toEqual([]);
+});
+
 test("employee is sent to the scanner and can see customers", async ({ page }) => {
   const failures = watchCriticalFailures(page);
   await signIn(page, "staff.pro@demo.fideleo.app");
