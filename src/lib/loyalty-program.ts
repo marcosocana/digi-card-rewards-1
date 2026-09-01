@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { ProgramMechanic } from "@/components/app/program-mechanic-switch";
 
 export async function setProgramMechanic(
@@ -17,15 +18,15 @@ export async function setProgramMechanic(
     mechanic === "stamps"
       ? {
           ...config,
-          stamps_per_purchase: Number(config.stamps_per_purchase ?? 1),
-          stamp_target: Math.min(20, Math.max(5, Number(config.stamp_target ?? 10))),
-          welcome_stamps: Number(config.welcome_stamps ?? 0),
-          stamp_reward_name: String(config.stamp_reward_name ?? "1 café"),
+          stamps_per_purchase: Number(config["stamps_per_purchase"] ?? 1),
+          stamp_target: Math.min(20, Math.max(5, Number(config["stamp_target"] ?? 10))),
+          welcome_stamps: Number(config["welcome_stamps"] ?? 0),
+          stamp_reward_name: String(config["stamp_reward_name"] ?? "1 café"),
         }
       : config;
   const updated = await supabase
     .from("loyalty_programs")
-    .update({ mechanic_type: mechanic, mechanic_config: mechanicConfig })
+    .update({ mechanic_type: mechanic, mechanic_config: mechanicConfig as Json })
     .eq("id", programId);
   if (updated.error) throw updated.error;
 }

@@ -11,8 +11,8 @@ import { sendTransactionalEmail } from "@/lib/transactional-email";
 export const Route = createFileRoute("/_authenticated/completar-registro")({
   validateSearch: (search: Record<string, unknown>) => ({
     next:
-      typeof search.next === "string" && search.next.startsWith("/panel")
-        ? search.next.slice(0, 500)
+      typeof search["next"] === "string" && search["next"].startsWith("/panel")
+        ? search["next"].slice(0, 500)
         : "/panel",
   }),
   head: () => ({
@@ -52,8 +52,8 @@ function CompleteRegistrationPage() {
       }
       const user = userResult.user;
       const existingBusinessName =
-        typeof user.user_metadata.business_name === "string"
-          ? user.user_metadata.business_name.trim()
+        typeof user.user_metadata["business_name"] === "string"
+          ? user.user_metadata["business_name"].trim()
           : "";
       if (existingBusinessName) {
         window.location.replace(next);
@@ -62,10 +62,10 @@ function CompleteRegistrationPage() {
 
       if (cancelled) return;
       setFullName(
-        typeof user.user_metadata.full_name === "string"
-          ? user.user_metadata.full_name
-          : typeof user.user_metadata.name === "string"
-            ? user.user_metadata.name
+        typeof user.user_metadata["full_name"] === "string"
+          ? user.user_metadata["full_name"]
+          : typeof user.user_metadata["name"] === "string"
+            ? user.user_metadata["name"]
             : "",
       );
       setBusinessName("");

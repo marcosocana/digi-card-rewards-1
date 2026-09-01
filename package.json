@@ -9,9 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:qa": "npm run typecheck && npm run lint && npm test && npm run build && npm run test:e2e",
     "format": "prettier --write ."
   },
   "dependencies": {

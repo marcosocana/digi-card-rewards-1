@@ -22,7 +22,7 @@ const legalMeta: Record<string, { title: string; description: string }> = {
 
 export const Route = createFileRoute("/legal/$document")({
   head: ({ params }) => {
-    const meta = legalMeta[params.document] ?? legalMeta["aviso-legal"];
+    const meta = legalMeta[params.document] ?? legalMeta["aviso-legal"]!;
     return {
       meta: [{ title: meta.title }, { name: "description", content: meta.description }],
     };
@@ -41,12 +41,12 @@ function MainLegalPage() {
       backTo="/"
       entity={{
         name: "Fideleo",
-        legalName: import.meta.env.VITE_FIDELEO_LEGAL_NAME || "Fideleo",
-        taxId: import.meta.env.VITE_FIDELEO_TAX_ID,
-        registryDetails: import.meta.env.VITE_FIDELEO_REGISTRY_DETAILS,
+        legalName: import.meta.env["VITE_FIDELEO_LEGAL_NAME"] || "Fideleo",
+        taxId: import.meta.env["VITE_FIDELEO_TAX_ID"],
+        registryDetails: import.meta.env["VITE_FIDELEO_REGISTRY_DETAILS"],
         email: "Fideleo.app@gmail.com",
         phone: "695 83 40 18",
-        address: import.meta.env.VITE_FIDELEO_LEGAL_ADDRESS,
+        address: import.meta.env["VITE_FIDELEO_LEGAL_ADDRESS"],
       }}
     />
   );

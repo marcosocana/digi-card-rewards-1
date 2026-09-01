@@ -58,7 +58,7 @@ function ClientesPage() {
     phone: "",
     birthDate: "",
     organizationId: orgId ?? "",
-    locationId: selectedLocationIds.length === 1 ? selectedLocationIds[0] : "",
+    locationId: selectedLocationIds.length === 1 ? (selectedLocationIds[0] ?? "") : "",
     marketing: false,
   });
 
@@ -190,13 +190,16 @@ function ClientesPage() {
       _location_id: form.locationId,
       _email: form.email.trim().toLowerCase(),
       _first_name: form.firstName.trim(),
-      _last_name: form.lastName.trim() || undefined,
-      _phone: form.phone.trim() || undefined,
-      _birth_date: form.birthDate || undefined,
       _marketing: form.marketing,
+      ...(form.lastName.trim() ? { _last_name: form.lastName.trim() } : {}),
+      ...(form.phone.trim() ? { _phone: form.phone.trim() } : {}),
+      ...(form.birthDate ? { _birth_date: form.birthDate } : {}),
     });
     setSaving(false);
-    if (error) return toast.error("No se pudo dar de alta", { description: error.message });
+    if (error) {
+      toast.error("No se pudo dar de alta", { description: error.message });
+      return;
+    }
     const response = result as { existing?: boolean } | null;
     toast.success(
       response?.existing ? "El cliente ya estaba dado de alta" : "Cliente dado de alta",
@@ -209,7 +212,7 @@ function ClientesPage() {
       phone: "",
       birthDate: "",
       organizationId: isGlobal ? "" : (orgId ?? ""),
-      locationId: selectedLocationIds.length === 1 ? selectedLocationIds[0] : "",
+      locationId: selectedLocationIds.length === 1 ? (selectedLocationIds[0] ?? "") : "",
       marketing: false,
     });
     await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["dashboard"] })]);
@@ -227,7 +230,10 @@ function ClientesPage() {
               onOpenChange={(isOpen) => {
                 setOpen(isOpen);
                 if (isOpen && scopedLocations.length === 1) {
-                  setForm((current) => ({ ...current, locationId: scopedLocations[0].id }));
+                  setForm((current) => ({
+                    ...current,
+                    locationId: scopedLocations[0]?.id ?? "",
+                  }));
                 }
               }}
             >

@@ -209,7 +209,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       initialLevel === "location"
         ? storedLocationIds.length
           ? storedLocationIds
-          : [session.locations[0].id]
+          : session.locations[0]
+            ? [session.locations[0].id]
+            : []
         : initialLevel === "organization" && session.isSuperadmin
           ? session.locations
               .filter((location) => location.organizationId === storedOrganizationId)
@@ -353,7 +355,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate({
+      to: "/auth",
+      search: {
+        confirmed: false,
+        reset: false,
+        oauth: false,
+        tab: "signin",
+        email: "",
+        next: "/panel",
+      },
+      replace: true,
+    });
   };
 
   const isActive = (to: string) => {
@@ -447,7 +460,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }}
               >
                 <DropdownMenuRadioItem value="all">{t("Todos los locales")}</DropdownMenuRadioItem>
-                {session.isSuperadmin
+                {session?.isSuperadmin
                   ? sortedOrganizationGroups.map((group) => (
                       <div key={group.id}>
                         <DropdownMenuSeparator />
@@ -478,7 +491,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         )}
                       </div>
                     ))
-                  : session.locations.map((location) => (
+                  : (session?.locations ?? []).map((location) => (
                       <DropdownMenuRadioItem key={location.id} value={`location:${location.id}`}>
                         {location.name}
                       </DropdownMenuRadioItem>
@@ -495,7 +508,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <MapPin className="size-4 shrink-0" />
             <span className={cn("truncate", collapsed && "lg:hidden")}>
-              {formatLocationLabel(session.locations[0], session.isSuperadmin)}
+              {session?.locations[0]
+                ? formatLocationLabel(session.locations[0], session.isSuperadmin)
+                : ""}
             </span>
           </p>
         ) : null}
@@ -784,7 +799,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function formatLocationLabel(
-  location: { name: string; organizationName?: string },
+  location: { name: string; organizationName?: string | undefined },
   includeOrganization = false,
 ) {
   return includeOrganization && location.organizationName

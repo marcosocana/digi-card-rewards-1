@@ -30,8 +30,8 @@ export function LegalDocumentLayout({
   type: LegalDocumentType;
   entity: LegalEntity;
   backTo: string;
-  customText?: string | null;
-  programTerms?: string | null;
+  customText?: string | null | undefined;
+  programTerms?: string | null | undefined;
   isCustomer?: boolean;
 }) {
   return (
@@ -99,7 +99,7 @@ function DefaultLegalContent({
 }: {
   type: LegalDocumentType;
   entity: LegalEntity;
-  programTerms?: string | null;
+  programTerms?: string | null | undefined;
   isCustomer: boolean;
 }) {
   if (type === "aviso-legal")

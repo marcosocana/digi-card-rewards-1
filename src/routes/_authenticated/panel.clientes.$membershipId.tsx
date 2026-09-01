@@ -182,7 +182,7 @@ function ClienteDetalle() {
     const sections = Object.entries(payload)
       .map(([section, value]) => {
         if (Array.isArray(value)) {
-          const records = value.map((item) =>
+          const records: Record<string, unknown>[] = value.map((item) =>
             item && typeof item === "object" ? (item as Record<string, unknown>) : { valor: item },
           );
           const columns = [...new Set(records.flatMap((record) => Object.keys(record)))];
@@ -265,7 +265,7 @@ function ClienteDetalle() {
   const isStampProgram = program?.mechanic_type === "stamps";
   const stampTarget = Math.min(
     20,
-    Math.max(5, Math.round(Number(program?.mechanic_config?.stamp_target ?? 10))),
+    Math.max(5, Math.round(Number(program?.mechanic_config?.["stamp_target"] ?? 10))),
   );
   const parsedDelta = parsePointsDelta(delta);
   const roundedDelta = Number.isFinite(parsedDelta) ? roundPointsDelta(parsedDelta) : null;

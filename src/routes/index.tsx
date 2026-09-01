@@ -268,7 +268,7 @@ function HomePage() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting) return;
+        if (!entry?.isIntersecting) return;
         start();
         observer.disconnect();
       },

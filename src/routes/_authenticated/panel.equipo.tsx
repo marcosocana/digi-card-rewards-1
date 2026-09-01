@@ -134,9 +134,14 @@ function EquipoPage() {
   };
 
   const updateMember = async () => {
-    if (!editing || !editing.email.includes("@"))
-      return toast.error(t("Introduce un email válido"));
-    if (!editing.location_ids.length) return toast.error(t("Asigna al menos un establecimiento"));
+    if (!editing || !editing.email.includes("@")) {
+      toast.error(t("Introduce un email válido"));
+      return;
+    }
+    if (!editing.location_ids.length) {
+      toast.error(t("Asigna al menos un establecimiento"));
+      return;
+    }
     const { error } = await supabase
       .from("organization_users")
       .update({
@@ -146,25 +151,32 @@ function EquipoPage() {
         can_adjust_points: editing.role === "manager",
       })
       .eq("id", editing.id);
-    if (error) return toast.error(t("No se pudo actualizar"), { description: error.message });
+    if (error) {
+      toast.error(t("No se pudo actualizar"), { description: error.message });
+      return;
+    }
     const { error: clearError } = await supabase
       .from("user_location_assignments")
       .delete()
       .eq("organization_user_id", editing.id);
-    if (clearError)
-      return toast.error(t("No se pudieron actualizar los establecimientos"), {
+    if (clearError) {
+      toast.error(t("No se pudieron actualizar los establecimientos"), {
         description: clearError.message,
       });
+      return;
+    }
     const { error: assignmentError } = await supabase.from("user_location_assignments").insert(
       editing.location_ids.map((locationId) => ({
         organization_user_id: editing.id,
         location_id: locationId,
       })),
     );
-    if (assignmentError)
-      return toast.error(t("No se pudo asignar el establecimiento"), {
+    if (assignmentError) {
+      toast.error(t("No se pudo asignar el establecimiento"), {
         description: assignmentError.message,
       });
+      return;
+    }
     toast.success(t("Perfil del equipo actualizado"));
     setEditing(null);
     void refetch();

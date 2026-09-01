@@ -65,6 +65,7 @@ function PortalPage() {
 
   const generateGoogleWallet = async (accessToken: string, walletWindow: Window | null) => {
     try {
+      if (!data) throw new Error("La tarjeta todavía no está disponible.");
       const { data: walletData, error } = await supabase.functions.invoke<{
         url?: string;
         error?: string;
@@ -187,7 +188,7 @@ function PortalPage() {
   const mechanicConfig = (data.program.mechanic_config ?? {}) as Record<string, unknown>;
   const stampTarget = Math.min(
     20,
-    Math.max(5, Math.round(Number(mechanicConfig.stamp_target ?? 10))),
+    Math.max(5, Math.round(Number(mechanicConfig["stamp_target"] ?? 10))),
   );
   const stampBalance = Math.min(stampTarget, Math.max(0, Math.round(data.membership.balance)));
   const stampSymbol: Record<string, string> = {
@@ -202,7 +203,7 @@ function PortalPage() {
     heart: "♥",
     scissors: "✂",
   };
-  const stampIcon = stampSymbol[String(mechanicConfig.stamp_icon ?? "check")] ?? "✓";
+  const stampIcon = stampSymbol[String(mechanicConfig["stamp_icon"] ?? "check")] ?? "✓";
   const balanceLabel =
     mechanic === "cashback"
       ? eur(data.membership.balance)

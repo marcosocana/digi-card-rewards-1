@@ -176,7 +176,10 @@ function EstablecimientosPage() {
   };
 
   const updateLocation = async () => {
-    if (!editing || editing.name.trim().length < 2) return toast.error("Indica un nombre válido");
+    if (!editing || editing.name.trim().length < 2) {
+      toast.error("Indica un nombre válido");
+      return;
+    }
     const { error } = await supabase
       .from("locations")
       .update({
@@ -186,7 +189,10 @@ function EstablecimientosPage() {
         postal_code: editing.postal_code || null,
       })
       .eq("id", editing.id);
-    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    if (error) {
+      toast.error("No se pudo actualizar", { description: error.message });
+      return;
+    }
     toast.success("Establecimiento actualizado");
     setEditing(null);
     void refetch();

@@ -42,7 +42,7 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
-    if (resendCooldown <= 0) return;
+    if (resendCooldown <= 0) return undefined;
     const timer = window.setInterval(
       () => setResendCooldown((current) => Math.max(0, current - 1)),
       1_000,
@@ -52,15 +52,20 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
 
   const sendVerification = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!terms) return toast.error("Debes aceptar las condiciones y la política de privacidad");
+    if (!terms) {
+      toast.error("Debes aceptar las condiciones y la política de privacidad");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email: form.email.trim().toLowerCase(),
       options: { shouldCreateUser: true },
     });
     setLoading(false);
-    if (error)
-      return toast.error("No hemos podido enviar el email", { description: error.message });
+    if (error) {
+      toast.error("No hemos podido enviar el email", { description: error.message });
+      return;
+    }
     setVerificationSent(true);
     setResendCooldown(60);
     toast.success("Revisa tu email", {
@@ -88,7 +93,10 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
 
   const verifyAndRegister = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (code.trim().length < 6) return toast.error("Introduce el código recibido por email");
+    if (code.trim().length < 6) {
+      toast.error("Introduce el código recibido por email");
+      return;
+    }
     setLoading(true);
     const email = form.email.trim().toLowerCase();
     const { error: verificationError } = await supabase.auth.verifyOtp({
@@ -98,25 +106,28 @@ export function JoinForm({ ctx }: { ctx: JoinContext }) {
     });
     if (verificationError) {
       setLoading(false);
-      return toast.error("El código no es válido o ha caducado", {
+      toast.error("El código no es válido o ha caducado", {
         description: verificationError.message,
       });
+      return;
     }
     const [firstName, ...lastName] = form.full_name.trim().split(/\s+/);
     const { data, error } = await supabase.rpc("register_verified_customer_and_membership", {
       _program_id: ctx.program.id,
       _email: email,
-      _first_name: firstName,
-      _last_name: lastName.join(" ") || undefined,
-      _birth_date: form.birth_date || undefined,
-      _location_id: ctx.location?.id ?? undefined,
+      _first_name: firstName ?? "",
       _marketing: marketing,
-      _phone: form.phone.trim() || undefined,
       _terms_accepted: terms,
+      ...(lastName.length ? { _last_name: lastName.join(" ") } : {}),
+      ...(form.birth_date ? { _birth_date: form.birth_date } : {}),
+      ...(ctx.location?.id ? { _location_id: ctx.location.id } : {}),
+      ...(form.phone.trim() ? { _phone: form.phone.trim() } : {}),
     });
     setLoading(false);
-    if (error)
-      return toast.error("No hemos podido completar el alta", { description: error.message });
+    if (error) {
+      toast.error("No hemos podido completar el alta", { description: error.message });
+      return;
+    }
     const membershipPublicId = (data as { membership_public_id: string }).membership_public_id;
     try {
       await sendTransactionalEmail({ kind: "membership_welcome", membershipPublicId });

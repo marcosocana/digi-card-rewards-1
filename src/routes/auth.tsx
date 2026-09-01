@@ -22,16 +22,25 @@ const isEnabledSearchFlag = (value: unknown) =>
   value === true || value === 1 || value === "1" || value === "true";
 const GOOGLE_AUTH_VISIBLE = false;
 
+interface AuthSearch {
+  confirmed?: boolean;
+  reset?: boolean;
+  oauth?: boolean;
+  tab?: "signin" | "signup";
+  email?: string;
+  next?: string;
+}
+
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    confirmed: isEnabledSearchFlag(search.confirmed),
-    reset: isEnabledSearchFlag(search.reset),
-    oauth: isEnabledSearchFlag(search.oauth),
-    tab: search.tab === "signup" ? ("signup" as const) : ("signin" as const),
-    email: typeof search.email === "string" ? search.email.slice(0, 254) : "",
+  validateSearch: (search: Record<string, unknown>): AuthSearch => ({
+    confirmed: isEnabledSearchFlag(search["confirmed"]),
+    reset: isEnabledSearchFlag(search["reset"]),
+    oauth: isEnabledSearchFlag(search["oauth"]),
+    tab: search["tab"] === "signup" ? ("signup" as const) : ("signin" as const),
+    email: typeof search["email"] === "string" ? search["email"].slice(0, 254) : "",
     next:
-      typeof search.next === "string" && search.next.startsWith("/panel")
-        ? search.next.slice(0, 500)
+      typeof search["next"] === "string" && search["next"].startsWith("/panel")
+        ? search["next"].slice(0, 500)
         : "/panel",
   }),
   head: () => ({
@@ -104,9 +113,11 @@ const demoUsers = [
 ];
 
 const ensureBusinessAccount = async (name?: string) => {
-  const { error } = await supabase.rpc("ensure_current_business_account", {
-    _business_name: name?.trim() || undefined,
-  });
+  const businessName = name?.trim();
+  const { error } = await supabase.rpc(
+    "ensure_current_business_account",
+    businessName ? { _business_name: businessName } : {},
+  );
   if (error) throw error;
 };
 
@@ -116,8 +127,8 @@ const needsGoogleRegistrationDetails = async (user: User) => {
     : [];
   const usesGoogle = user.app_metadata.provider === "google" || providers.includes("google");
   const businessName =
-    typeof user.user_metadata.business_name === "string"
-      ? user.user_metadata.business_name.trim()
+    typeof user.user_metadata["business_name"] === "string"
+      ? user.user_metadata["business_name"].trim()
       : "";
   if (!usesGoogle || businessName) return false;
 
@@ -157,11 +168,11 @@ function AuthPage() {
   const search = Route.useSearch();
   const router = useRouter();
   const queryClient = router.options.context.queryClient;
-  const destination = search.next;
+  const destination = search.next ?? "/panel";
   const welcomeHandled = useRef(false);
   const demoHandled = useRef(false);
-  const [activeTab, setActiveTab] = useState<"signin" | "signup">(search.tab);
-  const [email, setEmail] = useState(search.email);
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">(search.tab ?? "signin");
+  const [email, setEmail] = useState(search.email ?? "");
   const [password, setPassword] = useState(
     search.email === "admin.pro@demo.fideleo.app" ? "admin.pro@demo.fideleo.app" : "",
   );
@@ -518,7 +529,10 @@ function AuthPage() {
 
   const resendConfirmation = async () => {
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail.includes("@")) return toast.error("Introduce un email válido");
+    if (!normalizedEmail.includes("@")) {
+      toast.error("Introduce un email válido");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.resend({
       type: "signup",
@@ -538,14 +552,19 @@ function AuthPage() {
 
   const requestPasswordReset = async () => {
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail.includes("@")) return toast.error("Introduce primero tu email");
+    if (!normalizedEmail.includes("@")) {
+      toast.error("Introduce primero tu email");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: `${window.location.origin}/auth?reset=1`,
     });
     setLoading(false);
-    if (error)
-      return toast.error("No hemos podido enviar el email", { description: error.message });
+    if (error) {
+      toast.error("No hemos podido enviar el email", { description: error.message });
+      return;
+    }
     toast.success("Revisa tu correo", {
       description: "Te hemos enviado un enlace para crear una nueva contraseña.",
     });
@@ -553,8 +572,10 @@ function AuthPage() {
 
   const completePasswordReset = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (newPassword.length < 8)
-      return toast.error("La contraseña debe tener al menos 8 caracteres");
+    if (newPassword.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (!error) {
@@ -565,10 +586,12 @@ function AuthPage() {
       }
     }
     setLoading(false);
-    if (error)
-      return toast.error("No hemos podido cambiar la contraseña", {
+    if (error) {
+      toast.error("No hemos podido cambiar la contraseña", {
         description: error.message,
       });
+      return;
+    }
     toast.success("Contraseña actualizada");
     await navigateAfterAuthentication("/panel");
   };

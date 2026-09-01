@@ -49,8 +49,10 @@ function PerfilPage() {
   );
 
   const saveProfile = async () => {
-    if (!session || form.fullName.trim().length < 2)
-      return toast.error("Indica tu nombre completo");
+    if (!session || form.fullName.trim().length < 2) {
+      toast.error("Indica tu nombre completo");
+      return;
+    }
     setSaving(true);
     const [profileResult, teamResult] = await Promise.all([
       supabase.from("profiles").upsert({
@@ -68,17 +70,24 @@ function PerfilPage() {
     ]);
     setSaving(false);
     const error = profileResult.error ?? teamResult.error;
-    if (error)
-      return toast.error("No se pudo actualizar el perfil", { description: error.message });
+    if (error) {
+      toast.error("No se pudo actualizar el perfil", { description: error.message });
+      return;
+    }
     await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     toast.success("Perfil actualizado");
   };
 
   const changePassword = async () => {
-    if (password.length < 8) return toast.error("La contraseña debe tener al menos 8 caracteres");
+    if (password.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password });
-    if (error)
-      return toast.error("No se pudo cambiar la contraseña", { description: error.message });
+    if (error) {
+      toast.error("No se pudo cambiar la contraseña", { description: error.message });
+      return;
+    }
     setPassword("");
     try {
       await sendTransactionalEmail({ kind: "password_changed", eventId: crypto.randomUUID() });

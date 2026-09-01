@@ -14,8 +14,9 @@ export const Route = createFileRoute("/_authenticated")({
     ],
   }),
   beforeLoad: async ({ location }) => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session?.user) {
+      const requestedPath = `${location.pathname}${location.searchStr}${location.hash}`;
       throw redirect({
         to: "/auth",
         search: {
@@ -24,11 +25,11 @@ export const Route = createFileRoute("/_authenticated")({
           oauth: false,
           tab: "signin",
           email: "",
-          next: location.href.startsWith("/panel") ? location.href : "/panel",
+          next: requestedPath.startsWith("/panel") ? requestedPath : "/panel",
         },
       });
     }
-    return { user: data.user };
+    return { user: data.session.user };
   },
   component: () => <Outlet />,
 });

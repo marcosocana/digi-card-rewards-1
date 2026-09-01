@@ -191,8 +191,10 @@ function EmpresasPage() {
     Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: sessionQueryKey })]);
 
   const updateCompany = async () => {
-    if (!editingCompany || editingCompany.displayName.trim().length < 2)
-      return toast.error("Indica un nombre válido");
+    if (!editingCompany || editingCompany.displayName.trim().length < 2) {
+      toast.error("Indica un nombre válido");
+      return;
+    }
     const { error } = await supabase
       .from("organizations")
       .update({
@@ -205,15 +207,20 @@ function EmpresasPage() {
         postal_code: editingCompany.postalCode.trim() || null,
       })
       .eq("id", editingCompany.id);
-    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    if (error) {
+      toast.error("No se pudo actualizar", { description: error.message });
+      return;
+    }
     toast.success("Empresa actualizada");
     setEditingCompany(null);
     await refreshAll();
   };
 
   const createLocation = async () => {
-    if (!locationForm.organizationId || locationForm.name.trim().length < 2)
-      return toast.error("Indica una empresa y un nombre válido");
+    if (!locationForm.organizationId || locationForm.name.trim().length < 2) {
+      toast.error("Indica una empresa y un nombre válido");
+      return;
+    }
     const { data: created, error } = await supabase
       .from("locations")
       .insert({
@@ -227,8 +234,10 @@ function EmpresasPage() {
       })
       .select("id,name,slug")
       .single();
-    if (error)
-      return toast.error("No se pudo crear el establecimiento", { description: error.message });
+    if (error) {
+      toast.error("No se pudo crear el establecimiento", { description: error.message });
+      return;
+    }
     const { data: program, error: programError } = await supabase
       .from("loyalty_programs")
       .insert({
@@ -273,8 +282,10 @@ function EmpresasPage() {
   };
 
   const updateLocation = async () => {
-    if (!editingLocation || editingLocation.name.trim().length < 2)
-      return toast.error("Indica un nombre válido");
+    if (!editingLocation || editingLocation.name.trim().length < 2) {
+      toast.error("Indica un nombre válido");
+      return;
+    }
     const { error } = await supabase
       .from("locations")
       .update({
@@ -284,7 +295,10 @@ function EmpresasPage() {
         postal_code: editingLocation.postalCode.trim() || null,
       })
       .eq("id", editingLocation.id);
-    if (error) return toast.error("No se pudo actualizar", { description: error.message });
+    if (error) {
+      toast.error("No se pudo actualizar", { description: error.message });
+      return;
+    }
     toast.success("Establecimiento actualizado");
     setEditingLocation(null);
     await refreshAll();
@@ -342,7 +356,10 @@ function EmpresasPage() {
       .update({ status: "archived", archived_at: archivedAt })
       .eq("id", deleteTarget.id);
     setDeleting(false);
-    if (error) return toast.error("No se pudo eliminar", { description: error.message });
+    if (error) {
+      toast.error("No se pudo eliminar", { description: error.message });
+      return;
+    }
     toast.success("Establecimiento eliminado");
     setDeleteTarget(null);
     await refreshAll();

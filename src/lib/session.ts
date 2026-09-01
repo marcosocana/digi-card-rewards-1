@@ -16,8 +16,8 @@ export interface SessionLocation {
   id: string;
   name: string;
   slug: string;
-  organizationId?: string;
-  organizationName?: string;
+  organizationId?: string | undefined;
+  organizationName?: string | undefined;
 }
 
 export interface SessionOrganization {

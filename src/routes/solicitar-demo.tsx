@@ -17,9 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/solicitar-demo")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    plan: typeof search.plan === "string" ? search.plan : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { plan?: string } =>
+    typeof search["plan"] === "string" ? { plan: search["plan"] } : {},
   head: () => ({
     meta: [
       { title: "Solicitar una demo — Fideleo" },

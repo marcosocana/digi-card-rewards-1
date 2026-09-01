@@ -7,6 +7,21 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  vite: {
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: "vendor-supabase", test: /node_modules\/@supabase/ },
+              { name: "vendor-tanstack", test: /node_modules\/@tanstack/ },
+              { name: "vendor-react", test: /node_modules\/(react|react-dom)\// },
+            ],
+          },
+        },
+      },
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

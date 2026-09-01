@@ -58,6 +58,7 @@ import {
   type ProgramMechanic,
 } from "@/components/app/program-mechanic-switch";
 import { setProgramMechanic } from "@/lib/loyalty-program";
+import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/panel/wallet")({
   component: WalletPage,
@@ -205,7 +206,7 @@ function WalletPage() {
     };
     if (data.program?.mechanic_type === "stamps") {
       const config = (data.program.mechanic_config ?? {}) as Record<string, unknown>;
-      const stampDesigns = (config.wallet_designs ?? {}) as Record<
+      const stampDesigns = (config["wallet_designs"] ?? {}) as Record<
         WalletProvider,
         Partial<WalletDesign> | undefined
       >;
@@ -214,11 +215,11 @@ function WalletPage() {
         ...stampDesigns[provider],
         programName: data.program.public_name || data.organization.display_name || "Fideleo",
         pointsLabel: "Sellos",
-        welcomeStamps: Number(config.welcome_stamps ?? 0),
-        stampReward: String(config.stamp_reward_name ?? "1 café"),
-        stampColor: String(config.stamp_color ?? "#000000"),
-        stampIcon: String(config.stamp_icon ?? "coffee"),
-        stampTarget: Math.min(20, Math.max(5, Number(config.stamp_target ?? 10))),
+        welcomeStamps: Number(config["welcome_stamps"] ?? 0),
+        stampReward: String(config["stamp_reward_name"] ?? "1 café"),
+        stampColor: String(config["stamp_color"] ?? "#000000"),
+        stampIcon: String(config["stamp_icon"] ?? "coffee"),
+        stampTarget: Math.min(20, Math.max(5, Number(config["stamp_target"] ?? 10))),
       });
       return;
     }
@@ -246,6 +247,7 @@ function WalletPage() {
     }
 
     applySavedDesign({
+      ...defaultDesign,
       backgroundColor:
         data.branding?.wallet_background_color ??
         data.branding?.primary_color ??
@@ -417,7 +419,7 @@ function WalletPage() {
     setSaving(true);
     if (isStampProgram && data?.program) {
       const currentConfig = (data.program.mechanic_config ?? {}) as Record<string, unknown>;
-      const currentDesigns = (currentConfig.wallet_designs ?? {}) as Record<string, unknown>;
+      const currentDesigns = (currentConfig["wallet_designs"] ?? {}) as Record<string, Json>;
       const { error } = await supabase
         .from("loyalty_programs")
         .update({
@@ -438,7 +440,7 @@ function WalletPage() {
                 pointsLabel: "Sellos",
               },
             },
-          },
+          } as Json,
           initial_points: Math.min(
             snapshot.stampTarget - 1,
             Math.max(0, Math.round(snapshot.welcomeStamps)),
@@ -627,7 +629,9 @@ function WalletPage() {
                     max={100}
                     step={1}
                     onValueChange={([x]) =>
-                      setHeroCrop((current) => (current ? { ...current, x } : current))
+                      setHeroCrop((current) =>
+                        current ? { ...current, x: x ?? current.x } : current,
+                      )
                     }
                   />
                 </div>
@@ -643,7 +647,9 @@ function WalletPage() {
                     max={100}
                     step={1}
                     onValueChange={([y]) =>
-                      setHeroCrop((current) => (current ? { ...current, y } : current))
+                      setHeroCrop((current) =>
+                        current ? { ...current, y: y ?? current.y } : current,
+                      )
                     }
                   />
                 </div>

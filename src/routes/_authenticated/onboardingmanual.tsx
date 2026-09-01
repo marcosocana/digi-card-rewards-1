@@ -75,7 +75,10 @@ function ManualOnboardingPage() {
   };
 
   const image = (file: File, key: "logo" | "cover") => {
-    if (file.size > 3 * 1024 * 1024) return toast.error("La imagen no puede superar 3 MB");
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 3 MB");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => set(key, String(reader.result || ""));
     reader.readAsDataURL(file);
@@ -238,7 +241,8 @@ function ManualOnboardingPage() {
                 setLocationErrors((current) => {
                   if (!current[index]?.[key]) return current;
                   const next = { ...current, [index]: { ...current[index] } };
-                  delete next[index][key];
+                  const location = next[index];
+                  if (location) delete location[key];
                   return next;
                 })
               }
@@ -320,7 +324,7 @@ function RequiredLabel({ children, htmlFor }: { children: React.ReactNode; htmlF
   );
 }
 
-function FieldError({ message }: { message?: string }) {
+function FieldError({ message }: { message?: string | undefined }) {
   return message ? <p className="text-xs font-medium text-destructive">{message}</p> : null;
 }
 

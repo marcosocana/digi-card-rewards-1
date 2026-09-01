@@ -167,12 +167,12 @@ function NotificacionesPage() {
       const defaultSegment =
         data.segments.find((segment) => segment.name.toLocaleLowerCase().includes("todos")) ??
         data.segments[0];
-      return { ...current, segmentId: defaultSegment.id };
+      return defaultSegment ? { ...current, segmentId: defaultSegment.id } : current;
     });
   }, [data?.segments, open]);
 
   const effectiveLocationId =
-    locationId ?? (data?.locations.length === 1 ? data.locations[0].id : null);
+    locationId ?? (data?.locations.length === 1 ? (data.locations[0]?.id ?? null) : null);
   const hasTitle = form.title.trim().length > 0;
   const hasMessage = form.message.trim().length > 0;
   const hasRecipients = Boolean(form.segmentId) && !previewLoading && preview > 0;

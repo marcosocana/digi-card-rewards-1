@@ -77,6 +77,7 @@ function RecompensasPage() {
       const { data: programs, error: programsError } = await programsQuery;
       if (programsError) throw programsError;
       if (!programs?.length) return { programId: null, mechanicType: "points", rewards: [] };
+      const singleProgram = programs.length === 1 ? programs[0] : undefined;
       const programById = new Map(programs.map((program) => [program.id, program]));
       let rewardsQuery = supabase
         .from("rewards")
@@ -89,17 +90,17 @@ function RecompensasPage() {
         )
         .order("points_cost");
       if (locationId) rewardsQuery = rewardsQuery.eq("reward_locations.location_id", locationId);
-      if (programs.length === 1) {
+      if (singleProgram) {
         rewardsQuery = rewardsQuery.eq(
           "mechanic_type",
-          programs[0].mechanic_type === "stamps" ? "stamps" : "points",
+          singleProgram.mechanic_type === "stamps" ? "stamps" : "points",
         );
       }
       const { data: rewards, error } = await rewardsQuery;
       if (error) throw error;
       return {
-        programId: programs.length === 1 ? programs[0].id : null,
-        mechanicType: programs.length === 1 ? programs[0].mechanic_type : "points",
+        programId: singleProgram?.id ?? null,
+        mechanicType: singleProgram?.mechanic_type ?? "points",
         rewards: (rewards ?? []).map((reward) => ({
           ...reward,
           organizationName: (
@@ -177,10 +178,12 @@ function RecompensasPage() {
       const { error: locationError } = await supabase
         .from("reward_locations")
         .insert({ reward_id: created.id, location_id: locationId });
-      if (locationError)
-        return toast.error("La recompensa se creó sin asociar al establecimiento", {
+      if (locationError) {
+        toast.error("La recompensa se creó sin asociar al establecimiento", {
           description: locationError.message,
         });
+        return;
+      }
     }
     toast.success("Recompensa creada");
     setOpen(false);

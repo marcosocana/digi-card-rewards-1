@@ -345,7 +345,7 @@ function CaptacionPage() {
                   <div className="h-[760px] overflow-y-auto overscroll-contain bg-white">
                     <PublicClubExperience
                       organizationSlug={organization.slug}
-                      locationSlug={data?.location.slug}
+                      {...(data?.location.slug ? { locationSlug: data.location.slug } : {})}
                       brandingOverride={{ ...branding, ...previewAssets }}
                     />
                   </div>

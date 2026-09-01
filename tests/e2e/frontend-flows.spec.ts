@@ -16,6 +16,9 @@ const watchCriticalFailures = (page: Page) => {
 
 const signIn = async (page: Page, email: string, next = "/panel") => {
   await page.goto(`/auth?next=${encodeURIComponent(next)}`);
+  // TanStack Start serves the form before React hydration finishes. Waiting
+  // avoids exercising the browser's native form submission on a cold start.
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Contraseña", { exact: true }).fill(email);
   await page
